@@ -155,20 +155,20 @@ export default function LecturerCourseDetailPage() {
         const pattern = getCoursePattern(course);
         const patStyle = getPatternStyle(pattern, accentToPatternColor(theme.accent));
         return (
-          <div className={`bg-gradient-to-r ${theme.bg} glass-card p-6 md:p-8 mb-8 relative overflow-hidden`}>
+          <div className={`bg-gradient-to-r ${theme.bg} glass-card p-4 md:p-5 mb-6 relative overflow-hidden`}>
             {patStyle && <div className="absolute inset-y-0 right-0 w-1/2 pointer-events-none" style={{ ...patStyle, mixBlendMode: "normal", opacity: 0.2, maskImage: "linear-gradient(to right, transparent, black)", WebkitMaskImage: "linear-gradient(to right, transparent, black)" }} />}
             <button
               onClick={() => router.push("/lecturer/class-management")}
-              className="px-3 py-1.5 rounded-lg bg-white/90 dark:bg-white/10 text-gray-700 dark:text-dark-200 hover:bg-white dark:hover:bg-white/20 text-sm flex items-center gap-1.5 mb-4 relative z-[1] backdrop-blur-sm border border-gray-200/50 dark:border-white/10 transition-colors"
+              className="px-3 py-1 rounded-lg bg-white/90 dark:bg-white/10 text-gray-700 dark:text-dark-200 hover:bg-white dark:hover:bg-white/20 text-xs flex items-center gap-1.5 mb-3 relative z-[1] backdrop-blur-sm border border-gray-200/50 dark:border-white/10 transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" /> Back to Classes
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Classes
             </button>
             <div className="relative z-[1]">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-dark-100 mb-1">{course.course_name}</h1>
-              <p className="text-dark-300">{course.course_code}</p>
-              <div className="flex flex-wrap gap-3 mt-3">
-                <span className="px-3 py-1 bg-white/10 rounded-full text-xs text-gray-700 dark:text-dark-200">Semester {course.semester}</span>
-                <span className="px-3 py-1 bg-white/10 rounded-full text-xs text-gray-700 dark:text-dark-200 flex items-center gap-1">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-dark-100 mb-0.5">{course.course_name}</h1>
+              <p className="text-xs text-dark-300">{course.course_code}</p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <span className="px-2.5 py-0.5 bg-white/10 rounded-full text-[11px] text-gray-700 dark:text-dark-200">Semester {course.semester}</span>
+                <span className="px-2.5 py-0.5 bg-white/10 rounded-full text-[11px] text-gray-700 dark:text-dark-200 flex items-center gap-1">
                   <Users className="w-3 h-3" /> {course.enrolled_count || 0} students
                 </span>
               </div>
@@ -177,29 +177,29 @@ export default function LecturerCourseDetailPage() {
         );
       })()}
 
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Course Tools</h2>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4 mb-8">
+      <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Course Tools</h2>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 mb-6">
         {modules.map(({ key, label, icon: Icon, desc, color }) => (
           <button
             key={key}
             onClick={() => router.push(`/lecturer/course/${cid}/${key}`)}
-            className="p-4 text-left rounded-2xl hover:-translate-y-1 hover:shadow-md transition-all bg-white dark:bg-white/[0.06] border border-gray-200 dark:border-white/8 backdrop-blur-sm shadow-sm"
+            className="p-3 text-left rounded-xl hover:-translate-y-0.5 hover:shadow-md transition-all bg-white dark:bg-white/[0.06] border border-gray-200 dark:border-white/8 backdrop-blur-sm shadow-sm"
             onMouseEnter={e => (e.currentTarget.style.borderColor = "#7c3aed40")}
             onMouseLeave={e => (e.currentTarget.style.borderColor = "")}
           >
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${color}`}>
-              <Icon className="w-5 h-5" />
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${color}`}>
+              <Icon className="w-4 h-4" />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{label}</h3>
-            <p className="text-xs text-dark-300 mt-1">{desc}</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white text-xs">{label}</h3>
+            <p className="text-[11px] text-gray-500 dark:text-dark-300 mt-0.5 leading-tight line-clamp-2">{desc}</p>
           </button>
         ))}
       </div>
 
       {/* Students Section */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Students</h2>
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Students</h2>
           <div className="flex gap-2">
             <button
               onClick={() => { setShowAddStudent(true); setSearchQuery(""); setSearchResults([]); setAddedIds(new Set()); }}
@@ -239,8 +239,8 @@ export default function LecturerCourseDetailPage() {
       </div>
 
       {/* Participation Scores */}
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Participation</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white">Participation</h2>
         <button
           onClick={() => setShowParticipation(!showParticipation)}
           className="text-sm text-accent-purple hover:text-accent-blue flex items-center gap-1"
