@@ -71,6 +71,10 @@ AI_USER_SETTINGS            = "aiUserSettings"             # keyed by userId —
 AI_DAILY_USAGE              = "aiDailyUsage"               # keyed by userId_YYYY-MM-DD — daily token counter
 AI_CONFIG                   = "aiConfig"                   # singleton "global" doc — default token limits
 
+# ── User sessions + feature usage (admin analytics) ──
+USER_SESSIONS = "userSessions"                       # keyed by userId_YYYY-MM-DD — daily time + feature visits
+USER_ACTIVITY_AGGREGATE = "userActivityAggregate"    # keyed by userId — lifetime totals for fast top-users queries
+
 # ── Course views (recently viewed tracking) ──
 COURSE_VIEWS = "courseViews"
 

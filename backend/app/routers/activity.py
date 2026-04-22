@@ -1,11 +1,97 @@
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from .. import models, schemas
 from ..firestore import get_db
 from ..auth import get_current_user
 from datetime import datetime, timezone
 from google.cloud.firestore_v1.base_query import FieldFilter
+from google.cloud.firestore_v1 import Increment
 
 router = APIRouter(prefix="/api/activity", tags=["Activity"])
+
+# Heartbeat cadence expected from clients (seconds). If the gap between pings
+# exceeds IDLE_GAP_SECONDS we assume the user was idle/backgrounded and only
+# credit 1 minute for this ping (not the full gap).
+HEARTBEAT_INTERVAL_SECONDS = 60
+IDLE_GAP_SECONDS = 5 * 60  # 5 min tolerance
+
+# Known feature keys (for normalisation; unknown keys are still accepted).
+KNOWN_FEATURES = {
+    "dashboard", "courses", "course_detail", "assignments", "quizzes",
+    "maps", "mindmap_editor", "gradebook", "messages", "planner",
+    "calendar", "achievements", "profile", "attendance", "peer_review",
+    "groups", "companion", "study_materials", "study_plan", "plagiarism",
+    "mindmap_buddy", "images", "admin", "other",
+}
+
+
+class HeartbeatRequest(BaseModel):
+    feature: str = "other"
+    platform: str = "web"  # "web" or "mobile"
+
+
+@router.post("/heartbeat")
+def heartbeat(
+    req: HeartbeatRequest,
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """Record one minute of user activity on a given feature.
+
+    Clients should ping this endpoint every ~60 seconds while the app is
+    foregrounded. Backend accumulates per-user-per-day minutes and a rolling
+    lifetime aggregate used by the admin analytics pages.
+    """
+    feature = (req.feature or "other").strip().lower()[:40] or "other"
+    platform = (req.platform or "web").strip().lower()
+    if platform not in ("web", "mobile"):
+        platform = "web"
+
+    now = datetime.now(timezone.utc)
+    date_key = now.strftime("%Y-%m-%d")
+    uid = user["id"]
+
+    # ── Daily session doc: userSessions/{uid}_{date} ───────────────────────
+    daily_ref = db.collection(models.USER_SESSIONS).document(f"{uid}_{date_key}")
+    prev = daily_ref.get()
+    minutes_to_add = 1
+    if prev.exists:
+        prev_data = prev.to_dict() or {}
+        last_ping_raw = prev_data.get("lastPingAt")
+        if last_ping_raw:
+            try:
+                last_ping = datetime.fromisoformat(last_ping_raw)
+                gap = (now - last_ping).total_seconds()
+                if gap > IDLE_GAP_SECONDS:
+                    minutes_to_add = 1  # idle → credit only this ping
+                else:
+                    minutes_to_add = max(1, round(gap / 60))
+            except Exception:
+                minutes_to_add = 1
+
+    daily_ref.set({
+        "userId": uid,
+        "date": date_key,
+        "minutesActive": Increment(minutes_to_add),
+        "lastPingAt": now.isoformat(),
+        "firstPingAt": prev.to_dict().get("firstPingAt", now.isoformat()) if prev.exists else now.isoformat(),
+        f"features.{feature}": Increment(minutes_to_add),
+        f"platforms.{platform}": Increment(minutes_to_add),
+    }, merge=True)
+
+    # ── Lifetime aggregate: userActivityAggregate/{uid} ────────────────────
+    agg_ref = db.collection(models.USER_ACTIVITY_AGGREGATE).document(uid)
+    agg_snap = agg_ref.get()
+    agg_ref.set({
+        "userId": uid,
+        "totalMinutes": Increment(minutes_to_add),
+        f"features.{feature}": Increment(minutes_to_add),
+        f"platforms.{platform}": Increment(minutes_to_add),
+        "lastSeenAt": now.isoformat(),
+        "firstSeenAt": agg_snap.to_dict().get("firstSeenAt", now.isoformat()) if agg_snap.exists else now.isoformat(),
+    }, merge=True)
+
+    return {"ok": True, "minutes_added": minutes_to_add}
 
 
 def log_activity(

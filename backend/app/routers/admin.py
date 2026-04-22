@@ -482,3 +482,162 @@ def set_user_token_limit(
     }, merge=True)
 
     return {"ok": True, "uid": uid, "dailyTokenLimit": req.limit}
+
+
+# ── Usage Analytics (time spent + feature usage) ───────────────────────────
+
+def _minutes_to_label(m: int) -> str:
+    if m < 60:
+        return f"{m}m"
+    h = m // 60
+    r = m % 60
+    return f"{h}h {r}m" if r else f"{h}h"
+
+
+@router.get("/top-users")
+def get_top_users(
+    limit: int = Query(20, le=100),
+    user: dict = Depends(require_admin),
+    db=Depends(get_db),
+):
+    """Return the top N users ranked by total time spent on the system.
+
+    Each record includes user info, lifetime minutes, per-feature breakdown,
+    and most/least used features. Consumed by the admin usage-analytics page
+    and the PDF export.
+    """
+    try:
+        agg_docs = (
+            db.collection(models.USER_ACTIVITY_AGGREGATE)
+            .order_by("totalMinutes", direction="DESCENDING")
+            .limit(limit)
+            .get()
+        )
+    except Exception:
+        # Missing index / empty collection → return empty result gracefully
+        agg_docs = []
+
+    results = []
+    grand_total_minutes = 0
+    global_features: dict[str, int] = {}
+
+    for d in agg_docs:
+        data = d.to_dict() or {}
+        uid = data.get("userId", d.id)
+        total = int(data.get("totalMinutes", 0) or 0)
+        features = {k: int(v or 0) for k, v in (data.get("features") or {}).items()}
+        platforms = {k: int(v or 0) for k, v in (data.get("platforms") or {}).items()}
+
+        # Enrich with user info
+        user_info = {}
+        try:
+            u_doc = db.collection(models.USERS).document(uid).get()
+            if u_doc.exists:
+                u = u_doc.to_dict() or {}
+                user_info = {
+                    "displayName": u.get("displayName", ""),
+                    "email": u.get("email", ""),
+                    "photoURL": u.get("photoURL", ""),
+                    "role": u.get("role", ""),
+                }
+        except Exception:
+            pass
+
+        # Most / least used (ignore features with 0)
+        non_zero = [(k, v) for k, v in features.items() if v > 0]
+        non_zero.sort(key=lambda x: x[1], reverse=True)
+        most_used = non_zero[0][0] if non_zero else ""
+        least_used = non_zero[-1][0] if non_zero else ""
+
+        grand_total_minutes += total
+        for k, v in features.items():
+            global_features[k] = global_features.get(k, 0) + v
+
+        results.append({
+            "userId": uid,
+            "user": user_info,
+            "totalMinutes": total,
+            "totalLabel": _minutes_to_label(total),
+            "features": features,
+            "platforms": platforms,
+            "mostUsedFeature": most_used,
+            "leastUsedFeature": least_used,
+            "firstSeenAt": data.get("firstSeenAt"),
+            "lastSeenAt": data.get("lastSeenAt"),
+        })
+
+    # Global feature summary
+    top_feature = max(global_features.items(), key=lambda kv: kv[1], default=("", 0))
+    summary = {
+        "totalUsers": len(results),
+        "grandTotalMinutes": grand_total_minutes,
+        "grandTotalLabel": _minutes_to_label(grand_total_minutes),
+        "globalFeatures": global_features,
+        "topFeature": top_feature[0],
+        "topFeatureMinutes": top_feature[1],
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+    }
+
+    return {"users": results, "summary": summary}
+
+
+@router.get("/users/{uid}/analytics")
+def get_user_analytics(
+    uid: str,
+    days: int = Query(30, ge=1, le=180),
+    user: dict = Depends(require_admin),
+    db=Depends(get_db),
+):
+    """Per-user usage analytics: lifetime feature breakdown + last N days of daily sessions."""
+    user_doc = db.collection(models.USERS).document(uid).get()
+    if not user_doc.exists:
+        raise HTTPException(404, "User not found")
+    u = user_doc.to_dict() or {}
+
+    # Lifetime aggregate
+    agg_snap = db.collection(models.USER_ACTIVITY_AGGREGATE).document(uid).get()
+    agg = agg_snap.to_dict() if agg_snap.exists else {}
+    total = int(agg.get("totalMinutes", 0) or 0) if agg else 0
+    features = {k: int(v or 0) for k, v in ((agg or {}).get("features") or {}).items()}
+    platforms = {k: int(v or 0) for k, v in ((agg or {}).get("platforms") or {}).items()}
+
+    # Daily breakdown for the last N days (read docs directly by ID)
+    today = datetime.now(timezone.utc).date()
+    daily = []
+    for i in range(days):
+        d = today.fromordinal(today.toordinal() - i)
+        date_key = d.strftime("%Y-%m-%d")
+        snap = db.collection(models.USER_SESSIONS).document(f"{uid}_{date_key}").get()
+        if snap.exists:
+            dd = snap.to_dict() or {}
+            daily.append({
+                "date": date_key,
+                "minutes": int(dd.get("minutesActive", 0) or 0),
+                "features": {k: int(v or 0) for k, v in (dd.get("features") or {}).items()},
+            })
+        else:
+            daily.append({"date": date_key, "minutes": 0, "features": {}})
+    daily.reverse()  # oldest → newest
+
+    # Most / least used
+    non_zero = [(k, v) for k, v in features.items() if v > 0]
+    non_zero.sort(key=lambda x: x[1], reverse=True)
+
+    return {
+        "user": {
+            "id": uid,
+            "displayName": u.get("displayName", ""),
+            "email": u.get("email", ""),
+            "photoURL": u.get("photoURL", ""),
+            "role": u.get("role", ""),
+        },
+        "totalMinutes": total,
+        "totalLabel": _minutes_to_label(total),
+        "features": features,
+        "platforms": platforms,
+        "mostUsedFeatures": [{"feature": k, "minutes": v} for k, v in non_zero[:5]],
+        "leastUsedFeatures": [{"feature": k, "minutes": v} for k, v in non_zero[-5:][::-1]] if len(non_zero) >= 5 else [],
+        "daily": daily,
+        "firstSeenAt": agg.get("firstSeenAt") if agg else None,
+        "lastSeenAt": agg.get("lastSeenAt") if agg else None,
+    }
