@@ -16,7 +16,7 @@ import {
 import { useRouter } from "next/navigation";
 import SelectWithOther from "@/components/ui/select-with-other";
 import { COURSE_NAMES, COURSE_CODES } from "@/lib/constants";
-import { getPatternStyle, getPatternPreviewStyle, PATTERN_LIST } from "@/lib/patterns";
+import { getPatternStyle, getPatternLayerStyle, PATTERN_LIST } from "@/lib/patterns";
 
 type ImportStep = "url" | "scanning" | "preview" | "importing" | "success";
 
@@ -958,12 +958,14 @@ export default function ClassManagementPage() {
               {PATTERN_LIST.map(p => {
                 const selected = form.pattern === p.id;
                 const accent = (form.themeColor ? getClassColor(form.themeColor) : CLASS_COLORS[0]).accent;
+                const layerStyle = getPatternLayerStyle(p.id);
                 return (
                   <button key={p.id} type="button"
                     onClick={() => setForm(pr => ({ ...pr, pattern: p.id }))}
                     className={`relative h-14 rounded-xl overflow-hidden transition-all ${selected ? "ring-2 ring-white/70" : "ring-1 ring-white/10 hover:ring-white/30"}`}
-                    style={{ backgroundColor: accent, ...(getPatternStyle(p.id, accent) || {}) }}
+                    style={{ backgroundColor: accent }}
                     title={p.label}>
+                    {layerStyle && <span aria-hidden className="absolute inset-0" style={layerStyle} />}
                     <span className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <span className="absolute left-2 bottom-1 text-[11px] font-medium text-white drop-shadow">{p.label}</span>
                     {selected && <Check className="absolute top-1.5 right-1.5 w-3.5 h-3.5 text-white drop-shadow" />}

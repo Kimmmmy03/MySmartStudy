@@ -83,3 +83,20 @@ export const PATTERN_LIST = [
 export function getPatternPreviewStyle(patternId: string): React.CSSProperties | null {
   return getPatternStyle(patternId, "rgba(140,140,180,0.55)");
 }
+
+/**
+ * Returns CSS for an inner layer (absolute-positioned) that renders only the
+ * pattern image — no element-level opacity, no mixBlendMode. Use this for
+ * picker buttons so the pattern stays visible in light mode (mixBlendMode:
+ * overlay against a white background washes patterns out to invisible).
+ */
+export function getPatternLayerStyle(patternId: string): React.CSSProperties | null {
+  const def = PATTERNS[patternId];
+  if (!def) return null;
+  return {
+    backgroundImage: def.img ? `url("${def.img}")` : (def.svg ? encodeSvg(def.svg("rgba(255,255,255,0.5)")) : "none"),
+    backgroundRepeat: "repeat",
+    backgroundSize: def.size,
+    opacity: 0.85,
+  };
+}
