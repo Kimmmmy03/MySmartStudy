@@ -203,6 +203,8 @@ class SubmissionOut(BaseModel):
     submission_type: str
     map_id: Optional[str] = None
     external_link: Optional[str] = None
+    file_url: Optional[str] = None
+    file_name: Optional[str] = None
     comments: str
     grade: Optional[float] = None
     feedback: Optional[str] = None

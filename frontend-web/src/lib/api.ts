@@ -135,6 +135,8 @@ export interface SubmissionOut {
   submission_type: string;
   map_id: string | null;
   external_link: string | null;
+  file_url?: string | null;
+  file_name?: string | null;
   comments: string;
   grade: number | null;
   feedback: string | null;

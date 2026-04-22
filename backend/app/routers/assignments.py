@@ -15,6 +15,8 @@ _SUB_FIELD_MAP = {
     "submission_type": "submissionType",
     "map_id": "mapId",
     "external_link": "externalLink",
+    "file_url": "fileUrl",
+    "file_name": "fileName",
 }
 
 
@@ -57,6 +59,8 @@ def _submission_out(s: dict, photo_url: str | None = None) -> schemas.Submission
         submission_type=s.get("submissionType", "map"),
         map_id=s.get("mapId"),
         external_link=s.get("externalLink"),
+        file_url=s.get("fileUrl"),
+        file_name=s.get("fileName"),
         comments=s.get("comments", ""),
         grade=s.get("grade"),
         feedback=s.get("feedback"),
