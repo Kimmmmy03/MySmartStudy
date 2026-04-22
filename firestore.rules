@@ -280,5 +280,46 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
+
+    // ── Usage Analytics (admin read only, backend-only writes via Admin SDK) ──
+    // Clients must never write directly — the /api/activity/heartbeat endpoint
+    // is the single source of truth so idle-gap rules + platform tallies stay
+    // consistent.
+    match /userSessions/{sessionId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /userActivityAggregate/{userId} {
+      // Users can see their own lifetime totals; admins see all.
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if false;
+    }
+
+    // ── AI Usage Tracking (backend-only writes via Admin SDK) ──
+    match /aiUsageSummary/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if false;
+    }
+
+    match /aiUserSettings/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if false;
+    }
+
+    match /aiDailyUsage/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /aiConfig/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /aiImageQuotas/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
   }
 }
