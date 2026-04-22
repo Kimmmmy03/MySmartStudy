@@ -1114,6 +1114,17 @@ class ApiService {
       _patch('/admin/users/$userId/image-quota', {'limit': limit});
 
   // ───────────────────────────────────────────────────────────────────
+  // Usage Analytics Heartbeat
+  // ───────────────────────────────────────────────────────────────────
+  static Future<void> activityHeartbeat(String feature, {String platform = 'mobile'}) async {
+    try {
+      await _post('/activity/heartbeat', {'feature': feature, 'platform': platform});
+    } catch (_) {
+      // Best-effort — swallow errors so analytics never breaks the app.
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────
   // QR Attendance
   // ───────────────────────────────────────────────────────────────────
   static Future<Map<String, dynamic>> attendanceCheckIn(String token) async {

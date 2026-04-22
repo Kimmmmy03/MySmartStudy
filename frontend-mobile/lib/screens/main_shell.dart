@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,13 +23,16 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => MainShellState();
 }
 
-class MainShellState extends State<MainShell> {
+class MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _currentIndex = 0;
   // Pages are built lazily on first visit to avoid startup cost
   final Map<int, Widget> _builtPages = {};
   String _role = '';
   bool _companionEnabled = true;
   int _unreadNotifications = 0;
+
+  Timer? _heartbeatTimer;
+  bool _appForeground = true;
 
   // Key on the home screen so other tabs (e.g. Profile after avatar upload)
   // can imperatively refresh its banner without rebuilding the whole shell.
@@ -60,9 +64,46 @@ class MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Pre-build only the home screen at startup
     _getPage(0);
     _loadRole();
+    _startHeartbeat();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _heartbeatTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appForeground = state == AppLifecycleState.resumed;
+    if (_appForeground) _sendHeartbeat();
+  }
+
+  String _currentFeature() {
+    switch (_currentIndex) {
+      case 0: return 'dashboard';
+      case 1: return 'courses';
+      case 2: return 'planner';
+      case 3: return 'maps';
+      case 4: return 'profile';
+      default: return 'other';
+    }
+  }
+
+  void _sendHeartbeat() {
+    if (!_appForeground) return;
+    ApiService.activityHeartbeat(_currentFeature());
+  }
+
+  void _startHeartbeat() {
+    // Fire one immediately so short sessions still register
+    _sendHeartbeat();
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 60), (_) => _sendHeartbeat());
   }
 
   Future<void> _loadRole() async {
