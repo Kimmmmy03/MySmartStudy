@@ -88,12 +88,15 @@ html.dark {
 }
 .glass-input::placeholder { color: rgba(255, 255, 255, 0.3); }
 
-/* Native select consistency */
+/* Native select consistency — chevron must stay as a single non-repeating icon.
+ * Tailwind utility classes on the same element (e.g. bg-dark-800) can shadow
+ * or shorthand-reset background-repeat/size, causing the chevron SVG to tile
+ * across the whole select. Defensive !important keeps the icon anchored. */
 select.glass-input {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 0.75rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 0.75rem !important;
   padding-right: 2rem;
   cursor: pointer;
   text-overflow: ellipsis;
@@ -150,7 +153,7 @@ html.light input[type="datetime-local"].glass-input::-webkit-calendar-picker-ind
   opacity: 1;
 }
 html.light select.glass-input {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(27,42,128,0.6)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(27,42,128,0.6)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
 }
 html.light select.glass-input option {
   background: #ffffff;

@@ -163,11 +163,11 @@ export default function PlagiarismPage() {
           <select
             value={selectedAssignment}
             onChange={e => setSelectedAssignment(e.target.value)}
-            className="glass-input w-full py-2.5 bg-dark-800 appearance-none cursor-pointer"
+            className="glass-input w-full py-2.5 px-3"
           >
-            <option value="" className="bg-dark-800">Choose an assignment...</option>
+            <option value="">Choose an assignment...</option>
             {assignments.map(a => (
-              <option key={a.id} value={a.id} className="bg-dark-800">{a.title}</option>
+              <option key={a.id} value={a.id}>{a.title}</option>
             ))}
           </select>
         )}
