@@ -111,6 +111,7 @@ const adminGroups: NavGroup[] = [
       { href: "/admin/manage-badges", label: "Manage Badges", icon: BadgeCheck },
       { href: "/admin/audit-logs", label: "Audit Logs", icon: ScrollText },
       { href: "/admin/ai-usage", label: "AI Usage", icon: BarChart2 },
+      { href: "/admin/usage-analytics", label: "Usage Analytics", icon: Activity },
     ],
   },
 ];

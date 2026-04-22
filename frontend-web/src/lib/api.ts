@@ -744,6 +744,13 @@ export interface ActivityOut {
 export const activityApi = {
   list: (limit?: number) =>
     request<ActivityOut[]>(`/activity/?limit=${limit || 20}`),
+
+  // Heartbeat — client pings every 60s while foregrounded
+  heartbeat: (feature: string, platform: "web" | "mobile" = "web") =>
+    request<{ ok: boolean; minutes_added: number }>(
+      "/activity/heartbeat",
+      { method: "POST", body: JSON.stringify({ feature, platform }) }
+    ),
 };
 
 // ── Notifications API ──
@@ -1421,7 +1428,57 @@ export const adminApi = {
       `/admin/users/${uid}/token-limit`,
       { method: "PATCH", body: JSON.stringify({ limit }) }
     ),
+
+  // Usage analytics — time spent + feature usage
+  getTopUsers: (params?: { limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.limit) q.set("limit", String(params.limit));
+    return request<TopUsersResponse>(`/admin/top-users?${q.toString()}`);
+  },
+
+  getUserAnalytics: (uid: string, days = 30) =>
+    request<UserAnalyticsResponse>(`/admin/users/${uid}/analytics?days=${days}`),
 };
+
+// ── Usage Analytics types ──
+export interface TopUserRecord {
+  userId: string;
+  user: { displayName: string; email: string; photoURL: string; role: string };
+  totalMinutes: number;
+  totalLabel: string;
+  features: Record<string, number>;
+  platforms: Record<string, number>;
+  mostUsedFeature: string;
+  leastUsedFeature: string;
+  firstSeenAt: string | null;
+  lastSeenAt: string | null;
+}
+
+export interface TopUsersResponse {
+  users: TopUserRecord[];
+  summary: {
+    totalUsers: number;
+    grandTotalMinutes: number;
+    grandTotalLabel: string;
+    globalFeatures: Record<string, number>;
+    topFeature: string;
+    topFeatureMinutes: number;
+    generatedAt: string;
+  };
+}
+
+export interface UserAnalyticsResponse {
+  user: { id: string; displayName: string; email: string; photoURL: string; role: string };
+  totalMinutes: number;
+  totalLabel: string;
+  features: Record<string, number>;
+  platforms: Record<string, number>;
+  mostUsedFeatures: { feature: string; minutes: number }[];
+  leastUsedFeatures: { feature: string; minutes: number }[];
+  daily: { date: string; minutes: number; features: Record<string, number> }[];
+  firstSeenAt: string | null;
+  lastSeenAt: string | null;
+}
 
 // ── AI Usage Types ──
 export interface AiUsageRecord {

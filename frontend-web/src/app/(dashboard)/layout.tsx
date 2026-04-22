@@ -13,6 +13,7 @@ import MobileBottomNav from "@/components/mobile-bottom-nav";
 import { MindmapProvider } from "@/contexts/mindmap-context";
 import { badgesApi } from "@/lib/api";
 import { resolveBadge } from "@/lib/utils";
+import { useHeartbeat } from "@/hooks/use-heartbeat";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, refreshProfile } = useAuth();
@@ -31,6 +32,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const stored = localStorage.getItem("mss-sidebar-collapsed");
     if (stored === "true") setSidebarCollapsed(true);
   }, []);
+
+  useHeartbeat(!!profile);
 
   const handleToggleCollapse = () => {
     setSidebarCollapsed(prev => {
