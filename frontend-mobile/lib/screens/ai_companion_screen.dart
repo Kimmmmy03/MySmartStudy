@@ -350,10 +350,7 @@ class _AiCompanionScreenState extends State<AiCompanionScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.lightTheme,
-      child: Builder(builder: (ctx) => _buildBody(ctx)),
-    );
+    return _buildBody(context);
   }
 
   Widget _buildBody(BuildContext context) {
