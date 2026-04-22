@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { assignmentsApi, aiPlagiarismApi, type AssignmentOut, type SubmissionOut, type PlagiarismReport, type PlagiarismNetworkReport } from "@/lib/api";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Bot, Globe, BookOpen, FileText, Loader2, ChevronDown, ChevronUp, Network, AlertTriangle, Users, ArrowLeft } from "lucide-react";
+import { Shield, Bot, Globe, BookOpen, FileText, Loader2, ChevronDown, ChevronUp, Network, AlertTriangle, Users, ArrowLeft, ExternalLink, Paperclip, Calendar, Map as MapIcon, Link2, Eye, Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
+import { resolveBackendUrl } from "@/lib/utils";
 
 const sourceIcon = (type: string) => {
   switch (type) {
@@ -120,14 +121,31 @@ export default function PlagiarismPage() {
     { key: "network" as const, label: "Cross-Submission Similarity", icon: Network },
   ];
 
+  const currentAssignment = useMemo(
+    () => assignments.find(a => a.id === selectedAssignment) || null,
+    [assignments, selectedAssignment]
+  );
+
+  const flaggedCount = useMemo(
+    () => Object.values(reports).filter(r => r.plagiarism_percentage > 50).length,
+    [reports]
+  );
+  const analyzedCount = Object.keys(reports).length;
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => router.push(`/lecturer/course/${cid}`)} className="text-dark-300 hover:text-white transition-colors">
-          <ArrowLeft className="w-5 h-5" />
+        <button
+          onClick={() => router.push(`/lecturer/course/${cid}`)}
+          className="w-9 h-9 rounded-xl border border-white/10 text-dark-300 hover:text-white hover:bg-white/5 transition-colors flex items-center justify-center"
+          aria-label="Back to course"
+        >
+          <ArrowLeft className="w-4 h-4" />
         </button>
-        <Shield className="w-6 h-6 text-accent-cyan" />
+        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent-cyan/20 to-accent-blue/20 border border-accent-cyan/20 flex items-center justify-center">
+          <Shield className="w-5 h-5 text-accent-cyan" />
+        </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Plagiarism Detection</h1>
           <p className="text-sm text-gray-500 dark:text-dark-300">AI-powered plagiarism analysis and cross-submission similarity</p>
@@ -136,7 +154,7 @@ export default function PlagiarismPage() {
 
       {/* Assignment Selector */}
       <div className="glass-card p-4 mb-6">
-        <label className="text-xs font-medium text-gray-600 dark:text-dark-300 mb-2 block">Select Assignment</label>
+        <label className="text-xs font-medium text-gray-600 dark:text-dark-300 mb-2 block uppercase tracking-wide">Select Assignment</label>
         {loading ? (
           <div className="flex items-center gap-2 text-dark-400 text-sm">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading assignments...
@@ -154,6 +172,77 @@ export default function PlagiarismPage() {
           </select>
         )}
       </div>
+
+      {/* Assignment overview card — shows the selected assignment's context */}
+      {currentAssignment && (
+        <motion.div
+          key={currentAssignment.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card p-5 mb-6"
+        >
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <FileText className="w-4 h-4 text-accent-cyan shrink-0" />
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white truncate">{currentAssignment.title}</h2>
+                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20">
+                  {currentAssignment.assignment_type}
+                </span>
+              </div>
+              {currentAssignment.description && (
+                <p className="text-xs text-gray-500 dark:text-dark-400 line-clamp-2 mb-2">{currentAssignment.description}</p>
+              )}
+              <div className="flex items-center gap-4 flex-wrap text-xs text-gray-500 dark:text-dark-400">
+                {currentAssignment.deadline && (
+                  <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Due {new Date(currentAssignment.deadline).toLocaleDateString()}</span>
+                )}
+                <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {submissions.length} submission{submissions.length === 1 ? "" : "s"}</span>
+                {analyzedCount > 0 && (
+                  <span className="flex items-center gap-1 text-accent-cyan">
+                    <Shield className="w-3 h-3" /> {analyzedCount} analyzed
+                  </span>
+                )}
+                {flaggedCount > 0 && (
+                  <span className="flex items-center gap-1 text-red-400">
+                    <AlertTriangle className="w-3 h-3" /> {flaggedCount} flagged
+                  </span>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => router.push(`/lecturer/course/${cid}/assignments?id=${currentAssignment.id}`)}
+              className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-white/5 text-dark-200 hover:bg-white/10 hover:text-white transition-colors border border-white/10"
+            >
+              <ExternalLink className="w-3 h-3" /> Open Assignment
+            </button>
+          </div>
+
+          {/* Attachments */}
+          {currentAssignment.attachments && currentAssignment.attachments.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <p className="text-[10px] uppercase tracking-wider font-medium text-dark-400 mb-2 flex items-center gap-1.5">
+                <Paperclip className="w-3 h-3" /> Assignment Files
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {currentAssignment.attachments.map((att, i) => (
+                  <a
+                    key={i}
+                    href={resolveBackendUrl(att.url) || att.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20 border border-accent-blue/20 transition-colors"
+                  >
+                    <FileText className="w-3 h-3" />
+                    <span className="truncate max-w-[220px]">{att.name || `Attachment ${i + 1}`}</span>
+                    <Download className="w-3 h-3 opacity-70" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* Tabs */}
       {selectedAssignment && (
@@ -192,9 +281,10 @@ export default function PlagiarismPage() {
                 <>
                   <div className="glass-card overflow-hidden">
                     {/* Table Header */}
-                    <div className="grid grid-cols-[1fr_120px_100px_100px_120px] gap-2 px-5 py-3 border-b border-white/5 text-xs font-medium text-dark-400 uppercase tracking-wide">
+                    <div className="grid grid-cols-[1fr_110px_90px_90px_90px_180px] gap-2 px-5 py-3 border-b border-white/5 text-xs font-medium text-dark-400 uppercase tracking-wide">
                       <span>Student</span>
                       <span>Submitted</span>
+                      <span className="text-center">Type</span>
                       <span className="text-center">AI %</span>
                       <span className="text-center">Grade</span>
                       <span className="text-center">Actions</span>
@@ -206,14 +296,40 @@ export default function PlagiarismPage() {
                       const isExpanded = expandedSub === sub.id;
                       const isAnalyzing = analyzing === sub.id;
 
+                      const typeLabel = sub.submission_type === "map" ? "Map" : sub.submission_type === "link" ? "Link" : "File";
+                      const TypeIcon = sub.submission_type === "map" ? MapIcon : sub.submission_type === "link" ? Link2 : FileText;
+
+                      const handleView = () => {
+                        if (sub.submission_type === "map" && sub.map_id) {
+                          router.push(`/lecturer/view-map/${sub.map_id}`);
+                        } else if (sub.submission_type === "link" && sub.external_link) {
+                          window.open(sub.external_link, "_blank", "noopener,noreferrer");
+                        } else if (sub.file_url) {
+                          window.open(resolveBackendUrl(sub.file_url) || sub.file_url, "_blank", "noopener,noreferrer");
+                        }
+                      };
+                      const viewable =
+                        (sub.submission_type === "map" && !!sub.map_id) ||
+                        (sub.submission_type === "link" && !!sub.external_link) ||
+                        !!sub.file_url;
+
                       return (
                         <div key={sub.id} className="border-b border-white/5 last:border-0">
-                          <div className="grid grid-cols-[1fr_120px_100px_100px_120px] gap-2 px-5 py-3 items-center">
+                          <div className="grid grid-cols-[1fr_110px_90px_90px_90px_180px] gap-2 px-5 py-3 items-center">
                             <div className="flex items-center gap-2 min-w-0">
                               <UserAvatar name={sub.student_name} photoUrl={sub.student_photo_url} size={28} role="student" />
                               <span className="text-sm font-medium text-gray-900 dark:text-dark-100 truncate">{sub.student_name}</span>
                             </div>
                             <span className="text-xs text-dark-400">{new Date(sub.submitted_at).toLocaleDateString()}</span>
+                            <div className="flex justify-center">
+                              <span
+                                className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-white/5 text-dark-200 border border-white/5"
+                                title={sub.file_name || typeLabel}
+                              >
+                                <TypeIcon className="w-3 h-3" />
+                                {typeLabel}
+                              </span>
+                            </div>
                             <div className="flex justify-center">
                               {report ? (
                                 <CircularProgress percentage={report.plagiarism_percentage} size={44} />
@@ -230,12 +346,21 @@ export default function PlagiarismPage() {
                                 <span className="text-xs text-dark-500">Ungraded</span>
                               )}
                             </div>
-                            <div className="flex justify-center gap-2">
+                            <div className="flex justify-center items-center gap-1.5">
+                              <button
+                                onClick={handleView}
+                                disabled={!viewable}
+                                className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20 transition-colors border border-accent-blue/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                                title={viewable ? "Open submission" : "No file or link attached"}
+                              >
+                                <Eye className="w-3 h-3" />
+                                View
+                              </button>
                               {!report ? (
                                 <button
                                   onClick={() => handleAnalyze(sub.id)}
                                   disabled={isAnalyzing}
-                                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-accent-cyan/10 text-accent-cyan hover:bg-accent-cyan/20 transition-colors border border-accent-cyan/20 disabled:opacity-40"
+                                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-accent-cyan/10 text-accent-cyan hover:bg-accent-cyan/20 transition-colors border border-accent-cyan/20 disabled:opacity-40"
                                 >
                                   {isAnalyzing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Shield className="w-3 h-3" />}
                                   {isAnalyzing ? "..." : "Analyze"}
@@ -243,10 +368,10 @@ export default function PlagiarismPage() {
                               ) : (
                                 <button
                                   onClick={() => setExpandedSub(isExpanded ? null : sub.id)}
-                                  className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-white/5 text-dark-300 hover:bg-white/10 transition-colors"
+                                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-white/5 text-dark-300 hover:bg-white/10 transition-colors border border-white/5"
                                 >
                                   {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                                  {isExpanded ? "Hide" : "Details"}
+                                  {isExpanded ? "Hide" : "Report"}
                                 </button>
                               )}
                             </div>
