@@ -292,6 +292,7 @@ async def chat(req: ChatRequest, user=Depends(get_current_user)):
 
     system_prompt = (
         f"{get_knowledge_base('rag_companion')}\n\n"
+        "IMPORTANT: NEVER repeat or echo the student's message. Always provide a helpful, original response.\n\n"
         f"Student name: {user.get('displayName', 'Student')}\n"
         f"Learning style: {learning_style}\n"
         f"Current page: {req.context.get('page', 'unknown') if req.context else 'unknown'}\n\n"
@@ -421,6 +422,7 @@ async def chat_stream(req: ChatRequest, user=Depends(get_current_user)):
 
     system_prompt = (
         f"{get_knowledge_base('rag_companion')}\n\n"
+        "IMPORTANT: NEVER repeat or echo the student's message. Always provide a helpful, original response.\n\n"
         f"Student name: {user.get('displayName', 'Student')}\n"
         f"Learning style: {learning_style}\n"
         f"Current page: {req.context.get('page', 'unknown') if req.context else 'unknown'}\n\n"

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from app.auth import get_current_user
-from app.ai_service import generate_json, generate_text, set_tracking_context
+from app.ai_service import generate_json, generate_text, chat_completion, set_tracking_context
 from app.firestore import db
 from app import models, rag_service, rag_multistep, gag_service, knowledge_graph_service
 from app.multi_agent import fan_out, get_or_default
@@ -397,11 +397,17 @@ async def mindmap_chat(req: ChatRequest, user=Depends(get_current_user)):
     messages = memory.get("messages", [])
     preferences = memory.get("preferences", {})
 
-    context_str = ""
+    # Build context snippets for the system prompt
+    context_parts = []
     if req.map_context:
-        context_str = f"\n\nCurrent map context: {req.map_context}"
-
-    history_str = _build_history_context(messages)
+        context_parts.append(f"Current map context: {req.map_context}")
+    if preferences:
+        pref_type = preferences.get("preferred_map_type", "")
+        pref_exp = preferences.get("experience", "")
+        if pref_type:
+            context_parts.append(f"Student's preferred map type: {pref_type}")
+        if pref_exp:
+            context_parts.append(f"Student's experience level: {pref_exp}")
 
     # RAG: retrieve relevant course content for the chat message
     rag_context = ""
@@ -417,16 +423,35 @@ async def mindmap_chat(req: ChatRequest, user=Depends(get_current_user)):
     except Exception:
         pass
 
-    prompt = f"""Student message: {req.message}{context_str}{history_str}{rag_context}
+    # Build system instruction with context
+    system_prompt = (
+        f"{MINDMAP_SYSTEM_PROMPT}\n\n"
+        "IMPORTANT RULES:\n"
+        "- NEVER repeat or echo the student's message back to them.\n"
+        "- Always provide a helpful, original response with actionable advice.\n"
+        "- Keep responses concise (2-4 sentences).\n"
+        "- When relevant, reference course materials to give grounded suggestions.\n"
+        "- If the student asks for mind map ideas, suggest specific topics and structure.\n"
+    )
+    if context_parts:
+        system_prompt += "\n" + "\n".join(context_parts)
+    if rag_context:
+        system_prompt += rag_context
 
-Respond helpfully about their mind map. Keep it concise (2-3 sentences max).
-If the student mentions preferences (like preferred map types, topics, or style), acknowledge them.
-When relevant, reference course materials to provide grounded suggestions."""
+    # Build multi-turn message history for chat_completion
+    gemini_messages = []
+    for m in messages[-10:]:
+        role = "user" if m.get("role") == "user" else "model"
+        text = m.get("text", "")
+        if text:
+            gemini_messages.append({"role": role, "parts": [text]})
+    # Add current user message
+    gemini_messages.append({"role": "user", "parts": [req.message]})
 
     try:
-        response = await generate_text(
-            prompt,
-            system_instruction=MINDMAP_SYSTEM_PROMPT,
+        response = await chat_completion(
+            gemini_messages,
+            system_instruction=system_prompt,
             temperature=0.7,
         )
 
