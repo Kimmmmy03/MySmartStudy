@@ -1,0 +1,120 @@
+# =============================
+# Dependencies
+# =============================
+node_modules/
+package-lock.json
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Flutter
+**/android/.gradle
+**/ios/Pods
+**/ios/.symlinks
+**/build/
+**/.dart_tool/
+**/.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# =============================
+# Environment & Secrets
+# =============================
+.env
+.env.*
+!.env.example
+serviceAccountKey.json
+google-services.json
+
+# =============================
+# Build Outputs
+# =============================
+.next/
+out/
+build/
+dist/
+
+# =============================
+# IDE / Editor
+# =============================
+.idea/
+.vscode/
+*.swp
+*.swo
+*.iml
+
+# =============================
+# OS Files
+# =============================
+.DS_Store
+Thumbs.db
+*.pem
+
+# =============================
+# Debug Logs
+# =============================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =============================
+# TypeScript
+# =============================
+*.tsbuildinfo
+next-env.d.ts
+
+# =============================
+# Firebase
+# =============================
+.firebase/
+.firebaserc
+
+# =============================
+# Testing
+# =============================
+playwright-report/
+test-results/
+
+# =============================
+# Database
+# =============================
+*.db
+
+# =============================
+# Uploads (user-generated content)
+# =============================
+uploads/
+
+# =============================
+# Vector Store (AI embeddings - large binary files)
+# =============================
+vector_store/
+
+# =============================
+# AI / Tooling indexes
+# =============================
+.gitnexus/
+.claude/
+nexus-graph-data.js
+
+# =============================
+# Misc generated files
+# =============================
+*.log
+
+# Backup files
+*.bak
+
+# =============================
+# Dev logs & local tooling
+# =============================
+.dev-logs/
+CLAUDE.md
+nexus-graph-viewer.html
+icon-preview.html
+

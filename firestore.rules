@@ -1,0 +1,284 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isLecturer() {
+      return hasRole('lecturer');
+    }
+
+    function isStudent() {
+      return hasRole('student');
+    }
+
+    function isLecturerOrAdmin() {
+      return isLecturer() || isAdmin();
+    }
+
+    // ── Users ──
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // ── Maps ──
+    match /maps/{mapId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() &&
+        (resource.data.ownerId == request.auth.uid || isAdmin());
+
+      // Presence subcollection
+      match /presence/{presenceId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
+
+      // Annotations subcollection
+      match /annotations/{annotationId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated();
+        allow update, delete: if isAuthenticated() &&
+          (resource.data.authorId == request.auth.uid || isLecturerOrAdmin());
+      }
+    }
+
+    // ── Courses ──
+    match /courses/{courseId} {
+      allow read: if isAuthenticated();
+      allow create: if isLecturerOrAdmin();
+      allow update, delete: if isAuthenticated() &&
+        (resource.data.lecturerId == request.auth.uid || isAdmin());
+    }
+
+    // ── Assignments ──
+    match /assignments/{assignmentId} {
+      allow read: if isAuthenticated();
+      allow create: if isLecturerOrAdmin();
+      allow update, delete: if isAuthenticated() &&
+        (resource.data.lecturerId == request.auth.uid || isAdmin());
+    }
+
+    // ── Submissions ──
+    match /submissions/{submissionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() &&
+        (resource.data.studentId == request.auth.uid || isLecturerOrAdmin());
+    }
+
+    // ── Quizzes ──
+    match /quizzes/{quizId} {
+      allow read: if isAuthenticated();
+      allow create: if isLecturerOrAdmin();
+      allow update, delete: if isAuthenticated() &&
+        (resource.data.lecturerId == request.auth.uid || isAdmin());
+    }
+
+    // ── Quiz Questions ──
+    match /quizQuestions/{questionId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isLecturerOrAdmin();
+    }
+
+    // ── Quiz Attempts ──
+    match /quizAttempts/{attemptId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      // Students can only read their own; lecturers can read all
+    }
+
+    // ── Discussions (class chat + forum posts) ──
+    match /discussions/{discussionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow delete: if isAuthenticated() &&
+        (resource.data.senderId == request.auth.uid || isLecturerOrAdmin());
+    }
+
+    // ── Discussion Topics (forum) ──
+    match /discussionTopics/{topicId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() &&
+        (resource.data.authorId == request.auth.uid || isLecturerOrAdmin());
+      allow delete: if isAuthenticated() &&
+        (resource.data.authorId == request.auth.uid || isLecturerOrAdmin());
+    }
+
+    // ── Announcements ──
+    match /announcements/{announcementId} {
+      allow read: if isAuthenticated();
+      allow create: if isLecturerOrAdmin();
+      allow update, delete: if isAuthenticated() &&
+        (resource.data.senderId == request.auth.uid || isAdmin());
+    }
+
+    // ── Course Modules ──
+    match /courseModules/{moduleId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isLecturerOrAdmin();
+    }
+
+    // ── Module Items ──
+    match /moduleItems/{itemId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isLecturerOrAdmin();
+    }
+
+    // ── Resource Progress ──
+    match /resourceProgress/{progressId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
+
+    // ── Reminders (private to owner) ──
+    match /reminders/{reminderId} {
+      allow read, write: if isOwner(resource.data.ownerId);
+      allow create: if isAuthenticated();
+    }
+
+    // ── Badges ──
+    match /badges/{badgeId} {
+      allow read: if isAuthenticated();
+      allow write: if isLecturerOrAdmin();
+    }
+
+    // ── Peer Reviews ──
+    match /peerReviews/{reviewId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() &&
+        (resource.data.reviewerId == request.auth.uid || isLecturerOrAdmin());
+    }
+
+    // ── Rubrics ──
+    match /rubrics/{rubricId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isLecturerOrAdmin();
+    }
+
+    // ── Attendance Sessions ──
+    match /attendance/{sessionId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isLecturerOrAdmin();
+    }
+
+    // ── Attendance Records ──
+    match /attendanceRecords/{recordId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isLecturerOrAdmin();
+    }
+
+    // ── Certificates ──
+    match /certificates/{certId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
+
+    // ── Course Groups ──
+    match /courseGroups/{groupId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isLecturerOrAdmin();
+    }
+
+    // ── Group Tasks (task/project-scoped groups) ──
+    match /groupTasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isLecturerOrAdmin();
+    }
+
+    // ── Grade Settings ──
+    match /gradeSettings/{settingId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isLecturerOrAdmin();
+    }
+
+    // ── Private Messages ──
+    match /messages/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
+
+    // ── Conversations ──
+    match /conversations/{conversationId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+    }
+
+    // ── Notifications (private to recipient) ──
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+    }
+
+    // ── Activity Feed (private to owner) ──
+    match /activityFeed/{activityId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+    }
+
+    // ── Reflections (private to owner) ──
+    match /reflections/{reflectionId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+    }
+
+    // ── Audit Logs (admin only) ──
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+    }
+
+    // ── FCM Tokens (private) ──
+    match /fcmTokens/{tokenId} {
+      allow read, write: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+    }
+
+    // ── Map Views (recently viewed maps — private to owner) ──
+    match /mapViews/{viewId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // ── Enrollments / course_students ──
+    match /courseStudents/{enrollmentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow delete: if isAuthenticated() &&
+        (resource.data.studentId == request.auth.uid || isLecturerOrAdmin());
+    }
+
+    // ── Map Collaborators ──
+    match /mapCollaborators/{collabId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // ── Homepage Content (public read, admin write) ──
+    match /homepageContent/{contentId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

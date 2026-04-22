@@ -1,0 +1,29 @@
+appId: com.mysmartstudy.app
+name: AI Companion (SmartBuddy) Opens
+tags:
+  - student
+  - ai
+---
+- runFlow:
+    file: login.subflow.yaml
+    env:
+      TEST_EMAIL: student1@mysmartstudy.com
+      TEST_PASSWORD: Test1234!
+
+# The SmartBuddy button is the notch/center item in the FloatingNavBar.
+# Its icon varies, so tap by ID / description if available, else tap by position.
+- tapOn:
+    id: "smartbuddy"
+    optional: true
+- runFlow:
+    when:
+      notVisible: "AI Companion"
+    commands:
+      - tapOn:
+          point: "50%,92%"
+- extendedWaitUntil:
+    visible: ".*(AI Companion|SmartBuddy|Study Companion).*"
+    timeout: 15000
+- takeScreenshot: ai_companion_open
+- back
+- assertVisible: "Home"

@@ -1,0 +1,49 @@
+{
+  "embed_selectors": [
+    {
+      "attr": "jsname",
+      "value": "jkaScf",
+      "note": "Google Sites embed wrapper"
+    }
+  ],
+  "text_classes": [
+    "CDt4Ke"
+  ],
+  "image_classes": [
+    "CENy8b"
+  ],
+  "nav_attrs": [
+    "data-url"
+  ],
+  "known_embed_types": {
+    "canva.com": "canva",
+    "padlet.com": "padlet",
+    "docs.google.com/presentation": "google_slides",
+    "docs.google.com/document": "google_doc",
+    "docs.google.com/spreadsheets": "google_sheets",
+    "docs.google.com/forms": "google_form",
+    "drive.google.com/file": "drive_file",
+    "drive.google.com/drive/folders": "drive_folder",
+    "youtube.com": "youtube",
+    "youtu.be": "youtube",
+    "kahoot.it": "kahoot",
+    "kahoot.com": "kahoot",
+    "quizizz.com": "quizizz",
+    "mentimeter.com": "mentimeter",
+    "flipgrid.com": "flipgrid",
+    "flip.com": "flipgrid",
+    "jamboard.google.com": "jamboard"
+  },
+  "site_patterns": {
+    "gamma.app": 9,
+    "embed.coggle.it": 45,
+    "coggle.it": 18,
+    "www.simplypsychology.org": 9,
+    "wayground.com": 9,
+    "wordwall.net": 9,
+    "padlet.net": 9,
+    "support.google.com": 4,
+    "accounts.google.com": 2
+  },
+  "total_imports": 14
+}

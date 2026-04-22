@@ -1,0 +1,22 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "mapHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "mapId", "order": "ASCENDING" },
+        { "fieldPath": "action", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "mapHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "mapId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -1,0 +1,5 @@
+appId: com.mysmartstudy.app
+---
+# Maestro global config for MySmartStudy mobile.
+# Run individual flows with:  maestro test .maestro/flows/<name>.yaml
+# Run the whole suite with:   maestro test .maestro/flows

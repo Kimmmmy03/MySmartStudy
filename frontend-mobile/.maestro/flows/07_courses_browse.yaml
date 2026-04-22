@@ -1,0 +1,26 @@
+appId: com.mysmartstudy.app
+name: Browse Enrolled Courses
+tags:
+  - student
+  - courses
+---
+- runFlow:
+    file: login.subflow.yaml
+    env:
+      TEST_EMAIL: student1@mysmartstudy.com
+      TEST_PASSWORD: Test1234!
+
+- tapOn: "Courses"
+- assertVisible: "Courses"
+
+# Either the list is populated or an empty state is shown.
+- runFlow:
+    when:
+      notVisible: "No courses"
+    commands:
+      - tapOn:
+          index: 0
+          text: ".*"
+      # Back button on course detail
+      - back
+      - assertVisible: "Courses"

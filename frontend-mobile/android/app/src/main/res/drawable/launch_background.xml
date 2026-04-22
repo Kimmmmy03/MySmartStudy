@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Native Android launch screen shown before Flutter initialises.
+  Dark navy background eliminates the white flash on startup.
+  Centered logo is visible while the Dart VM warms up.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Dark navy brand background -->
+    <item android:drawable="@color/launch_background" />
+
+    <!-- Centered logo (96dp × 96dp) -->
+    <item
+        android:width="96dp"
+        android:height="96dp"
+        android:gravity="center">
+        <drawable android:drawable="@drawable/ic_launcher_foreground" />
+    </item>
+</layer-list>

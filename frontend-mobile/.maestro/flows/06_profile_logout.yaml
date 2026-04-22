@@ -1,0 +1,35 @@
+appId: com.mysmartstudy.app
+name: Profile View and Logout
+tags:
+  - auth
+  - student
+---
+- runFlow:
+    file: login.subflow.yaml
+    env:
+      TEST_EMAIL: student1@mysmartstudy.com
+      TEST_PASSWORD: Test1234!
+
+- tapOn: "Profile"
+- assertVisible: "Profile"
+
+# Sign out — the button label may be "Sign Out", "Log Out", or "Logout".
+# Scroll in case it's below the fold.
+- scrollUntilVisible:
+    element:
+      text: ".*(Sign Out|Sign out|Log Out|Logout).*"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    text: ".*(Sign Out|Sign out|Log Out|Logout).*"
+# Confirm dialog if any
+- runFlow:
+    when:
+      visible: "Confirm"
+    commands:
+      - tapOn:
+          text: ".*(Sign Out|Sign out|Log Out|Logout|Yes|Confirm).*"
+
+- extendedWaitUntil:
+    visible: "Sign in to continue"
+    timeout: 15000

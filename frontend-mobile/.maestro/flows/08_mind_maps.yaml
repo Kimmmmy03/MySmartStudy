@@ -1,0 +1,16 @@
+appId: com.mysmartstudy.app
+name: Mind Maps List
+tags:
+  - student
+  - maps
+---
+- runFlow:
+    file: login.subflow.yaml
+    env:
+      TEST_EMAIL: student1@mysmartstudy.com
+      TEST_PASSWORD: Test1234!
+
+- tapOn: "Maps"
+- assertVisible: "Maps"
+# Either seeded maps render, or an empty state. Screenshot for manual review.
+- takeScreenshot: maps_tab

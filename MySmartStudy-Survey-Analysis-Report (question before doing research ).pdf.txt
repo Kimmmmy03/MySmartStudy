@@ -1,0 +1,192 @@
+ 
+MySmartStudy  
+Empowering Teacher Trainees through Artificial Intelligence and 
+Collaborative Digital Learning  
+Akmal Hakimi Bin Abd Rashid, Mohamed Azeem Bin Sulaiman,  
+Dr. Yusnizal Binti Ismail, Rohana Binti Bachik, Mohd Khairi Bin Sharifuddin, Marhaini Binti 
+A. Rahman  
+UniKL MIIT & IPG Kampus Perempuan Melayu  
+Representing: IPG Kampus Perempuan Melayu  
+Survey Data Analysis & System Design Report | n = 103 Respondents  
+  
+1. Background of Problem  
+First-year teacher trainees at IPG Kampus Perempuan Melayu Melaka face significant 
+challenges in transitioning from the structured secondary school environment to the 
+autonomous learning expected in tertiary education. To validate these challenges and 
+inform the design of MySmartStudy, a comprehensive survey was conducted among 103 
+first-year students across 9 classes (PI 2, PI 3, BM 3, BM KBT, SEJ, PK 2, TESL 1, TESL 3, BM 1) 
+using a 30 -item online questionnaire.  
+1.1 Digital Readiness of Students  
+The survey revealed that 84% of respondents (87 out of 103) are comfortable or very 
+comfortable with using digital technology for studying. Specifically, 34% are very 
+comfortable and 50% are comfortable. Only 1% reported being slightly uncomfortable, 
+while  15% remained neutral. This confirms strong digital readiness among the target users, 
+validating that a digital learning platform would be well -received.  
+ 
+Figure 1: Digital Technology Comfort Level Among Respondents (n=103)  
+1.2 Poor Note Organisation and Memorisation Reliance  
+A critical finding is that 88% of students (91 out of 103) sometimes, often, or very often rely 
+on memorisation because their notes are not well organised. Only 12% rarely resort to 
+memorisation. The breakdown: 61% sometimes, 23% often, and 4% very often. When 
+asked about their biggest frustrations, the top responses were: difficulty finding 
+information quickly (28%), too many files or notebooks (14%), and notes scattered across 
+platforms (13%).  
+
+ 
+Figure 2: Reliance on Memorisation Due to Poor Note Organisation (n=103)  
+1.3 Thinking Map Usage Challenges  
+While 64% of students report being confident or very confident in using Thinking Maps, 
+74% have been unsure which template best suited their topic (68 sometimes + 8 
+frequently). The main barriers to more frequent usage are time constraints (30 
+respondents) , difficulty choosing the right map (29), and a combination of both (11). 
+Furthermore, 70% face handwriting or space issues when drawing complex maps 
+manually (58 sometimes + 14 often), confirming the need for a digital mind map editor.  
+ 
+Figure 3: Confidence in Using Different Types of Thinking Maps (n=103)  
+
+ 
+Figure 4: Handwriting and Space Issues with Manual Complex Maps (n=103)  
+1.4 Collaboration and Group Work Challenges  
+In group work, 82% of respondents have experienced duplicated work or version 
+confusion (8 very often + 25 often + 51 sometimes). Encouragingly, 80% view real -time 
+collaborative editing of Thinking Maps positively (65 positive + 17 very positive), and 90% 
+find comment and feedback features on shared maps useful (61 useful + 32 very useful).  
+ 
+Figure 5: Duplicated Work or Version Confusion in Group Tasks (n=103)  
+  
+
+2. Design of the Product  
+Based on the survey findings from 103 respondents, MySmartStudy was designed as a 
+comprehensive multi -platform AI -enhanced Learning Management System. The system 
+architecture and feature set were informed by the specific needs expressed by the 
+students. Th is section presents the product highlights, system framework diagrams, and 
+survey validation of key features.  
+2.1 Development Methodology  
+The Waterfall Software Development Life Cycle (SDLC) was selected due to the fixed 
+academic scope and structured documentation requirements of the Final Year Project. 
+The methodology consists of five sequential phases: Requirement Analysis (informed by 
+the 103-respondent survey), System Design, Implementation, Testing (unit, integration, 
+and UAT), and Deployment & Maintenance.  
+ 
+Figure 6: Waterfall SDLC Development Methodology  
+2.2 System Architecture Framework  
+MySmartStudy is built on a hybrid multi -tier architecture consisting of six interconnected 
+layers: the User Layer (students, lecturers, admin), the Frontend Layer (Next.js 16 web app 
+and Flutter mobile app), the API Gateway (FastAPI with 41 REST API router s), the Service 
+Layer (authentication, courses, maps, quizzes, gradebook, analytics, AI, and messaging 
+modules), the Data Store (Firebase Firestore with Firebase Authentication), and the AI 
+Engine (Google Gemini 2.5 Flash with ChromaDB for RAG).  
+
+ 
+Figure 7: MySmartStudy System Architecture Framework  
+  
+
+2.3 User Process Flow  
+The user process flowchart illustrates how students and lecturers interact with the system 
+from registration through to continuous learning. After authentication via Firebase Auth + 
+JWT, the system routes users based on their role (student or lecturer) to their respective 
+dashboards. Students progress through course enrollment, material access, assignment 
+submission, mind map creation, AI study tools, and gamification tracking. Lecturers 
+manage courses, resources, assignments, reviews, AI -assisted evaluatio n, and analytics. 
+Both roles interact through real -time collaboration features and share a common 
+Firebase Firestore cloud sync layer.  
+ 
+Figure 8: MySmartStudy User Process Flow  
+
+  
+2.4 AI -Powered Features Workflow  
+MySmartStudy integrates seven AI -powered features through a centralized AI Feature 
+Router. When a user submits a request, the router directs it to the appropriate AI module: 
+Study Companion (chat -based academic support), Study Materials (auto -generated 
+summaries, flashcards, practice quizzes), Exam Planner (personalized study schedules), 
+Mind Map Buddy (RAG -based node suggestions), Plagiarism Detection (similarity scoring 
+for lecturers), Grading Assistant (AI -recommended grades and feedback), and 
+Timetable Analysis (schedule conflict detection). All modules are powered by the Google 
+Gemini 2.5 Flash AI engine with ChromaDB providing RAG capabilities for contextual 
+responses.  
+ 
+Figure 9: AI -Powered Features Workflow  
+2.5 Product Highlights  
+Key features designed in direct response to survey data:  
+• Collaborative Mind Map Editor with 15+ templates, real -time collaboration, presence 
+indicators, and AI node suggestions via RAG — addressing the 74% who are unsure which 
+template to use and 70% facing handwriting/space issues.  
+• AI Study Companion powered by Google Gemini 2.5 Flash — supporting the 88% who rely 
+on memorisation.  
+• AI-Generated Study Materials (summaries, flashcards, practice quizzes) — addressing the 
+need for better note organisation.  
+
+• Gamification Engine with 12 auto -awarded badges, login streaks, participation scoring — 
+responding to the 80% who find gamification motivating.  
+• Complete LMS Suite (courses, assignments, quizzes, gradebook, attendance, forums, chat, 
+messaging, calendar) — replacing fragmented tools.  
+• Lecturer Analytics Dashboard with at -risk student identification and submission trend 
+monitoring.  
+• Progress Tracking Dashboard — responding to the 78% who say it would help manage 
+studies.  
+2.6 Survey Validation of Key Features  
+The survey data strongly validates the feature design. 83% find automatic Thinking Map 
+recommendation helpful or very helpful. 95% believe pre -filled templates would save 
+time. 80% find gamification motivating. 78% confirm progress tracking would help.  
+ 
+Figure 10: Demand for AI Auto -Recommendation of Thinking Maps (n=103)  
+
+ 
+Figure 11: Motivation from Gamification Features (n=103)  
+2.7 Technology Stack Summary  
+Layer  Technology  Purpose  
+Frontend (Web)  Next.js 16, TypeScript, Tailwind CSS 
+v4, React Flow  Full LMS dashboard with mind map editor  
+Frontend (Mobile)  Flutter (Dart)  On-the-go access, AI tools, notifications  
+Backend API  FastAPI (Python) — 41 routers  REST API for all system operations  
+Database  Firebase Firestore (NoSQL)  Real -time cloud data storage & sync  
+Authentication  Firebase Auth + JWT (HS256)  Secure role -based access control  
+AI Engine  Google Gemini 2.5 Flash  Study companion, materials, plagiarism  
+Vector Store  ChromaDB  RAG -based contextual AI responses  
+Mind Maps  React Flow (@xyflow/react)  Interactive collaborative visual editor  
+Notifications  Firebase Cloud Messaging  Real -time push notifications  
+  
+
+3. Impact Towards Education Stakeholders  
+The survey results from 103 respondents demonstrate strong demand and readiness for 
+MySmartStudy. The impact analysis below is supported by quantitative evidence.  
+3.1 Impact on Students  
+Survey Finding  Statistic  MySmartStudy Solution  
+Rely on memorisation due to poor 
+notes  88% (91/103)  AI summaries, mind maps, organised notes  
+Unsure which Thinking Map to use  74% (76/103)  AI auto -recommendation engine  
+Handwriting/space issues with 
+maps  70% (72/103)  Digital mind map editor, unlimited canvas  
+Version confusion in group work  82% (84/103)  Real -time collaborative editing  
+Find gamification motivating  80% (82/103)  12 badges, streaks, achievements  
+Want progress tracking 
+dashboards  78% (80/103)  Student dashboard with tracking  
+Would pilot test & recommend 
+app 89% (92/103)  High adoption potential confirmed  
+ 
+Figure 12: Student Demand for Progress Tracking Dashboards (n=103)  
+3.2 Impact on Lecturers  
+MySmartStudy provides lecturers with real -time analytics dashboards that track student 
+engagement, submission trends, and course completion rates. The at -risk student 
+identification feature enables early intervention before poor performance manifests in 
+formal assessments. AI -powered plagiarism detection and grading assistance improve 
+evaluation efficiency and consistency. The mind map review interface allows lecturers to 
+assess student understanding through visual knowledge representations.  
+3.3 Impact on the Institution  
+
+With 84% of students already digitally comfortable and 89% willing to participate in pilot 
+testing and recommend the platform, the institutional adoption potential is very high. The 
+centralized platform replaces fragmented tools, standardizes digital learn ing practices, 
+and produces future educators who are digitally literate. The audit logging system 
+ensures accountability, while the admin dashboard provides oversight.  
+ 
+Figure 13: Willingness to Pilot Test and Recommend MySmartStudy (n=103)  
+3.4 Summary  
+The survey data from 103 respondents provides strong empirical validation for 
+MySmartStudy. Key statistics confirm that the identified problems are real and 
+widespread (88% memorisation reliance, 82% version confusion, 74% template 
+uncertainty), the propos ed solutions match user needs (83% want AI recommendations, 
+80% want gamification, 95% want pre -filled templates), and adoption readiness is high 
+(84% digitally comfortable, 89% willing to pilot and recommend). MySmartStudy is a data -
+driven response to doc umented challenges in teacher training education.  
+

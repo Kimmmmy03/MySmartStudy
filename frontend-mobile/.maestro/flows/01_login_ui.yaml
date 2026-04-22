@@ -1,0 +1,18 @@
+appId: com.mysmartstudy.app
+name: Login Screen UI
+tags:
+  - smoke
+  - auth
+---
+- clearState
+- launchApp
+- assertVisible: "MySmartStudy"
+- assertVisible: "Sign in to continue"
+- assertVisible: "Email"
+- assertVisible: "Password"
+- assertVisible: "Sign In"
+- assertVisible: "Forgot Password?"
+- assertVisible:
+    text: "Sign in with Google"
+- assertVisible: "Don't have an account?"
+- assertVisible: "Sign Up"

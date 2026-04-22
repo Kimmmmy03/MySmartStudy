@@ -1,0 +1,26 @@
+appId: com.mysmartstudy.app
+name: _login subflow
+---
+# Reusable: sign in as the student specified by TEST_EMAIL / TEST_PASSWORD env vars.
+# Invoke from another flow with:
+#   - runFlow:
+#       file: login.subflow.yaml
+#       env:
+#         TEST_EMAIL: student1@mysmartstudy.com
+#         TEST_PASSWORD: Test1234!
+- clearState
+- launchApp
+- assertVisible: "Sign In"
+- tapOn: "Email"
+- inputText: ${TEST_EMAIL}
+- hideKeyboard
+- tapOn: "Password"
+- inputText: ${TEST_PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "Sign In"
+    index: 0
+# Wait for the main shell (Home tab in the floating nav bar).
+- extendedWaitUntil:
+    visible: "Home"
+    timeout: 30000

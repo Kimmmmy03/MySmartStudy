@@ -1,0 +1,21 @@
+appId: com.mysmartstudy.app
+name: Login Form Validation
+tags:
+  - auth
+---
+- clearState
+- launchApp
+# Submit with empty fields -> should show validation errors
+- tapOn: "Sign In"
+- assertVisible: "Please enter your email"
+- assertVisible: "Please enter your password"
+
+# Invalid email format
+- tapOn: "Email"
+- inputText: "notanemail"
+- hideKeyboard
+- tapOn: "Password"
+- inputText: "anything"
+- hideKeyboard
+- tapOn: "Sign In"
+- assertVisible: "Enter a valid email"

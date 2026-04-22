@@ -1,0 +1,15 @@
+appId: com.mysmartstudy.app
+name: Schedule / Planner Tab
+tags:
+  - student
+  - planner
+---
+- runFlow:
+    file: login.subflow.yaml
+    env:
+      TEST_EMAIL: student1@mysmartstudy.com
+      TEST_PASSWORD: Test1234!
+
+- tapOn: "Schedule"
+- assertVisible: "Schedule"
+- takeScreenshot: schedule_tab

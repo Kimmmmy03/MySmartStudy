@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MySmartStudy launcher icon foreground — "M" Monogram + Sparkle.
+  Canvas: 108×108 dp  |  Safe zone: inner 66×66 centred at (54,54).
+
+  The M is scaled to 82 % of the previous design (≈ 66 % of original),
+  recentred at (54,54).  All corners are now ≈ 28 dp from centre, safely
+  inside the 33 dp radius circle mask.  Bounding box: x 32–76, y 33–75.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- ── Outer blue glow disc ── -->
+    <path
+        android:fillColor="#2A2255CC"
+        android:pathData="M54,54 m-42,0 a42,42 0,1,1 84,0 a42,42 0,1,1 -84,0"/>
+
+    <!-- ── Mid blue-purple disc ── -->
+    <path
+        android:fillColor="#3A3388EE"
+        android:pathData="M54,54 m-33,0 a33,33 0,1,1 66,0 a33,33 0,1,1 -66,0"/>
+
+    <!-- ── Bright inner core ── -->
+    <path
+        android:fillColor="#442266CC"
+        android:pathData="M54,54 m-24,0 a24,24 0,1,1 48,0 a24,24 0,1,1 -48,0"/>
+
+    <!-- ══════════════════════════════════════════════════════════
+         Bold "M" — 82 % scale from centre (54,54).
+         Bounding box: x 32–76, y 33–75.
+         Corner distance from centre ≈ 28 dp  (circle mask r = 33 dp).
+         WHITE fill so it pops on the dark navy background.
+    ══════════════════════════════════════════════════════════ -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+          M32,72
+          L32,36
+          Q32,33 34,33
+          L39,33
+          Q42,33 43,35
+          L54,53
+          L65,35
+          Q66,33 69,33
+          L74,33
+          Q76,33 76,36
+          L76,72
+          Q76,75 74,75
+          L70,75
+          Q67,75 67,72
+          L67,50
+          L56,65
+          Q55,68 54,68
+          Q53,68 52,65
+          L41,50
+          L41,72
+          Q41,75 38,75
+          L34,75
+          Q32,75 32,72
+          Z"/>
+
+    <!-- ── Blue tint on right diagonal + right leg ── -->
+    <path
+        android:fillColor="#AA3B82F6"
+        android:pathData="
+          M54,53
+          L65,35
+          Q66,33 69,33
+          L74,33
+          Q76,33 76,36
+          L76,72
+          Q76,75 74,75
+          L70,75
+          Q67,75 67,72
+          L67,50
+          L56,65
+          Q55,68 54,68
+          Z"/>
+
+    <!-- ── Deeper purple on right leg only ── -->
+    <path
+        android:fillColor="#668B5CF6"
+        android:pathData="
+          M67,50
+          L67,72
+          Q67,75 70,75
+          L74,75
+          Q76,75 76,72
+          L76,50
+          Z"/>
+
+    <!-- ══════════════════════════════════════════════════════════
+         Gold 4-pointed star sparkle — top-right of the M.
+         Centre (74,29)  outer r=8  inner r=3.1
+    ══════════════════════════════════════════════════════════ -->
+
+    <!-- Glow halo -->
+    <path
+        android:fillColor="#55FFD166"
+        android:pathData="M74,29 m-11,0 a11,11 0,1,1 22,0 a11,11 0,1,1 -22,0"/>
+
+    <!-- Star -->
+    <path
+        android:fillColor="#FFD166"
+        android:pathData="M74,21 L76.2,26.8 L82,29 L76.2,31.2 L74,37 L71.8,31.2 L66,29 L71.8,26.8 Z"/>
+
+    <!-- Star top-facet highlight -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.50"
+        android:pathData="M74,21 L76.2,26.8 L74,27.3 L71.8,26.8 Z"/>
+
+</vector>

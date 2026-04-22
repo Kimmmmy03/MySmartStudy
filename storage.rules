@@ -1,0 +1,70 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── Helper functions ──
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // ── Profile Avatars ──
+    // Path: /avatars/{userId}/{filename}
+    match /avatars/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId
+        && request.resource.size < 5 * 1024 * 1024  // 5MB max
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Assignment Submissions ──
+    // Path: /submissions/{courseId}/{assignmentId}/{studentId}/{filename}
+    match /submissions/{courseId}/{assignmentId}/{studentId}/{filename} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+        && request.auth.uid == studentId
+        && request.resource.size < 20 * 1024 * 1024  // 20MB max
+        && (
+          request.resource.contentType.matches('application/pdf')
+          || request.resource.contentType.matches('image/png')
+          || request.resource.contentType.matches('image/jpeg')
+          || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        );
+    }
+
+    // ── Map Thumbnails ──
+    // Path: /thumbnails/{mapId}/{filename}
+    match /thumbnails/{mapId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+        && request.resource.size < 2 * 1024 * 1024  // 2MB max
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Mind Map Node Images ──
+    // Path: /map-images/{mapId}/{filename}
+    match /map-images/{mapId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+        && request.resource.size < 10 * 1024 * 1024  // 10MB max
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Course Resource Files ──
+    // Path: /resources/{courseId}/{moduleId}/{filename}
+    match /resources/{courseId}/{moduleId}/{filename} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+        && request.resource.size < 50 * 1024 * 1024; // 50MB max
+    }
+
+    // ── Homepage Content Images ──
+    // Path: /homepage/{filename}
+    match /homepage/{allPaths=**} {
+      allow read: if true; // Public homepage images
+      allow write: if isAuthenticated()
+        && request.resource.size < 10 * 1024 * 1024  // 10MB max
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

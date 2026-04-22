@@ -1,0 +1,40 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+.env
+.env.*
+.venv/
+venv/
+env/
+
+uploads/
+mysmartstudy.db
+*.sqlite
+*.sqlite3
+
+# Vector store is rebuilt from Firestore
+vector_store/
+
+# Test and docs artifacts
+tests/
+samples/
+Untitled
+users_list.json
+users_list.txt
+users_list_ascii.txt
+users_output.txt
+users_output_utf8.txt
+
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# The Firebase admin key must not be baked into the image — use Secret Manager instead
+firebase-admin-key.json
+serviceAccountKey.json
