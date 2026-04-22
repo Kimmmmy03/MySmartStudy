@@ -1,7 +1,7 @@
 """AI image generation for mind map nodes.
 
 Credit-saving measures:
-  • 1 generation per user per calendar day (UTC).  Quota stored in Firestore aiImageQuotas.
+  • 2 generations per user per calendar day (UTC). Quota stored in Firestore aiImageQuotas.
   • Prompt-level deduplication: same (prompt, style) within 7 days returns the cached URL.
   • Quota/cache status exposed on GET /images/quota so frontends can gate the button.
 """
@@ -36,7 +36,7 @@ STYLE_PRESETS: dict[str, str] = {
 }
 
 # Maximum images a single user may generate per calendar day (UTC)
-IMAGE_DAILY_LIMIT = 3
+IMAGE_DAILY_LIMIT = 2
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -252,7 +252,7 @@ async def generate_image(
     """Generate an image from a text prompt.
 
     Enforces:
-    - 1 generation per user per day (UTC).
+    - 2 generations per user per day (UTC).
     - Prompt-level deduplication: identical (prompt, style) within 7 days re-uses
       the previously generated image without consuming quota or API credits.
     """

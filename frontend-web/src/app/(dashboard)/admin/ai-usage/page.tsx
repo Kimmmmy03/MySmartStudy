@@ -17,7 +17,7 @@ const FEATURES = [
   { key: "images",          label: "Image Gen",        color: "bg-orange-400" },
 ] as const;
 
-const DEFAULT_LIMIT = 3;
+const DEFAULT_LIMIT = 2;
 
 function fmt(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;

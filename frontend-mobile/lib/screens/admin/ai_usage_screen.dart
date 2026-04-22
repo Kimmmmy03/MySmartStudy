@@ -437,7 +437,7 @@ class _UserRowState extends State<_UserRow> {
             Text('Image Quota: ', style: TextStyle(color: c.textSecondary, fontSize: 12)),
             if (!_editingQuota) ...[
               Text(
-                quotaLimit != null ? '$quotaLimit/day' : 'Default (3/day)',
+                quotaLimit != null ? '$quotaLimit/day' : 'Default (2/day)',
                 style: TextStyle(
                   color: quotaLimit != null ? AppColors.amber : c.textMuted,
                   fontWeight: quotaLimit != null ? FontWeight.w600 : FontWeight.normal,

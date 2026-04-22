@@ -32,7 +32,7 @@ const ROLE_BG: Record<string, string> = {
 };
 
 const ITEMS_PER_PAGE = 12;
-const DEFAULT_IMG_LIMIT = 3;
+const DEFAULT_IMG_LIMIT = 2;
 
 function QuotaCell({ uid, initial, onSaved }: { uid: string; initial: number | null; onSaved: (uid: string, val: number | null) => void }) {
   const [editing, setEditing] = useState(false);
