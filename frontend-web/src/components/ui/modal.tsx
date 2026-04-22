@@ -41,19 +41,19 @@ export default function Modal({ open, onClose, title, children, maxWidth = "max-
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className={clsx(
-              "relative w-full glass-card modal-content",
+              "relative w-full glass-card modal-content flex flex-col max-h-[90vh]",
               maxWidth
             )}
           >
             {title && (
-              <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 modal-border">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 modal-border shrink-0">
                 <h3 className="text-lg font-semibold text-white modal-heading">{title}</h3>
                 <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
                   <X className="w-5 h-5 text-dark-200 modal-icon" />
                 </button>
               </div>
             )}
-            <div className={noPadding ? "" : "px-6 py-4"}>{children}</div>
+            <div className={clsx("overflow-y-auto", noPadding ? "" : "px-6 py-4")}>{children}</div>
           </motion.div>
         </div>
       )}

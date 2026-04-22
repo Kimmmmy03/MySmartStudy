@@ -265,10 +265,16 @@ html.light select.glass-input option {
   pointer-events: none;
 }
 
-/* Modal base dark styles */
+/* Modal base dark styles — solid background (no hover shift) */
 .modal-content {
-  background: rgba(18, 18, 26, 0.95);
+  background: rgb(18, 18, 26);
   border-color: rgba(255, 255, 255, 0.1);
+}
+.modal-content:hover {
+  background: rgb(18, 18, 26);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  transform: none;
 }
 
 /* Aurora animation */
@@ -810,9 +816,15 @@ html.light .select-dropdown-panel .border-white\/10 { border-color: rgba(27, 42,
    ========================================== */
 
 html.light .modal-content {
-  background: rgba(255, 255, 255, 0.97) !important;
+  background: rgb(255, 255, 255) !important;
   border-color: rgba(27, 42, 128, 0.12) !important;
   box-shadow: 0 16px 48px rgba(27, 42, 128, 0.15) !important;
+}
+html.light .modal-content:hover {
+  background: rgb(255, 255, 255) !important;
+  border-color: rgba(27, 42, 128, 0.12) !important;
+  box-shadow: 0 16px 48px rgba(27, 42, 128, 0.15) !important;
+  transform: none !important;
 }
 html.light .modal-heading { color: #1a1a2e; }
 html.light .modal-icon { color: #5c6590; }
