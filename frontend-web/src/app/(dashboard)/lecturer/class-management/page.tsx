@@ -882,7 +882,7 @@ export default function ClassManagementPage() {
             const previewColor = form.themeColor ? getClassColor(form.themeColor) : CLASS_COLORS[0];
             const previewPattern = form.pattern || FALLBACK_PATTERNS[0];
             return (
-              <div className="rounded-2xl overflow-hidden border border-white/10 shadow-lg">
+              <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10 shadow-lg">
                 <div
                   className={`relative h-28 px-5 flex items-end bg-gradient-to-br ${previewColor.bg}`}
                   style={getPatternStyle(previewPattern, previewColor.accent) || undefined}
@@ -898,7 +898,7 @@ export default function ClassManagementPage() {
                     </div>
                   </div>
                 </div>
-                <div className="px-5 py-2.5 bg-dark-800/60 flex items-center justify-between text-xs text-dark-300">
+                <div className="px-5 py-2.5 bg-gray-100 dark:bg-dark-800/60 flex items-center justify-between text-xs text-gray-600 dark:text-dark-300">
                   <span>Semester {form.semester}</span>
                   <span className="font-medium">{previewColor.label} · {PATTERN_LIST.find(p => p.id === previewPattern)?.label || "Pattern"}</span>
                 </div>
@@ -915,12 +915,11 @@ export default function ClassManagementPage() {
             <SelectWithOther label="Course Code" value={form.courseCode} onChange={(v) => setForm(p => ({ ...p, courseCode: v }))}
               options={COURSE_CODES} placeholder="e.g. EDUP3033" required />
             <div>
-              <label className="block text-sm font-medium text-dark-200 mb-1.5">Semester</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1.5">Semester</label>
               <select value={form.semester} onChange={e => setForm(p => ({ ...p, semester: e.target.value }))}
-                className="glass-input w-full px-4 py-2.5 text-sm appearance-none bg-dark-800 text-white rounded-xl border border-white/10 cursor-pointer"
-                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center" }}>
-                {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n} className="bg-dark-800">Semester {n}</option>)}
-                <option value="Short" className="bg-dark-800">Short Semester</option>
+                className="glass-input w-full px-4 py-2.5 text-sm rounded-xl">
+                {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>Semester {n}</option>)}
+                <option value="Short">Short Semester</option>
               </select>
             </div>
           </div>
@@ -928,8 +927,8 @@ export default function ClassManagementPage() {
           {/* Theme color */}
           <div>
             <div className="flex items-baseline justify-between mb-2">
-              <label className="block text-sm font-medium text-dark-200">Theme Color</label>
-              <span className="text-xs text-dark-400">{form.themeColor ? getClassColor(form.themeColor).label : "Auto-assigned"}</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200">Theme Color</label>
+              <span className="text-xs text-gray-500 dark:text-dark-400">{form.themeColor ? getClassColor(form.themeColor).label : "Auto-assigned"}</span>
             </div>
             <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
               {CLASS_COLORS.map(color => {
@@ -937,7 +936,7 @@ export default function ClassManagementPage() {
                 return (
                   <button key={color.id} type="button"
                     onClick={() => setForm(p => ({ ...p, themeColor: color.id }))}
-                    className={`group relative aspect-square rounded-xl transition-all flex items-center justify-center shadow-sm ${selected ? "ring-2 ring-white/70 scale-105" : "ring-1 ring-white/10 hover:ring-white/30 hover:scale-105"}`}
+                    className={`group relative aspect-square rounded-xl transition-all flex items-center justify-center shadow-sm ${selected ? "ring-2 ring-gray-900 dark:ring-white/80 scale-105" : "ring-1 ring-gray-300 dark:ring-white/10 hover:ring-gray-500 dark:hover:ring-white/30 hover:scale-105"}`}
                     style={{ backgroundColor: color.accent }}
                     title={color.label}
                     aria-label={color.label}>
@@ -951,8 +950,8 @@ export default function ClassManagementPage() {
           {/* Pattern */}
           <div>
             <div className="flex items-baseline justify-between mb-2">
-              <label className="block text-sm font-medium text-dark-200">Pattern</label>
-              <span className="text-xs text-dark-400">{PATTERN_LIST.find(p => p.id === form.pattern)?.label || PATTERN_LIST[0]?.label}</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200">Pattern</label>
+              <span className="text-xs text-gray-500 dark:text-dark-400">{PATTERN_LIST.find(p => p.id === form.pattern)?.label || PATTERN_LIST[0]?.label}</span>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {PATTERN_LIST.map(p => {
@@ -962,7 +961,7 @@ export default function ClassManagementPage() {
                 return (
                   <button key={p.id} type="button"
                     onClick={() => setForm(pr => ({ ...pr, pattern: p.id }))}
-                    className={`relative h-14 rounded-xl overflow-hidden transition-all ${selected ? "ring-2 ring-white/70" : "ring-1 ring-white/10 hover:ring-white/30"}`}
+                    className={`relative h-14 rounded-xl overflow-hidden transition-all ${selected ? "ring-2 ring-gray-900 dark:ring-white/80" : "ring-1 ring-gray-300 dark:ring-white/10 hover:ring-gray-500 dark:hover:ring-white/30"}`}
                     style={{ backgroundColor: accent }}
                     title={p.label}>
                     {layerStyle && <span aria-hidden className="absolute inset-0" style={layerStyle} />}
@@ -976,10 +975,10 @@ export default function ClassManagementPage() {
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+          <div className="flex justify-end gap-2 pt-2 border-t border-gray-200 dark:border-white/10">
             <button onClick={() => { if (saving) return; resetCreateState(); setEditTarget(null); }}
               disabled={saving}
-              className="px-4 py-2 text-sm text-dark-200 hover:bg-white/5 rounded-lg disabled:opacity-50">Cancel</button>
+              className="px-4 py-2 text-sm text-gray-700 dark:text-dark-200 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg disabled:opacity-50">Cancel</button>
             <button onClick={editTarget ? handleEdit : handleCreate}
               disabled={saving || !form.courseName.trim() || !form.courseCode.trim()}
               className="btn-gradient px-5 py-2 text-sm text-white rounded-lg relative z-10 inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
