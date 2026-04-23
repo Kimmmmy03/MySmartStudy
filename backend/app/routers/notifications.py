@@ -1,9 +1,14 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from .. import models
 from ..firestore import get_db
 from ..auth import get_current_user
+from ..services.email_service import send_notification_email
 from datetime import datetime, timezone
 from google.cloud.firestore_v1.base_query import FieldFilter
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
@@ -15,8 +20,15 @@ def create_notification(
     message: str,
     notification_type: str = "info",
     link: str = "",
+    send_email: bool = True,
 ) -> None:
-    """Create a notification for a user."""
+    """Create an in-app notification for a user and optionally mirror it by email.
+
+    The email is fire-and-forget (spawned in a background thread by
+    `send_notification_email`) and respects the user's `emailNotifications`
+    flag — default true if the field isn't set. Set `send_email=False` for
+    noisy channels (e.g. map-view pings) where the in-app notif is enough.
+    """
     nid = models.gen_id()
     db.collection(models.NOTIFICATIONS).document(nid).set({
         "userId": user_id,
@@ -27,6 +39,29 @@ def create_notification(
         "read": False,
         "createdAt": datetime.now(timezone.utc),
     })
+
+    if not send_email:
+        return
+
+    try:
+        user_doc = db.collection(models.USERS).document(user_id).get()
+        if not user_doc.exists:
+            return
+        user = user_doc.to_dict() or {}
+        if user.get("emailNotifications") is False:
+            return
+        to_email = user.get("email", "")
+        if not to_email:
+            return
+        send_notification_email(
+            to_email=to_email,
+            display_name=user.get("displayName", ""),
+            title=title,
+            message=message,
+            link=link,
+        )
+    except Exception as e:
+        logger.warning("Notification email hook failed for user %s: %s", user_id, e)
 
 
 @router.get("/")
