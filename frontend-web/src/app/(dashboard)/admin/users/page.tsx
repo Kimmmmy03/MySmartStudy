@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, UserCog, Award, Check, Image,
   Trash2, AlertTriangle, Loader2,
 } from "lucide-react";
-import { resolveBackendUrl } from "@/lib/utils";
+import { resolveBackendUrl, semesterLabel } from "@/lib/utils";
 import clsx from "clsx";
 import BadgeIcon from "@/components/badge-icon";
 
@@ -365,11 +365,17 @@ export default function AdminUsersPage() {
                       <span className="flex items-center gap-1">
                         <Award className="w-3 h-3 text-accent-purple" /> {user.badges?.length || 0}
                       </span>
-                      {user.department && (
-                        <span className="flex items-center gap-1 truncate ml-auto">
-                          <Building2 className="w-3 h-3 flex-shrink-0" /> {user.department}
-                        </span>
-                      )}
+                      {user.role === "student"
+                        ? user.class_name && (
+                            <span className="flex items-center gap-1 truncate ml-auto">
+                              <Hash className="w-3 h-3 flex-shrink-0" /> {user.class_name}
+                            </span>
+                          )
+                        : user.department && (
+                            <span className="flex items-center gap-1 truncate ml-auto">
+                              <Building2 className="w-3 h-3 flex-shrink-0" /> {user.department}
+                            </span>
+                          )}
                     </div>
 
                     {/* Badges preview */}
@@ -406,7 +412,7 @@ export default function AdminUsersPage() {
                               )}
                               {user.year && (
                                 <div className="flex items-center gap-1.5 text-gray-500 dark:text-dark-400">
-                                  <Calendar className="w-3 h-3" /> Year {user.year}, Sem {user.semester}
+                                  <Calendar className="w-3 h-3" /> Year {user.year}, Sem {semesterLabel(user.semester)}
                                 </div>
                               )}
                               <div className="flex items-center gap-1.5 text-gray-500 dark:text-dark-400 col-span-2">
@@ -484,7 +490,7 @@ export default function AdminUsersPage() {
                   <th className="text-left p-4 text-gray-500 dark:text-dark-300 font-medium">User</th>
                   <th className="text-left p-4 text-gray-500 dark:text-dark-300 font-medium">Email</th>
                   <th className="text-left p-4 text-gray-500 dark:text-dark-300 font-medium">Role</th>
-                  <th className="text-left p-4 text-gray-500 dark:text-dark-300 font-medium">Department</th>
+                  <th className="text-left p-4 text-gray-500 dark:text-dark-300 font-medium">Dept / Class</th>
                   <th className="text-left p-4 text-gray-500 dark:text-dark-300 font-medium">Points</th>
                   <th className="text-left p-4 text-gray-500 dark:text-dark-300 font-medium">Streak</th>
                   <th className="text-left p-4 text-gray-500 dark:text-dark-300 font-medium">Badges</th>
@@ -522,7 +528,9 @@ export default function AdminUsersPage() {
                           {user.role}
                         </span>
                       </td>
-                      <td className="p-4 text-gray-500 dark:text-dark-400 text-xs">{user.department || "—"}</td>
+                      <td className="p-4 text-gray-500 dark:text-dark-400 text-xs">
+                        {user.role === "student" ? (user.class_name || "—") : (user.department || "—")}
+                      </td>
                       <td className="p-4">
                         <span className="flex items-center gap-1 text-gray-600 dark:text-dark-200 text-xs">
                           <Coins className="w-3 h-3 text-accent-amber" /> {user.points}
