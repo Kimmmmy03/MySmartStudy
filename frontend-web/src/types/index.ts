@@ -42,6 +42,8 @@ export interface Course {
   courseName: string;
   courseCode: string;
   semester: string;
+  year?: number | null;
+  academicSession?: string;
   joinCode: string;
   enrolledCount: number;
   createdAt: string;

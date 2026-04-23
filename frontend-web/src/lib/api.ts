@@ -93,6 +93,8 @@ export interface CourseOut {
   course_name: string;
   course_code: string;
   semester: string;
+  year?: number | null;
+  academic_session?: string;
   join_code: string;
   description: string;
   enrolled_count: number;
@@ -410,13 +412,13 @@ export const coursesApi = {
   teaching: () => request<CourseOut[]>("/courses/teaching"),
   enrolled: () => request<CourseOut[]>("/courses/enrolled"),
 
-  create: (body: { course_name: string; course_code: string; semester?: string; description?: string; theme_color?: string; pattern?: string }) =>
+  create: (body: { course_name: string; course_code: string; semester?: string; year?: number | null; academic_session?: string; description?: string; theme_color?: string; pattern?: string }) =>
     request<CourseOut>("/courses/", { method: "POST", body: JSON.stringify(body) }),
 
   get: (courseId: string) => request<CourseOut>(`/courses/${courseId}`),
 
   update: (courseId: string, body: {
-    course_name?: string; course_code?: string; semester?: string; description?: string; theme_color?: string; pattern?: string;
+    course_name?: string; course_code?: string; semester?: string; year?: number | null; academic_session?: string; description?: string; theme_color?: string; pattern?: string;
   }) => request<CourseOut>(`/courses/${courseId}`, { method: "PATCH", body: JSON.stringify(body) }),
 
   delete: (courseId: string) =>

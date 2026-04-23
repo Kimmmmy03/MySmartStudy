@@ -16,6 +16,7 @@ _COURSE_FIELD_MAP = {
     "course_name": "courseName",
     "course_code": "courseCode",
     "theme_color": "themeColor",
+    "academic_session": "academicSession",
 }
 
 
@@ -27,6 +28,8 @@ def _course_out(c: dict) -> schemas.CourseOut:
         course_name=c.get("courseName", ""),
         course_code=c.get("courseCode", ""),
         semester=c.get("semester", "1"),
+        year=c.get("year"),
+        academic_session=c.get("academicSession", ""),
         join_code=c.get("joinCode", ""),
         description=c.get("description", ""),
         enrolled_count=len(c.get("enrolledStudents", [])),
@@ -80,6 +83,8 @@ def create_course(req: schemas.CourseCreate, user: dict = Depends(require_lectur
         "courseName": req.course_name,
         "courseCode": req.course_code.upper(),
         "semester": req.semester,
+        "year": req.year,
+        "academicSession": req.academic_session,
         "joinCode": _gen_unique_join_code(db),
         "description": req.description,
         "themeColor": req.theme_color,

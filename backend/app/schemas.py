@@ -92,6 +92,8 @@ class CourseCreate(BaseModel):
     course_name: str
     course_code: str
     semester: str = "1"
+    year: Optional[int] = None
+    academic_session: str = ""
     description: str = ""
     theme_color: str = ""
     pattern: str = ""
@@ -100,6 +102,8 @@ class CourseUpdate(BaseModel):
     course_name: Optional[str] = None
     course_code: Optional[str] = None
     semester: Optional[str] = None
+    year: Optional[int] = None
+    academic_session: Optional[str] = None
     description: Optional[str] = None
     theme_color: Optional[str] = None
     pattern: Optional[str] = None
@@ -111,6 +115,8 @@ class CourseOut(BaseModel):
     course_name: str
     course_code: str
     semester: str
+    year: Optional[int] = None
+    academic_session: str = ""
     join_code: str
     description: str
     enrolled_count: int = 0
