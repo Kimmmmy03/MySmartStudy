@@ -40,11 +40,57 @@ def _material_out(d: dict) -> dict:
 
 
 def _read_pdf(path: str) -> str:
+    """Try PyPDF2 first (fast, free). Fall back to Gemini vision OCR for scanned
+    PDFs and Jawi (Arabic-script) lecture notes where PyPDF2 returns nothing
+    useful because the page is an embedded image."""
     try:
         from PyPDF2 import PdfReader
         reader = PdfReader(path)
-        return "\n".join(page.extract_text() or "" for page in reader.pages)
+        text = "\n".join(page.extract_text() or "" for page in reader.pages)
+        if len(text.strip()) >= 80:
+            return text
     except Exception:
+        text = ""
+
+    # Fallback: hand the PDF bytes to Gemini as an inline document part.
+    # Works for Jawi / Arabic script, handwriting, and scanned images because
+    # the model can see the page layout rather than relying on extracted glyphs.
+    return _ocr_pdf_with_gemini(path) or text
+
+
+def _ocr_pdf_with_gemini(path: str) -> str:
+    """OCR a PDF using Gemini vision. Returns '' on failure."""
+    import logging
+    log = logging.getLogger(__name__)
+    try:
+        from google.genai import types
+        from app.ai_service import _get_client, FAST_MODEL
+
+        with open(path, "rb") as f:
+            data = f.read()
+        if len(data) > 20 * 1024 * 1024:
+            # Gemini inline-data cap is ~20MB
+            return ""
+
+        client = _get_client()
+        prompt = (
+            "Transcribe all text in this document into plain UTF-8. "
+            "The document may contain English, Bahasa Melayu in Rumi script, "
+            "or Bahasa Melayu in Jawi (Arabic) script — transcribe Jawi exactly "
+            "as written using Arabic Unicode characters, do not transliterate. "
+            "Preserve paragraph breaks and bullet structure. "
+            "Output only the transcribed text, no commentary."
+        )
+        response = client.models.generate_content(
+            model=FAST_MODEL,
+            contents=[
+                types.Part.from_bytes(data=data, mime_type="application/pdf"),
+                prompt,
+            ],
+        )
+        return (getattr(response, "text", "") or "").strip()
+    except Exception as e:
+        log.warning("Gemini OCR fallback failed for %s: %s", path, e)
         return ""
 
 
