@@ -496,7 +496,7 @@ def _minutes_to_label(m: int) -> str:
 
 @router.get("/top-users")
 def get_top_users(
-    limit: int = Query(20, le=100),
+    limit: int = Query(500, le=5000),
     user: dict = Depends(require_admin),
     db=Depends(get_db),
 ):

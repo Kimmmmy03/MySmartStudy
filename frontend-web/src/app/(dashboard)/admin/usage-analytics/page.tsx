@@ -6,7 +6,9 @@ import { motion } from "framer-motion";
 import { adminApi, type TopUserRecord, type TopUsersResponse } from "@/lib/api";
 import {
   Clock, Users, TrendingUp, Download, RefreshCw, ArrowUpRight, BarChart3,
+  Search, X, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight,
 } from "lucide-react";
+import clsx from "clsx";
 
 const FEATURE_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
@@ -54,7 +56,7 @@ export default function UsageAnalyticsPage() {
   async function load() {
     setLoading(true);
     try {
-      const d = await adminApi.getTopUsers({ limit: 50 });
+      const d = await adminApi.getTopUsers({ limit: 5000 });
       setData(d);
     } catch {
       /* ignore */
@@ -67,6 +69,64 @@ export default function UsageAnalyticsPage() {
 
   const users = data?.users ?? [];
   const summary = data?.summary;
+
+  // ── Search / filter / sort / paginate ──
+  type SortKey = "rank" | "name" | "role" | "total" | "mostUsed" | "lastSeen";
+  const [searchInput, setSearchInput] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | "student" | "lecturer" | "admin">("all");
+  const [sortKey, setSortKey] = useState<SortKey>("total");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
+
+  const visibleUsers = useMemo(() => {
+    const term = searchInput.trim().toLowerCase();
+    let list = users;
+    if (roleFilter !== "all") list = list.filter(u => (u.user.role || "").toLowerCase() === roleFilter);
+    if (term) {
+      list = list.filter(u =>
+        (u.user.displayName || "").toLowerCase().includes(term) ||
+        (u.user.email || "").toLowerCase().includes(term)
+      );
+    }
+    const sorted = [...list].sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case "name":
+          cmp = (a.user.displayName || "").localeCompare(b.user.displayName || "");
+          break;
+        case "role":
+          cmp = (a.user.role || "").localeCompare(b.user.role || "");
+          break;
+        case "total":
+          cmp = a.totalMinutes - b.totalMinutes;
+          break;
+        case "mostUsed":
+          cmp = (a.mostUsedFeature || "").localeCompare(b.mostUsedFeature || "");
+          break;
+        case "lastSeen":
+          cmp = new Date(a.lastSeenAt || 0).getTime() - new Date(b.lastSeenAt || 0).getTime();
+          break;
+        default:
+          cmp = a.totalMinutes - b.totalMinutes;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [users, searchInput, roleFilter, sortKey, sortDir]);
+
+  useEffect(() => { setPage(1); }, [searchInput, roleFilter, sortKey, sortDir]);
+  const totalPages = Math.max(1, Math.ceil(visibleUsers.length / pageSize));
+  const pagedUsers = visibleUsers.slice((page - 1) * pageSize, page * pageSize);
+
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "name" || key === "role" || key === "mostUsed" ? "asc" : "desc");
+    }
+  }
 
   const featureRanking = useMemo(() => {
     if (!summary) return [] as { key: string; minutes: number }[];
@@ -104,12 +164,14 @@ export default function UsageAnalyticsPage() {
         );
       }
 
+      // Export respects the current search/filter/sort so admins can PDF a
+      // subset (e.g. only lecturers with low usage) instead of the full list.
       autoTable(doc, {
         startY: 90,
         head: [[
           "#", "Name", "Email", "Role", "Total Time", "Most Used", "Least Used", "Last Seen",
         ]],
-        body: users.map((u, i) => [
+        body: visibleUsers.map((u, i) => [
           i + 1,
           u.user.displayName || "Unknown",
           u.user.email || "",
@@ -263,8 +325,54 @@ export default function UsageAnalyticsPage() {
         transition={{ delay: 0.3 }}
         className="glass-card overflow-hidden"
       >
-        <div className="p-4 border-b border-white/5">
-          <h2 className="text-white font-semibold">Top Users by Time Spent</h2>
+        <div className="p-4 border-b border-white/5 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <h2 className="text-white font-semibold">Top Users by Time Spent</h2>
+            <span className="text-xs text-dark-400">
+              {visibleUsers.length === users.length
+                ? `${users.length} users`
+                : `${visibleUsers.length} of ${users.length}`}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-400" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                placeholder="Search name or email..."
+                className="glass-input pl-8 pr-7 py-1.5 text-xs w-56 rounded-lg"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => setSearchInput("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-dark-400 hover:text-white"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+            {/* Role filter chips */}
+            <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5">
+              {(["all", "student", "lecturer", "admin"] as const).map(r => (
+                <button
+                  key={r}
+                  onClick={() => setRoleFilter(r)}
+                  className={clsx(
+                    "px-2.5 py-1 rounded-md text-[11px] font-medium capitalize transition-colors",
+                    roleFilter === r
+                      ? "bg-accent-blue/20 text-accent-blue"
+                      : "text-dark-300 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         {loading ? (
           <div className="p-8 text-center text-dark-400">Loading...</div>
@@ -276,67 +384,129 @@ export default function UsageAnalyticsPage() {
               Usage is tracked automatically once users open the app. Give it a few minutes after deploy.
             </p>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-dark-400 text-xs border-b border-white/5">
-                  <th className="text-left p-3 pl-4">#</th>
-                  <th className="text-left p-3">User</th>
-                  <th className="text-right p-3">Total Time</th>
-                  <th className="text-left p-3">Most Used</th>
-                  <th className="text-left p-3">Least Used</th>
-                  <th className="text-right p-3">Last Seen</th>
-                  <th className="p-3 pr-4"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((row: TopUserRecord, i) => (
-                  <motion.tr
-                    key={row.userId}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.35 + i * 0.03 }}
-                    className="border-b border-white/5 hover:bg-white/5 transition-colors"
-                  >
-                    <td className="p-3 pl-4 text-dark-400">{i + 1}</td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        {row.user.photoURL ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={row.user.photoURL} alt="" className="w-7 h-7 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/60 text-xs font-bold">
-                            {(row.user.displayName || row.user.email || "?")[0]?.toUpperCase()}
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-white text-sm font-medium leading-tight">{row.user.displayName || "Unknown"}</p>
-                          <p className="text-dark-400 text-xs">{row.user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-3 text-right font-mono text-white/80">{row.totalLabel}</td>
-                    <td className="p-3 text-white/70">{row.mostUsedFeature ? featureLabel(row.mostUsedFeature) : "—"}</td>
-                    <td className="p-3 text-white/50">{row.leastUsedFeature ? featureLabel(row.leastUsedFeature) : "—"}</td>
-                    <td className="p-3 text-right text-dark-400 text-xs whitespace-nowrap">
-                      {row.lastSeenAt ? new Date(row.lastSeenAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
-                    </td>
-                    <td className="p-3 pr-4">
-                      <Link
-                        href={`/admin/users/${row.userId}/analytics`}
-                        className="inline-flex items-center gap-1 text-xs text-accent-blue hover:underline"
-                      >
-                        Details <ArrowUpRight className="w-3 h-3" />
-                      </Link>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
+        ) : visibleUsers.length === 0 ? (
+          <div className="p-10 text-center">
+            <Search className="w-10 h-10 text-white/20 mx-auto mb-3" />
+            <p className="text-dark-300 text-sm">No users match your search or filter.</p>
           </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-dark-400 text-xs border-b border-white/5">
+                    <th className="text-left p-3 pl-4">#</th>
+                    <SortHeader label="User" active={sortKey === "name"} dir={sortDir} onClick={() => toggleSort("name")} />
+                    <SortHeader label="Role" active={sortKey === "role"} dir={sortDir} onClick={() => toggleSort("role")} />
+                    <SortHeader label="Total Time" align="right" active={sortKey === "total"} dir={sortDir} onClick={() => toggleSort("total")} />
+                    <SortHeader label="Most Used" active={sortKey === "mostUsed"} dir={sortDir} onClick={() => toggleSort("mostUsed")} />
+                    <th className="text-left p-3">Least Used</th>
+                    <SortHeader label="Last Seen" align="right" active={sortKey === "lastSeen"} dir={sortDir} onClick={() => toggleSort("lastSeen")} />
+                    <th className="p-3 pr-4"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedUsers.map((row: TopUserRecord, i) => (
+                    <tr
+                      key={row.userId}
+                      className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                    >
+                      <td className="p-3 pl-4 text-dark-400">{(page - 1) * pageSize + i + 1}</td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          {row.user.photoURL ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={row.user.photoURL} alt="" className="w-7 h-7 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/60 text-xs font-bold">
+                              {(row.user.displayName || row.user.email || "?")[0]?.toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-white text-sm font-medium leading-tight">{row.user.displayName || "Unknown"}</p>
+                            <p className="text-dark-400 text-xs">{row.user.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3 capitalize text-dark-300 text-xs">{row.user.role || "—"}</td>
+                      <td className="p-3 text-right font-mono text-white/80">{row.totalLabel}</td>
+                      <td className="p-3 text-white/70">{row.mostUsedFeature ? featureLabel(row.mostUsedFeature) : "—"}</td>
+                      <td className="p-3 text-white/50">{row.leastUsedFeature ? featureLabel(row.leastUsedFeature) : "—"}</td>
+                      <td className="p-3 text-right text-dark-400 text-xs whitespace-nowrap">
+                        {row.lastSeenAt ? new Date(row.lastSeenAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                      </td>
+                      <td className="p-3 pr-4">
+                        <Link
+                          href={`/admin/users/${row.userId}/analytics`}
+                          className="inline-flex items-center gap-1 text-xs text-accent-blue hover:underline"
+                        >
+                          Details <ArrowUpRight className="w-3 h-3" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between p-3 border-t border-white/5 text-xs text-dark-400">
+                <span>
+                  Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, visibleUsers.length)} of {visibleUsers.length}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="p-1.5 rounded-lg hover:bg-white/5 disabled:opacity-30 transition-colors"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="px-2 font-medium text-white">{page} / {totalPages}</span>
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="p-1.5 rounded-lg hover:bg-white/5 disabled:opacity-30 transition-colors"
+                    aria-label="Next page"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </motion.div>
     </div>
+  );
+}
+
+function SortHeader({
+  label,
+  active,
+  dir,
+  onClick,
+  align = "left",
+}: {
+  label: string;
+  active: boolean;
+  dir: "asc" | "desc";
+  onClick: () => void;
+  align?: "left" | "right";
+}) {
+  const Icon = active ? (dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <th className={clsx("p-3", align === "right" ? "text-right" : "text-left")}>
+      <button
+        onClick={onClick}
+        className={clsx(
+          "inline-flex items-center gap-1 text-xs uppercase tracking-wide font-medium transition-colors",
+          active ? "text-accent-blue" : "text-dark-400 hover:text-white"
+        )}
+      >
+        {label}
+        <Icon className="w-3 h-3" />
+      </button>
+    </th>
   );
 }
