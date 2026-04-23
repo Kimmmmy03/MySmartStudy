@@ -69,14 +69,17 @@ def heartbeat(
             except Exception:
                 minutes_to_add = 1
 
+    # Firestore set(merge=True) treats dotted keys as LITERAL field names (not
+    # nested paths — that's update() semantics). Use a nested dict so the
+    # features / platforms maps actually accumulate.
     daily_ref.set({
         "userId": uid,
         "date": date_key,
         "minutesActive": Increment(minutes_to_add),
         "lastPingAt": now.isoformat(),
         "firstPingAt": prev.to_dict().get("firstPingAt", now.isoformat()) if prev.exists else now.isoformat(),
-        f"features.{feature}": Increment(minutes_to_add),
-        f"platforms.{platform}": Increment(minutes_to_add),
+        "features": {feature: Increment(minutes_to_add)},
+        "platforms": {platform: Increment(minutes_to_add)},
     }, merge=True)
 
     # ── Lifetime aggregate: userActivityAggregate/{uid} ────────────────────
@@ -85,8 +88,8 @@ def heartbeat(
     agg_ref.set({
         "userId": uid,
         "totalMinutes": Increment(minutes_to_add),
-        f"features.{feature}": Increment(minutes_to_add),
-        f"platforms.{platform}": Increment(minutes_to_add),
+        "features": {feature: Increment(minutes_to_add)},
+        "platforms": {platform: Increment(minutes_to_add)},
         "lastSeenAt": now.isoformat(),
         "firstSeenAt": agg_snap.to_dict().get("firstSeenAt", now.isoformat()) if agg_snap.exists else now.isoformat(),
     }, merge=True)
