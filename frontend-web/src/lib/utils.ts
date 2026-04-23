@@ -44,3 +44,15 @@ export function formatDateTime(iso: string | null | undefined): string {
   const d = new Date(iso);
   return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
+
+/** Convert a stored semester value ("1", "2", "3", "Short", etc.) to its
+ * display label using Roman numerals (I, II, III). Non-numeric values pass
+ * through unchanged so "Short Semester" and legacy values still render. */
+export function semesterLabel(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "";
+  const s = String(value).trim();
+  const n = parseInt(s, 10);
+  if (!Number.isFinite(n) || String(n) !== s) return s; // e.g. "Short"
+  const romans = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+  return romans[n] || s;
+}

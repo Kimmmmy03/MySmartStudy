@@ -9,6 +9,7 @@ interface SelectWithOtherProps {
   value: string;
   onChange: (val: string) => void;
   options: string[];
+  optionLabels?: Record<string, string>;
   placeholder?: string;
   required?: boolean;
   size?: "sm" | "md";
@@ -20,6 +21,7 @@ export default function SelectWithOther({
   value,
   onChange,
   options,
+  optionLabels,
   placeholder = "Select an option",
   required = false,
   size = "md",
@@ -31,6 +33,7 @@ export default function SelectWithOther({
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const labelFor = (opt: string) => (optionLabels && optionLabels[opt]) || opt;
 
   useEffect(() => {
     if (value && !options.includes(value)) setShowCustom(true);
@@ -45,11 +48,12 @@ export default function SelectWithOther({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const filtered = options.filter((o) =>
-    o.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = options.filter((o) => {
+    const term = search.toLowerCase();
+    return o.toLowerCase().includes(term) || labelFor(o).toLowerCase().includes(term);
+  });
 
-  const displayValue = showCustom ? "Other..." : value;
+  const displayValue = showCustom ? "Other..." : (value ? labelFor(value) : "");
 
   const py = size === "sm" ? "py-2" : "py-3";
 
@@ -109,7 +113,7 @@ export default function SelectWithOther({
                       : "text-dark-100 hover:bg-white/5"
                   )}
                 >
-                  {opt}
+                  {labelFor(opt)}
                 </button>
               ))}
               {filtered.length === 0 && (
