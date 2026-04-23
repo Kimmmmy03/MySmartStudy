@@ -841,6 +841,25 @@ html.light .modal-border { border-color: rgba(27, 42, 128, 0.08) !important; }
 html.light .text-white {
   color: #1a1a2e;
 }
+/* Opacity-tinted white text (text-white/80, /60, /50, /40) is invisible on
+ * light backgrounds. Remap to muted navy shades so admin pages, analytics
+ * cards, and filter chips stay readable without per-component rewrites. */
+html.light .text-white\/90 { color: rgba(26, 26, 46, 0.92); }
+html.light .text-white\/80 { color: rgba(26, 26, 46, 0.85); }
+html.light .text-white\/70 { color: rgba(26, 26, 46, 0.75); }
+html.light .text-white\/60 { color: rgba(58, 69, 112, 0.85); }
+html.light .text-white\/50 { color: rgba(92, 101, 144, 0.85); }
+html.light .text-white\/40 { color: rgba(138, 146, 178, 0.95); }
+html.light .text-white\/30 { color: rgba(160, 168, 196, 0.95); }
+html.light .text-white\/20 { color: rgba(160, 168, 196, 0.8); }
+html.light .hover\:text-white\/80:hover { color: rgba(26, 26, 46, 0.85); }
+html.light .hover\:text-white\/90:hover { color: rgba(26, 26, 46, 0.92); }
+/* Preserve faded-white text inside gradient chips / colored badges */
+html.light [class*="bg-gradient"] [class^="text-white\\/"],
+html.light [class*="from-accent"] [class^="text-white\\/"],
+html.light [class*="bg-accent"] [class^="text-white\\/"] {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
 /* Preserve white text inside gradient buttons and colored backgrounds */
 html.light .btn-gradient .text-white,
 html.light .btn-gradient,
@@ -859,12 +878,14 @@ html.light .btn-gradient * {
   color: #ffffff !important;
 }
 
-/* Global text color overrides */
+/* Global text color overrides — tuned for WCAG AA on white backgrounds.
+ * Prior values for dark-400/500 were too pale for small text; bumped to
+ * navy-tinted greys that stay visible on glass-card surfaces. */
 html.light .text-dark-100 { color: #1a1a2e; }
 html.light .text-dark-200 { color: #3a4570; }
-html.light .text-dark-300 { color: #5c6590; }
-html.light .text-dark-400 { color: #8a92b2; }
-html.light .text-dark-500 { color: #a0a8c4; }
+html.light .text-dark-300 { color: #4a5280; }
+html.light .text-dark-400 { color: #6b73a0; }
+html.light .text-dark-500 { color: #7a82b0; }
 
 /* Global bg overrides */
 html.light .bg-dark-900 { background: #f4f6fb; }
