@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Camera, Loader2, CheckCircle, Brain } from "lucide-react";
 import SelectWithOther from "@/components/ui/select-with-other";
 import { CLASS_UNITS } from "@/lib/constants";
+import { semesterLabel } from "@/lib/utils";
 
 const avatarBase = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:8000";
 
@@ -132,7 +133,7 @@ export default function ProfilePage() {
               <div>
                 <label className="block text-sm font-medium text-dark-200 mb-2">Semester</label>
                 <select value={semester} onChange={e => setSemester(e.target.value)} className="glass-input w-full px-4 py-2 text-sm">
-                  {[1, 2].map(s => <option key={s} value={s}>Semester {s}</option>)}
+                  {[1, 2].map(s => <option key={s} value={s}>Semester {semesterLabel(s)}</option>)}
                 </select>
               </div>
             </div>

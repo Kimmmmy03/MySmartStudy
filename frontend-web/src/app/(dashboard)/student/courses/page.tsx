@@ -8,6 +8,7 @@ import Modal from "@/components/ui/modal";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookOpen, ArrowRight, Clock, Users, GraduationCap, KeyRound, Loader2, Search } from "lucide-react";
 import { getPatternStyle } from "@/lib/patterns";
+import { semesterLabel } from "@/lib/utils";
 
 const FALLBACK_PATTERNS = ["songket", "batik", "pucuk_rebung", "ipg_education"];
 
@@ -303,7 +304,7 @@ function CourseCard({
             )}
           </div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-dark-100 leading-snug">{course.course_name}</h3>
-          <p className="text-dark-300 text-sm mt-1">Semester {course.semester}</p>
+          <p className="text-dark-300 text-sm mt-1">Semester {semesterLabel(course.semester)}</p>
         </div>
       </div>
 

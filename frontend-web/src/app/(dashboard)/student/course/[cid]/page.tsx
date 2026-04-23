@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { coursesApi, announcementsApi, CourseOut, AnnouncementOut } from "@/lib/api";
-import { formatDate } from "@/lib/utils";
+import { formatDate, semesterLabel } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, FolderOpen, ClipboardList, BarChart3, MessageCircle, Megaphone,
@@ -110,7 +110,9 @@ export default function CourseDetailPage() {
               <Users className="w-3 h-3" /> {course.lecturer_name || "Lecturer"}
             </span>
             <span className="px-3 py-1 bg-white/10 rounded-full text-xs text-gray-700 dark:text-dark-200">
-              Semester {course.semester}
+              Semester {semesterLabel(course.semester)}
+              {course.year ? ` · Year ${course.year}` : ""}
+              {course.academic_session ? ` · ${course.academic_session}` : ""}
             </span>
             <span className="px-3 py-1 bg-white/10 rounded-full text-xs text-gray-700 dark:text-dark-200 flex items-center gap-1">
               <Users className="w-3 h-3" /> {course.enrolled_count || 0} students

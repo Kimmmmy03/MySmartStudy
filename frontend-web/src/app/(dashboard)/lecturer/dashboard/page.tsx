@@ -6,7 +6,7 @@ import { coursesApi, discussionsApi, assignmentsApi, CourseOut, DiscussionOut, A
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { Users, BookOpen, MessageCircle, Sparkles, Plus, AlertCircle, FileText, Flame, Coins, Award } from "lucide-react";
-import { resolveBackendUrl } from "@/lib/utils";
+import { resolveBackendUrl, semesterLabel } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
 
 const tips = [
@@ -122,7 +122,7 @@ export default function LecturerDashboard() {
                   <h3 className="text-lg font-semibold text-white mt-2">{c.course_name}</h3>
                   <div className="flex items-center gap-4 mt-3 text-xs text-dark-300">
                     <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {c.enrolled_count || 0} students</span>
-                    <span>Sem {c.semester}</span>
+                    <span>Sem {semesterLabel(c.semester)}</span>
                   </div>
                 </motion.div>
               ))}

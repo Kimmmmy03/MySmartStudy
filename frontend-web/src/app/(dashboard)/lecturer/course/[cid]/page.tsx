@@ -13,6 +13,7 @@ import Modal from "@/components/ui/modal";
 import ParticipationScore from "@/components/participation-score";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { getPatternStyle } from "@/lib/patterns";
+import { semesterLabel } from "@/lib/utils";
 
 const FALLBACK_PATTERNS = ["songket", "batik", "pucuk_rebung", "ipg_education"];
 
@@ -167,7 +168,9 @@ export default function LecturerCourseDetailPage() {
               <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-dark-100 mb-0.5">{course.course_name}</h1>
               <p className="text-xs text-dark-300">{course.course_code}</p>
               <div className="flex flex-wrap gap-2 mt-2">
-                <span className="px-2.5 py-0.5 bg-white/10 rounded-full text-[11px] text-gray-700 dark:text-dark-200">Semester {course.semester}</span>
+                <span className="px-2.5 py-0.5 bg-white/10 rounded-full text-[11px] text-gray-700 dark:text-dark-200">Semester {semesterLabel(course.semester)}</span>
+                {course.year && <span className="px-2.5 py-0.5 bg-white/10 rounded-full text-[11px] text-gray-700 dark:text-dark-200">Year {course.year}</span>}
+                {course.academic_session && <span className="px-2.5 py-0.5 bg-white/10 rounded-full text-[11px] text-gray-700 dark:text-dark-200">{course.academic_session}</span>}
                 <span className="px-2.5 py-0.5 bg-white/10 rounded-full text-[11px] text-gray-700 dark:text-dark-200 flex items-center gap-1">
                   <Users className="w-3 h-3" /> {course.enrolled_count || 0} students
                 </span>
