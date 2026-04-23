@@ -5,6 +5,7 @@ from ..firestore import get_db
 from ..auth import get_current_user, require_lecturer
 from ..audit import audit_log
 from .activity import log_activity
+from .notifications import create_notification
 from datetime import datetime, timezone
 from google.cloud.firestore_v1.base_query import FieldFilter
 
@@ -210,6 +211,25 @@ def create_assignment(req: schemas.AssignmentCreate, user: dict = Depends(requir
     db.collection(models.ASSIGNMENTS).document(aid).set(data)
     data["id"] = aid
     audit_log(db, user["id"], "create", "assignment", aid, f"Created assignment: {req.title}")
+
+    # Notify enrolled students (best-effort; never blocks the create)
+    try:
+        c_doc = db.collection(models.COURSES).document(req.course_id).get()
+        c = models.doc_to_dict(c_doc) or {}
+        course_name = c.get("courseName", "")
+        link = f"/student/course/{req.course_id}/assignments"
+        for sid in c.get("enrolledStudents", []) or []:
+            create_notification(
+                db,
+                user_id=sid,
+                title=f"New assignment: {req.title}",
+                message=f"{course_name} — due {req.deadline}.",
+                notification_type="assignment",
+                link=link,
+            )
+    except Exception:
+        pass
+
     return _assignment_out(data, db)
 
 

@@ -6,6 +6,7 @@ from ..auth import get_current_user
 from ..audit import audit_log
 from .activity import log_activity
 from .auto_badges import check_and_award_badges as check_auto_badges
+from .notifications import create_notification
 from datetime import datetime, timezone
 import os, uuid, aiofiles
 from google.cloud.firestore_v1.base_query import FieldFilter
@@ -306,10 +307,27 @@ def get_map(map_id: str, user: dict = Depends(get_current_user), db=Depends(get_
     m = models.doc_to_dict(doc)
     if not m:
         raise HTTPException(status_code=404, detail="Map not found")
-    # Log lecturer view (non-blocking)
+    # Log lecturer view + notify owner (deduped to once/day per lecturer per map)
     if user.get("role") == "lecturer" and m.get("ownerId") != user["id"]:
         try:
             _log_map_history(db, map_id, user, "viewed", f"Lecturer {user.get('displayName', '')} viewed this map")
+        except Exception:
+            pass
+        try:
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            flag_id = f"mv_{user['id']}_{map_id}_{today}"
+            flag_ref = db.collection("mapViewNotifyFlags").document(flag_id)
+            if not flag_ref.get().exists:
+                flag_ref.set({"createdAt": datetime.now(timezone.utc)})
+                create_notification(
+                    db,
+                    user_id=m["ownerId"],
+                    title="Your mind map was viewed",
+                    message=f"{user.get('displayName', 'A lecturer')} opened \"{m.get('title', 'your map')}\".",
+                    notification_type="map_view",
+                    link=f"/view-map/{map_id}",
+                    send_email=False,  # In-app only; email would be spammy
+                )
         except Exception:
             pass
     return _map_out(m)
@@ -406,6 +424,32 @@ def add_collaborator(map_id: str, email: str, user: dict = Depends(get_current_u
         raise HTTPException(status_code=404, detail="Map not found")
     db.collection(models.MAPS).document(map_id).update({"collaborators": ArrayUnion([email])})
     _log_map_history(db, map_id, user, "collaborator_added", f"Added collaborator {email}")
+
+    # Notify the invited user if they have an account
+    try:
+        m = models.doc_to_dict(doc) or {}
+        map_title = m.get("title", "a mind map")
+        inviter = user.get("displayName", "A collaborator")
+        target = (
+            db.collection(models.USERS)
+            .where(filter=FieldFilter("email", "==", email.lower()))
+            .limit(1)
+            .get()
+        )
+        for t in target:
+            tdata = models.doc_to_dict(t) or {}
+            create_notification(
+                db,
+                user_id=tdata["id"],
+                title="You've been invited to collaborate",
+                message=f"{inviter} added you to \"{map_title}\".",
+                notification_type="collaboration",
+                link=f"/view-map/{map_id}",
+            )
+            break
+    except Exception:
+        pass
+
     return {"ok": True}
 
 

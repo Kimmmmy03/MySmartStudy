@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from .. import models, schemas
 from ..firestore import get_db
 from ..auth import get_current_user
+from .notifications import create_notification
 from datetime import datetime, timezone
 from google.cloud.firestore_v1.base_query import FieldFilter
 
@@ -50,6 +51,31 @@ def create_announcement(course_id: str, req: schemas.AnnouncementCreate, user: d
     }
     db.collection(models.ANNOUNCEMENTS).document(ann_id).set(data)
     data["id"] = ann_id
+
+    # Notify enrolled students
+    try:
+        c_doc = db.collection(models.COURSES).document(course_id).get()
+        c = models.doc_to_dict(c_doc) or {}
+        course_name = c.get("courseName", "")
+        link = f"/student/course/{course_id}/announcements"
+        # Trim the message preview to one-line
+        preview = (req.content or "").strip().replace("\n", " ")
+        if len(preview) > 160:
+            preview = preview[:157] + "..."
+        for sid in c.get("enrolledStudents", []) or []:
+            if sid == user["id"]:
+                continue
+            create_notification(
+                db,
+                user_id=sid,
+                title=f"{course_name}: {req.title}",
+                message=preview or req.title,
+                notification_type="announcement",
+                link=link,
+            )
+    except Exception:
+        pass
+
     return _ann_out(data, photo_url)
 
 
