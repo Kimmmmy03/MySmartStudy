@@ -238,7 +238,7 @@ export default function UserAnalyticsPage() {
                   {data.lastSeenAt && (
                     <span className="flex items-center gap-1">
                       <Activity className="w-3 h-3" />
-                      Last seen {new Date(data.lastSeenAt).toLocaleDateString()}
+                      Last seen {new Date(data.lastSeenAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </span>
                   )}
                 </div>

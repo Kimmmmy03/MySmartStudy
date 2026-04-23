@@ -117,7 +117,7 @@ export default function UsageAnalyticsPage() {
           u.totalLabel,
           u.mostUsedFeature ? featureLabel(u.mostUsedFeature) : "—",
           u.leastUsedFeature ? featureLabel(u.leastUsedFeature) : "—",
-          u.lastSeenAt ? new Date(u.lastSeenAt).toLocaleDateString() : "—",
+          u.lastSeenAt ? new Date(u.lastSeenAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—",
         ]),
         styles: { fontSize: 9, cellPadding: 6 },
         headStyles: { fillColor: [120, 140, 200], textColor: 255, fontStyle: "bold" },
@@ -319,8 +319,8 @@ export default function UsageAnalyticsPage() {
                     <td className="p-3 text-right font-mono text-white/80">{row.totalLabel}</td>
                     <td className="p-3 text-white/70">{row.mostUsedFeature ? featureLabel(row.mostUsedFeature) : "—"}</td>
                     <td className="p-3 text-white/50">{row.leastUsedFeature ? featureLabel(row.leastUsedFeature) : "—"}</td>
-                    <td className="p-3 text-right text-dark-400 text-xs">
-                      {row.lastSeenAt ? new Date(row.lastSeenAt).toLocaleDateString() : "—"}
+                    <td className="p-3 text-right text-dark-400 text-xs whitespace-nowrap">
+                      {row.lastSeenAt ? new Date(row.lastSeenAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
                     </td>
                     <td className="p-3 pr-4">
                       <Link
