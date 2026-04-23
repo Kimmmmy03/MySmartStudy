@@ -96,6 +96,7 @@ def send_welcome_email(user: dict = Depends(get_current_user)):
     smtp_user = os.getenv("SMTP_USER", "")
     smtp_password = os.getenv("SMTP_PASSWORD", "")
     smtp_from = os.getenv("SMTP_FROM", smtp_user)
+    frontend_url = os.getenv("FRONTEND_URL", "https://mysmartstudy-web-393385396386.asia-southeast1.run.app").rstrip("/")
 
     if not smtp_host or not smtp_user or not smtp_password:
         return {"detail": "SMTP not configured, skipping welcome email"}
@@ -126,7 +127,7 @@ def send_welcome_email(user: dict = Depends(get_current_user)):
             <li>Track your achievements and streaks</li>
         </ul>
         <div style="text-align: center; margin: 32px 0;">
-            <a href="https://mysmartstudy.com/login"
+            <a href="{frontend_url}/login"
                style="background: linear-gradient(135deg, #1B2A80, #2E4DA7);
                       color: white; padding: 14px 32px; border-radius: 12px;
                       text-decoration: none; font-weight: 600;">
