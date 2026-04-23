@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import SelectWithOther from "@/components/ui/select-with-other";
 import { COURSE_NAMES, COURSE_CODES } from "@/lib/constants";
 import { getPatternStyle, getPatternLayerStyle, PATTERN_LIST } from "@/lib/patterns";
+import { semesterLabel } from "@/lib/utils";
 
 type ImportStep = "url" | "scanning" | "preview" | "importing" | "success";
 
@@ -91,7 +92,7 @@ export default function ClassManagementPage() {
   // Create modal
   const [showCreate, setShowCreate] = useState(false);
   const [editTarget, setEditTarget] = useState<CourseOut | null>(null);
-  const [form, setForm] = useState({ courseName: "", courseCode: "", semester: "1", themeColor: "", pattern: "" });
+  const [form, setForm] = useState({ courseName: "", courseCode: "", semester: "1", year: "", academicSession: "", themeColor: "", pattern: "" });
   const [saving, setSaving] = useState(false);
 
   // Import modal (separate)
@@ -132,7 +133,7 @@ export default function ClassManagementPage() {
 
   const resetCreateState = () => {
     setShowCreate(false);
-    setForm({ courseName: "", courseCode: "", semester: "1", themeColor: "", pattern: "" });
+    setForm({ courseName: "", courseCode: "", semester: "1", year: "", academicSession: "", themeColor: "", pattern: "" });
     setPreviewModules([]);
   };
 
@@ -164,6 +165,8 @@ export default function ClassManagementPage() {
         course_name: form.courseName,
         course_code: form.courseCode.toUpperCase(),
         semester: form.semester,
+        year: form.year ? parseInt(form.year, 10) : null,
+        academic_session: form.academicSession.trim(),
         theme_color: form.themeColor,
         pattern: form.pattern,
       });
@@ -186,7 +189,10 @@ export default function ClassManagementPage() {
     try {
       const updated = await coursesApi.update(editTarget.id, {
         course_name: form.courseName, course_code: form.courseCode.toUpperCase(),
-        semester: form.semester, theme_color: form.themeColor, pattern: form.pattern,
+        semester: form.semester,
+        year: form.year ? parseInt(form.year, 10) : null,
+        academic_session: form.academicSession.trim(),
+        theme_color: form.themeColor, pattern: form.pattern,
       });
       setCourses(prev => prev.map(c => c.id === editTarget.id ? updated : c));
       setEditTarget(null);
@@ -219,7 +225,15 @@ export default function ClassManagementPage() {
   };
 
   const openEdit = (c: CourseOut) => {
-    setForm({ courseName: c.course_name, courseCode: c.course_code, semester: c.semester, themeColor: c.theme_color || "", pattern: c.pattern || "" });
+    setForm({
+      courseName: c.course_name,
+      courseCode: c.course_code,
+      semester: c.semester,
+      year: c.year != null ? String(c.year) : "",
+      academicSession: c.academic_session || "",
+      themeColor: c.theme_color || "",
+      pattern: c.pattern || "",
+    });
     setEditTarget(c);
   };
 
@@ -316,6 +330,8 @@ export default function ClassManagementPage() {
       const created = await coursesApi.create({
         course_name: duplicateTarget.course_name, course_code: duplicateTarget.course_code,
         semester: duplicateTarget.semester,
+        year: duplicateTarget.year ?? null,
+        academic_session: duplicateTarget.academic_session || "",
         description: (duplicateTarget as CourseOut & { description?: string }).description || "",
       });
       try {
@@ -386,7 +402,11 @@ export default function ClassManagementPage() {
                   />
                 )}
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-100 relative z-[1]">{c.course_name}</h3>
-                <p className="text-sm text-gray-600 dark:text-dark-300 relative z-[1]">{c.course_code} &middot; Semester {c.semester}</p>
+                <p className="text-sm text-gray-600 dark:text-dark-300 relative z-[1]">
+                  {c.course_code} &middot; Semester {semesterLabel(c.semester)}
+                  {c.year ? ` · Year ${c.year}` : ""}
+                  {c.academic_session ? ` · ${c.academic_session}` : ""}
+                </p>
               </div>
               <div className="px-5 py-4 space-y-3">
                 <div className="flex items-center justify-between bg-accent-cyan/5 border border-accent-cyan/20 rounded-xl px-3 py-2">
@@ -595,7 +615,7 @@ export default function ClassManagementPage() {
                 <div>
                   <h2 className="text-lg font-bold text-dark-100">{preview.course.course_name}</h2>
                   <p className="text-xs text-dark-400">
-                    <span className="font-mono text-dark-300">{preview.course.course_code}</span> &middot; Semester {preview.course.semester} &middot; {preview.pages_scraped} pages analyzed
+                    <span className="font-mono text-dark-300">{preview.course.course_code}</span> &middot; Semester {semesterLabel(preview.course.semester)} &middot; {preview.pages_scraped} pages analyzed
                   </p>
                 </div>
               </div>
@@ -899,7 +919,11 @@ export default function ClassManagementPage() {
                   </div>
                 </div>
                 <div className="px-5 py-2.5 bg-gray-100 dark:bg-dark-800/60 flex items-center justify-between text-xs text-gray-600 dark:text-dark-300">
-                  <span>Semester {form.semester}</span>
+                  <span className="flex items-center gap-2 flex-wrap">
+                    <span>Semester {semesterLabel(form.semester)}</span>
+                    {form.year && <span>· Year {form.year}</span>}
+                    {form.academicSession.trim() && <span>· {form.academicSession.trim()}</span>}
+                  </span>
                   <span className="font-medium">{previewColor.label} · {PATTERN_LIST.find(p => p.id === previewPattern)?.label || "Pattern"}</span>
                 </div>
               </div>
@@ -912,15 +936,51 @@ export default function ClassManagementPage() {
               <SelectWithOther label="Course Name" value={form.courseName} onChange={(v) => setForm(p => ({ ...p, courseName: v }))}
                 options={COURSE_NAMES} placeholder="Select a course name" required />
             </div>
-            <SelectWithOther label="Course Code" value={form.courseCode} onChange={(v) => setForm(p => ({ ...p, courseCode: v }))}
-              options={COURSE_CODES} placeholder="e.g. EDUP3033" required />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1.5">Course Code</label>
+              <input
+                type="text"
+                value={form.courseCode}
+                onChange={e => setForm(p => ({ ...p, courseCode: e.target.value.toUpperCase() }))}
+                list="course-code-suggestions"
+                placeholder="e.g. EDUP3033"
+                required
+                className="glass-input w-full px-4 py-2.5 text-sm rounded-xl font-mono uppercase"
+                maxLength={20}
+              />
+              <datalist id="course-code-suggestions">
+                {COURSE_CODES.map(code => <option key={code} value={code} />)}
+              </datalist>
+              <p className="mt-1 text-[11px] text-gray-500 dark:text-dark-400">
+                Type any code. Suggestions appear as you type.
+              </p>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1.5">Semester</label>
               <select value={form.semester} onChange={e => setForm(p => ({ ...p, semester: e.target.value }))}
                 className="glass-input w-full px-4 py-2.5 text-sm rounded-xl">
-                {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>Semester {n}</option>)}
+                {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>Semester {semesterLabel(n)}</option>)}
                 <option value="Short">Short Semester</option>
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1.5">Year</label>
+              <select value={form.year} onChange={e => setForm(p => ({ ...p, year: e.target.value }))}
+                className="glass-input w-full px-4 py-2.5 text-sm rounded-xl">
+                <option value="">Not specified</option>
+                {[1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1.5">Academic Session</label>
+              <input
+                type="text"
+                value={form.academicSession}
+                onChange={e => setForm(p => ({ ...p, academicSession: e.target.value }))}
+                placeholder="e.g. 2025/2026"
+                className="glass-input w-full px-4 py-2.5 text-sm rounded-xl"
+                maxLength={32}
+              />
             </div>
           </div>
 
