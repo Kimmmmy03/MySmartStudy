@@ -13,6 +13,13 @@ Endpoints:
     GET    /api/social/explore/suggested
     GET    /api/social/users/search
 
+    # Phase 3
+    POST   /api/social/maps/{map_id}/like
+    DELETE /api/social/maps/{map_id}/like
+    GET    /api/social/maps/{map_id}/comments
+    POST   /api/social/maps/{map_id}/comments
+    DELETE /api/social/maps/{map_id}/comments/{comment_id}
+
 Design notes:
 - Follow edges live in `follows/{followerId}_{followedId}` so "am I following X?"
   is a single doc.get(). Prevents duplicate follows without a transaction.
@@ -594,3 +601,225 @@ def search_users(
     # Attach is_followed_by_me flags in one batch.
     followed_ids = _viewer_follows(db, user["id"], [r["id"] for r in results])
     return [_public_profile(r, is_followed_by_me=(r["id"] in followed_ids)) for r in results]
+
+
+# ── Phase 3: Likes + Comments ──────────────────────────────────────────────
+
+def _like_id(map_id: str, user_id: str) -> str:
+    return f"{map_id}_{user_id}"
+
+
+def _require_readable_map(db, map_id: str, user: dict) -> dict:
+    """Return the map doc if the viewer is allowed to see it — same rules as
+    get_map (owner, collaborator, lecturer, admin, or public/unlisted).
+
+    Raises 404 (not 403) for strangers on private maps so we don't leak
+    existence.
+    """
+    snap = db.collection(models.MAPS).document(map_id).get()
+    if not snap.exists:
+        raise HTTPException(404, "Map not found")
+    m = snap.to_dict() or {}
+    m["id"] = map_id
+
+    viewer_role = (user.get("role") or "").lower()
+    viewer_email = (user.get("email") or "").lower()
+    collab_emails = [c.lower() for c in (m.get("collaborators") or [])]
+    visibility = (m.get("visibility") or "private").lower()
+    is_owner = m.get("ownerId") == user["id"]
+    is_collab = viewer_email and viewer_email in collab_emails
+    is_lecturer = viewer_role == "lecturer"
+    is_admin = viewer_role == "admin"
+    allowed = (
+        is_owner or is_collab or is_lecturer or is_admin
+        or visibility in ("public", "unlisted")
+    )
+    if not allowed:
+        raise HTTPException(404, "Map not found")
+    return m
+
+
+@router.post("/maps/{map_id}/like", status_code=201)
+def like_map(map_id: str, user: dict = Depends(get_current_user), db=Depends(get_db)):
+    """Add a like. Idempotent — a repeat call returns already_liked without
+    double-counting. Fires a map_like notification to the owner the first
+    time, respecting their notificationPrefs."""
+    m = _require_readable_map(db, map_id, user)
+
+    like_ref = db.collection(models.MAP_LIKES).document(_like_id(map_id, user["id"]))
+    if like_ref.get().exists:
+        return {"ok": True, "already_liked": True, "like_count": int(m.get("likeCount", 0) or 0)}
+
+    now = datetime.now(timezone.utc)
+    like_ref.set({
+        "mapId": map_id,
+        "userId": user["id"],
+        "createdAt": now,
+    })
+    try:
+        db.collection(models.MAPS).document(map_id).update({"likeCount": Increment(1)})
+    except Exception as e:
+        logger.warning("likeCount increment failed for %s: %s", map_id, e)
+
+    # Notify the owner (skip self-likes; respect pref).
+    owner_id = m.get("ownerId", "")
+    if owner_id and owner_id != user["id"]:
+        try:
+            owner_snap = db.collection(models.USERS).document(owner_id).get()
+            owner = owner_snap.to_dict() or {}
+            prefs = owner.get("notificationPrefs") or {}
+            if prefs.get("mapLike", True) is not False:
+                create_notification(
+                    db,
+                    user_id=owner_id,
+                    title="Your mind map was liked",
+                    message=f"{user.get('displayName', 'Someone')} liked \"{m.get('title', 'your map')}\".",
+                    notification_type="map_like",
+                    link=f"/view-map/{map_id}",
+                )
+        except Exception as e:
+            logger.warning("map_like notification failed: %s", e)
+
+    return {"ok": True, "already_liked": False, "like_count": int(m.get("likeCount", 0) or 0) + 1}
+
+
+@router.delete("/maps/{map_id}/like")
+def unlike_map(map_id: str, user: dict = Depends(get_current_user), db=Depends(get_db)):
+    """Remove a like. Idempotent."""
+    like_ref = db.collection(models.MAP_LIKES).document(_like_id(map_id, user["id"]))
+    if not like_ref.get().exists:
+        return {"ok": True, "was_liked": False}
+    like_ref.delete()
+    try:
+        db.collection(models.MAPS).document(map_id).update({"likeCount": Increment(-1)})
+    except Exception:
+        pass
+    return {"ok": True, "was_liked": True}
+
+
+def _comment_out(c: dict, author_photo: str | None = None) -> schemas.MapCommentOut:
+    return schemas.MapCommentOut(
+        id=c["id"],
+        map_id=c.get("mapId", ""),
+        author_id=c.get("authorId", ""),
+        author_name=c.get("authorName", ""),
+        author_photo_url=author_photo if author_photo is not None else c.get("authorPhotoURL"),
+        text=c.get("text", ""),
+        created_at=c.get("createdAt", datetime.now(timezone.utc)),
+    )
+
+
+@router.get("/maps/{map_id}/comments", response_model=list[schemas.MapCommentOut])
+def list_comments(
+    map_id: str,
+    limit: int = Query(100, ge=1, le=500),
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """Newest-first comment list for a map. Viewer must be able to read the
+    map (public/unlisted, owner, collaborator, or elevated role)."""
+    _require_readable_map(db, map_id, user)
+
+    docs = (
+        db.collection(models.MAP_COMMENTS)
+        .where(filter=FieldFilter("mapId", "==", map_id))
+        .order_by("createdAt", direction="DESCENDING")
+        .limit(limit)
+        .get()
+    )
+    rows = [models.doc_to_dict(d) for d in docs]
+    rows = [r for r in rows if r]
+
+    # Batch fetch live author photos (denormalised snapshot can go stale).
+    photo_map = models.get_user_photo_urls(db, [r.get("authorId") for r in rows])
+    return [_comment_out(r, photo_map.get(r.get("authorId"))) for r in rows]
+
+
+@router.post("/maps/{map_id}/comments", response_model=schemas.MapCommentOut, status_code=201)
+def create_comment(
+    map_id: str,
+    req: schemas.MapCommentCreate,
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """Post a comment on a map. 500-char cap server-side."""
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(400, "Comment cannot be empty")
+    if len(text) > 500:
+        text = text[:500]
+
+    m = _require_readable_map(db, map_id, user)
+
+    cid = models.gen_id()
+    now = datetime.now(timezone.utc)
+    photo_url = (user.get("photoURL") or "") or None
+    data = {
+        "mapId": map_id,
+        "authorId": user["id"],
+        "authorName": user.get("displayName", ""),
+        "authorPhotoURL": photo_url,
+        "text": text,
+        "createdAt": now,
+    }
+    db.collection(models.MAP_COMMENTS).document(cid).set(data)
+    data["id"] = cid
+
+    try:
+        db.collection(models.MAPS).document(map_id).update({"commentCount": Increment(1)})
+    except Exception as e:
+        logger.warning("commentCount increment failed for %s: %s", map_id, e)
+
+    # Notify the owner (skip self-comments; respect pref; truncate preview).
+    owner_id = m.get("ownerId", "")
+    if owner_id and owner_id != user["id"]:
+        try:
+            owner_snap = db.collection(models.USERS).document(owner_id).get()
+            owner = owner_snap.to_dict() or {}
+            prefs = owner.get("notificationPrefs") or {}
+            if prefs.get("mapComment", True) is not False:
+                preview = text if len(text) <= 120 else text[:117] + "..."
+                create_notification(
+                    db,
+                    user_id=owner_id,
+                    title="New comment on your mind map",
+                    message=f"{user.get('displayName', 'Someone')}: \"{preview}\"",
+                    notification_type="map_comment",
+                    link=f"/view-map/{map_id}",
+                )
+        except Exception as e:
+            logger.warning("map_comment notification failed: %s", e)
+
+    return _comment_out(data, photo_url)
+
+
+@router.delete("/maps/{map_id}/comments/{comment_id}")
+def delete_comment(
+    map_id: str,
+    comment_id: str,
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """Delete a comment. Author can delete their own; map owner can delete any
+    comment on their map."""
+    c_ref = db.collection(models.MAP_COMMENTS).document(comment_id)
+    c_snap = c_ref.get()
+    if not c_snap.exists:
+        raise HTTPException(404, "Comment not found")
+    c = c_snap.to_dict() or {}
+    if c.get("mapId") != map_id:
+        raise HTTPException(404, "Comment not found on this map")
+
+    # Permissions
+    if c.get("authorId") != user["id"]:
+        m_snap = db.collection(models.MAPS).document(map_id).get()
+        m = m_snap.to_dict() or {}
+        if m.get("ownerId") != user["id"] and (user.get("role") or "").lower() != "admin":
+            raise HTTPException(403, "Not allowed to delete this comment")
+
+    c_ref.delete()
+    try:
+        db.collection(models.MAPS).document(map_id).update({"commentCount": Increment(-1)})
+    except Exception:
+        pass
+    return {"ok": True}
