@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 def _user_to_out(user: dict) -> schemas.UserOut:
     """Map camelCase Firestore fields → snake_case API response."""
+    raw_prefs = user.get("notificationPrefs") or {}
     return schemas.UserOut(
         id=user["id"],
         email=user.get("email", ""),
@@ -30,6 +31,16 @@ def _user_to_out(user: dict) -> schemas.UserOut:
         points=user.get("points", 0),
         streak=user.get("streak", 0),
         badges=user.get("badges", []),
+        bio=user.get("bio", "") or "",
+        cover_photo_url=user.get("coverPhotoURL", "") or "",
+        follower_count=int(user.get("followerCount", 0) or 0),
+        following_count=int(user.get("followingCount", 0) or 0),
+        notification_prefs=schemas.NotificationPrefs(
+            new_follower=raw_prefs.get("newFollower", True),
+            map_like=raw_prefs.get("mapLike", True),
+            map_comment=raw_prefs.get("mapComment", True),
+            followed_user_posts=raw_prefs.get("followedUserPosts", False),
+        ),
         created_at=user.get("createdAt", datetime.now(timezone.utc)),
     )
 
@@ -67,6 +78,17 @@ def sync_user(req: schemas.SyncRequest, db=Depends(get_db)):
         "points": 0,
         "streak": 0,
         "badges": [],
+        # Social graph defaults — keeps new users consistent with migrated ones.
+        "bio": "",
+        "coverPhotoURL": "",
+        "followerCount": 0,
+        "followingCount": 0,
+        "notificationPrefs": {
+            "newFollower": True,
+            "mapLike": True,
+            "mapComment": True,
+            "followedUserPosts": False,
+        },
         "createdAt": now,
     }
     db.collection(models.USERS).document(uid).set(user_data)
