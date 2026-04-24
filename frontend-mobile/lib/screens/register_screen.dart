@@ -456,7 +456,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   dropdownColor: c.surfaceCard,
                                   style: TextStyle(color: c.textPrimary),
                                   decoration: AppTheme.inputDecoration(context, label: 'Semester', prefixIcon: Icons.layers_outlined),
-                                  items: [1, 2].map((s) => DropdownMenuItem(value: s, child: Text('Sem $s'))).toList(),
+                                  items: const [
+                                    DropdownMenuItem(value: 1, child: Text('Sem I')),
+                                    DropdownMenuItem(value: 2, child: Text('Sem II')),
+                                    DropdownMenuItem(value: 3, child: Text('Sem III')),
+                                  ],
                                   onChanged: (v) => setState(() => _semester = v ?? 1),
                                 ),
                               ),

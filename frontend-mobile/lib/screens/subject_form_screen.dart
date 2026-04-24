@@ -27,7 +27,10 @@ class _SubjectFormScreenState extends State<SubjectFormScreen> {
     _nameCtrl = TextEditingController(text: c?["course_name"]?.toString() ?? "");
     _codeCtrl = TextEditingController(text: c?["course_code"]?.toString() ?? "");
     _descCtrl = TextEditingController(text: c?["description"]?.toString() ?? "");
-    _semester = c?["semester"]?.toString() ?? "1";
+    // Legacy records may hold "4".."7" or "Short" from before the dropdown
+    // was trimmed to 1-3. Coerce out-of-range values so the dropdown renders.
+    final raw = c?["semester"]?.toString() ?? "1";
+    _semester = ["1", "2", "3"].contains(raw) ? raw : "1";
   }
 
   @override
@@ -76,7 +79,11 @@ class _SubjectFormScreenState extends State<SubjectFormScreen> {
             DropdownButtonFormField<String>(
               value: _semester, dropdownColor: colors.surfaceCard, style: TextStyle(color: colors.textPrimary),
               decoration: AppTheme.inputDecoration(context, label: "Semester", prefixIcon: Icons.layers_outlined),
-              items: ["1","2","3","4","5","6","7","Short"].map((s) => DropdownMenuItem(value: s, child: Text(s == "Short" ? "Short Sem" : "Semester $s"))).toList(),
+              items: const [
+                DropdownMenuItem(value: "1", child: Text("Semester I")),
+                DropdownMenuItem(value: "2", child: Text("Semester II")),
+                DropdownMenuItem(value: "3", child: Text("Semester III")),
+              ],
               onChanged: (v) => setState(() => _semester = v ?? "1"),
             ),
             const SizedBox(height: 14),
