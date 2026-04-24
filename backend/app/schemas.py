@@ -19,6 +19,14 @@ class PasswordResetRequest(BaseModel):
 
 
 # ── User ──
+class NotificationPrefs(BaseModel):
+    new_follower: bool = True
+    map_like: bool = True
+    map_comment: bool = True
+    # Noisy channel — opt-in so feed posters don't spam every follower's inbox.
+    followed_user_posts: bool = False
+
+
 class UserOut(BaseModel):
     id: str
     email: str
@@ -32,6 +40,15 @@ class UserOut(BaseModel):
     points: int = 0
     streak: int = 0
     badges: list[str] = []
+    # Social graph (Phase 1 followers feature)
+    bio: str = ""
+    cover_photo_url: str = ""
+    follower_count: int = 0
+    following_count: int = 0
+    notification_prefs: NotificationPrefs = NotificationPrefs()
+    # Viewer-relative flag — only set when served from a profile endpoint that
+    # knows who's asking. For anonymous lists (admin users list, etc.) stays None.
+    is_followed_by_me: Optional[bool] = None
     created_at: datetime
 
     class Config:
@@ -44,6 +61,9 @@ class UserUpdate(BaseModel):
     semester: Optional[int] = None
     department: Optional[str] = None
     photo_url: Optional[str] = None
+    bio: Optional[str] = None
+    cover_photo_url: Optional[str] = None
+    notification_prefs: Optional[NotificationPrefs] = None
 
 
 # ── Maps ──
@@ -53,17 +73,23 @@ class MapCreate(BaseModel):
     graph_format: str = "reactflow"
     nodes_text: str = ""
     thumbnail: str = ""
+    # Visibility defaults to private so existing code paths stay safe — students
+    # have to explicitly opt in to share to followers.
+    visibility: str = "private"  # "private" | "unlisted" | "public"
 
 class MapUpdate(BaseModel):
     title: Optional[str] = None
     graph_data: Optional[str] = None
     nodes_text: Optional[str] = None
     thumbnail: Optional[str] = None
+    visibility: Optional[str] = None
 
 class MapOut(BaseModel):
     id: str
     owner_id: str
     owner_email: str
+    owner_name: str = ""
+    owner_photo_url: Optional[str] = None
     title: str
     graph_data: str
     graph_format: str
@@ -71,10 +97,55 @@ class MapOut(BaseModel):
     thumbnail: str
     share_code: str
     collaborators: list[str] = []
+    # Social / visibility (Phase 1)
+    visibility: str = "private"
+    like_count: int = 0
+    comment_count: int = 0
+    published_at: Optional[datetime] = None
+    # Viewer-relative flags — set by endpoints that know who's asking.
+    is_liked_by_me: Optional[bool] = None
+    owner_is_followed_by_me: Optional[bool] = None
     last_modified: datetime
 
     class Config:
         from_attributes = True
+
+# ── Social graph (Phase 1 followers feature) ──
+class FollowOut(BaseModel):
+    follower_id: str
+    followed_id: str
+    created_at: datetime
+
+
+class PublicProfileOut(BaseModel):
+    """Lean view of another user for profile + list displays. Mirrors UserOut
+    but drops admin-ish fields (email, class_name, etc.) and includes a
+    viewer-relative `is_followed_by_me` flag."""
+    id: str
+    display_name: str
+    photo_url: str
+    cover_photo_url: str = ""
+    bio: str = ""
+    role: str
+    follower_count: int = 0
+    following_count: int = 0
+    is_followed_by_me: bool = False
+    created_at: Optional[datetime] = None
+
+
+class MapCommentCreate(BaseModel):
+    text: str
+
+
+class MapCommentOut(BaseModel):
+    id: str
+    map_id: str
+    author_id: str
+    author_name: str
+    author_photo_url: Optional[str] = None
+    text: str
+    created_at: datetime
+
 
 class MapHistoryOut(BaseModel):
     id: str

@@ -81,6 +81,11 @@ COURSE_VIEWS = "courseViews"
 # ── Map views (recently viewed tracking for lecturers reviewing student maps) ──
 MAP_VIEWS = "mapViews"
 
+# ── Social graph (Phase 1 followers feature) ──
+FOLLOWS = "follows"                # keyed by {followerId}_{followedId} — one doc per directed edge
+MAP_LIKES = "mapLikes"             # keyed by {mapId}_{userId} — one doc per (map, liker) pair
+MAP_COMMENTS = "mapComments"       # auto-id; fields: mapId, authorId, text, createdAt
+
 # ── Badge definitions ──
 BADGE_DEFINITIONS = "badgeDefinitions"
 
