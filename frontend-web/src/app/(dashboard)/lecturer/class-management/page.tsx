@@ -14,7 +14,6 @@ import {
   UserCheck, Zap, Database, Eye, Layers,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import SelectWithOther from "@/components/ui/select-with-other";
 import { COURSE_NAMES, COURSE_CODES } from "@/lib/constants";
 import { getPatternStyle, getPatternLayerStyle, PATTERN_LIST } from "@/lib/patterns";
 import { semesterLabel } from "@/lib/utils";
@@ -933,8 +932,23 @@ export default function ClassManagementPage() {
           {/* Form grid */}
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <SelectWithOther label="Course Name" value={form.courseName} onChange={(v) => setForm(p => ({ ...p, courseName: v }))}
-                options={COURSE_NAMES} placeholder="Select a course name" required />
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1.5">Course Name</label>
+              <input
+                type="text"
+                value={form.courseName}
+                onChange={e => setForm(p => ({ ...p, courseName: e.target.value }))}
+                list="course-name-suggestions"
+                placeholder="Type or pick a course name"
+                required
+                className="glass-input w-full px-4 py-2.5 text-sm rounded-xl"
+                maxLength={120}
+              />
+              <datalist id="course-name-suggestions">
+                {COURSE_NAMES.map(name => <option key={name} value={name} />)}
+              </datalist>
+              <p className="mt-1 text-[11px] text-gray-500 dark:text-dark-400">
+                Type any course name. Common ones appear as suggestions.
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1.5">Course Code</label>
@@ -959,8 +973,7 @@ export default function ClassManagementPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1.5">Semester</label>
               <select value={form.semester} onChange={e => setForm(p => ({ ...p, semester: e.target.value }))}
                 className="glass-input w-full px-4 py-2.5 text-sm rounded-xl">
-                {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>Semester {semesterLabel(n)}</option>)}
-                <option value="Short">Short Semester</option>
+                {[1, 2, 3].map(n => <option key={n} value={n}>Semester {semesterLabel(n)}</option>)}
               </select>
             </div>
             <div>

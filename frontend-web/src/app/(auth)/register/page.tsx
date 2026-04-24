@@ -364,8 +364,8 @@ export default function RegisterPage() {
                     label="Semester"
                     value={semester}
                     onChange={setSemester}
-                    options={["1", "2"]}
-                    optionLabels={{ "1": "Semester I", "2": "Semester II" }}
+                    options={["1", "2", "3"]}
+                    optionLabels={{ "1": "Semester I", "2": "Semester II", "3": "Semester III" }}
                     placeholder="Select semester"
                     required
                     allowOther={false}

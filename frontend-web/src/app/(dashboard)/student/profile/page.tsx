@@ -213,7 +213,7 @@ export default function ProfilePage() {
               <div>
                 <label className="block text-sm font-medium text-dark-200 mb-2">Semester</label>
                 <select value={semester} onChange={e => setSemester(e.target.value)} className="glass-input w-full px-4 py-2 text-sm">
-                  {[1, 2].map(s => <option key={s} value={s}>Semester {semesterLabel(s)}</option>)}
+                  {[1, 2, 3].map(s => <option key={s} value={s}>Semester {semesterLabel(s)}</option>)}
                 </select>
               </div>
             </div>

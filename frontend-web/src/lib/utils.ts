@@ -45,14 +45,15 @@ export function formatDateTime(iso: string | null | undefined): string {
   return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-/** Convert a stored semester value ("1", "2", "3", "Short", etc.) to its
- * display label using Roman numerals (I, II, III). Non-numeric values pass
- * through unchanged so "Short Semester" and legacy values still render. */
+/** Convert a stored semester value ("1", "2", "3") to its display label using
+ * Roman numerals (I, II, III). Non-numeric values pass through unchanged so
+ * legacy records (e.g. old "Short" entries from before the dropdown was
+ * trimmed) still render instead of breaking the UI. */
 export function semesterLabel(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") return "";
   const s = String(value).trim();
   const n = parseInt(s, 10);
-  if (!Number.isFinite(n) || String(n) !== s) return s; // e.g. "Short"
+  if (!Number.isFinite(n) || String(n) !== s) return s;
   const romans = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
   return romans[n] || s;
 }
