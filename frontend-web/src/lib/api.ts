@@ -407,6 +407,31 @@ export const socialApi = {
 
   searchUsers: (q: string, limit = 15) =>
     request<PublicProfileOut[]>(`/social/users/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+
+  // Phase 3 — likes + comments on map viewer.
+  likeMap: (mapId: string) =>
+    request<{ ok: boolean; already_liked: boolean; like_count: number }>(
+      `/social/maps/${mapId}/like`,
+      { method: "POST" }
+    ),
+
+  unlikeMap: (mapId: string) =>
+    request<{ ok: boolean; was_liked: boolean }>(
+      `/social/maps/${mapId}/like`,
+      { method: "DELETE" }
+    ),
+
+  listComments: (mapId: string, limit = 100) =>
+    request<MapCommentOut[]>(`/social/maps/${mapId}/comments?limit=${limit}`),
+
+  createComment: (mapId: string, text: string) =>
+    request<MapCommentOut>(`/social/maps/${mapId}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    }),
+
+  deleteComment: (mapId: string, commentId: string) =>
+    request<{ ok: boolean }>(`/social/maps/${mapId}/comments/${commentId}`, { method: "DELETE" }),
 };
 
 // ── Maps API ──
