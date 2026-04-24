@@ -39,8 +39,19 @@ service cloud.firestore {
     }
 
     // ── Maps ──
+    // Phase 1 followers: reads now require ownership, collaborator membership,
+    // explicit public visibility, or an elevated role. Unlisted maps are read
+    // by the backend via Admin SDK (share-code lookup) so the client read path
+    // stays closed to strangers. All app client code already goes through the
+    // API, so this tightening is defence-in-depth.
     match /maps/{mapId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        resource.data.visibility == "public"
+        || resource.data.ownerId == request.auth.uid
+        || (resource.data.collaborators is list &&
+            request.auth.token.email in resource.data.collaborators)
+        || isLecturerOrAdmin()
+      );
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated() &&
         (resource.data.ownerId == request.auth.uid || isAdmin());
@@ -58,6 +69,36 @@ service cloud.firestore {
         allow update, delete: if isAuthenticated() &&
           (resource.data.authorId == request.auth.uid || isLecturerOrAdmin());
       }
+    }
+
+    // ── Follows (Phase 1 followers feature) ──
+    // Directed edge doc keyed by {followerId}_{followedId}. Public read so the
+    // follow graph is discoverable (counts + lists). Writes go through the
+    // /api/social endpoints which use Admin SDK, but we still allow authed
+    // self-writes for offline tools / tests.
+    match /follows/{followId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.followerId == request.auth.uid
+        && request.resource.data.followerId != request.resource.data.followedId;
+      allow delete: if isAuthenticated() && resource.data.followerId == request.auth.uid;
+    }
+
+    // ── Map likes (Phase 3, but rule shipped early so the collection is ready) ──
+    match /mapLikes/{likeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // ── Map comments (Phase 3) ──
+    match /mapComments/{commentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid;
+      allow delete: if isAuthenticated() && (
+        resource.data.authorId == request.auth.uid
+        || get(/databases/$(database)/documents/maps/$(resource.data.mapId)).data.ownerId == request.auth.uid
+      );
     }
 
     // ── Courses ──
