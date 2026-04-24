@@ -394,6 +394,19 @@ export const socialApi = {
 
   profile: (userId: string) =>
     request<PublicProfileOut>(`/social/profile/${userId}`),
+
+  // Phase 2 — feed, explore, and user search for discovery.
+  feed: (limit = 20) =>
+    request<MapOut[]>(`/social/feed?limit=${limit}`),
+
+  trending: (days = 30, limit = 20) =>
+    request<MapOut[]>(`/social/explore/trending?days=${days}&limit=${limit}`),
+
+  suggested: (limit = 10) =>
+    request<PublicProfileOut[]>(`/social/explore/suggested?limit=${limit}`),
+
+  searchUsers: (q: string, limit = 15) =>
+    request<PublicProfileOut[]>(`/social/users/search?q=${encodeURIComponent(q)}&limit=${limit}`),
 };
 
 // ── Maps API ──
@@ -421,6 +434,10 @@ export const mapsApi = {
 
   searchByEmail: (email: string) =>
     request<MapOut[]>(`/maps/search/by-email?email=${encodeURIComponent(email)}`),
+
+  // Phase 2 — public maps grid on the public profile page.
+  publicByUser: (userId: string, limit = 30) =>
+    request<MapOut[]>(`/maps/public/user/${userId}?limit=${limit}`),
 
   searchByCourse: (courseId: string) =>
     request<MapOut[]>(`/maps/search/by-course/${courseId}`),
