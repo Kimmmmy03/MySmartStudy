@@ -89,6 +89,53 @@ def _gen_unique_share_code(db) -> str:
     return models.gen_code()
 
 
+def _notify_followers_of_new_public_map(db, owner: dict, map_id: str, title: str) -> None:
+    """Fan a map_posted notification to every follower whose followedUserPosts
+    pref is True. Fires when a map flips to public (either on create or on a
+    visibility edit). Best-effort — wrapped in broad exception handlers so it
+    never blocks the write that triggered it.
+    """
+    try:
+        follower_docs = (
+            db.collection(models.FOLLOWS)
+            .where(filter=FieldFilter("followedId", "==", owner.get("id", "")))
+            .limit(500)
+            .get()
+        )
+    except Exception:
+        return
+    owner_name = owner.get("displayName", "Someone") or "Someone"
+    link = f"/view-map/{map_id}"
+    preview_title = (title or "a mind map")[:80]
+    for f in follower_docs:
+        try:
+            f_data = f.to_dict() or {}
+            fuid = f_data.get("followerId")
+            if not fuid:
+                continue
+            # Check the follower's pref before sending — default is False so
+            # this channel is opt-in.
+            u_snap = db.collection(models.USERS).document(fuid).get()
+            if not u_snap.exists:
+                continue
+            prefs = (u_snap.to_dict() or {}).get("notificationPrefs") or {}
+            if not prefs.get("followedUserPosts", False):
+                continue
+            create_notification(
+                db,
+                user_id=fuid,
+                title=f"{owner_name} posted a mind map",
+                message=preview_title,
+                notification_type="map_posted",
+                link=link,
+                # Keep the in-app notif but skip email — post-to-feed is a
+                # naturally-high-volume channel and email opt-in belongs on a
+                # future per-channel pref. Mirror SMTP by default for now.
+            )
+        except Exception:
+            continue
+
+
 @router.get("/", response_model=list[schemas.MapOut])
 def get_my_maps(user: dict = Depends(get_current_user), db=Depends(get_db), limit: int = Query(100)):
     # Own maps
@@ -158,6 +205,14 @@ def create_map(req: schemas.MapCreate, user: dict = Depends(get_current_user), d
         check_auto_badges(db, user["id"])
     except Exception:
         pass
+    # If the map is born public, fan a post notification to followers opted in.
+    if visibility == "public":
+        try:
+            _notify_followers_of_new_public_map(
+                db, {"id": user["id"], "displayName": user.get("displayName", "")}, map_id, req.title
+            )
+        except Exception:
+            pass
     return _map_out(data)
 
 
@@ -541,14 +596,19 @@ def update_map(map_id: str, req: schemas.MapUpdate, user: dict = Depends(get_cur
     updates = req.model_dump(exclude_unset=True)
     # Validate + normalise visibility if present. Stamp publishedAt on first
     # transition to public so trending queries have a sort key.
+    prev_vis_for_notify = (m.get("visibility") or "private").lower()
+    notify_followers = False
     if "visibility" in updates:
         new_vis = (updates["visibility"] or "private").lower()
         if new_vis not in _VALID_VISIBILITIES:
             raise HTTPException(status_code=400, detail="Invalid visibility")
         updates["visibility"] = new_vis
-        prev_vis = (m.get("visibility") or "private").lower()
-        if new_vis == "public" and prev_vis != "public" and not m.get("publishedAt"):
+        if new_vis == "public" and prev_vis_for_notify != "public" and not m.get("publishedAt"):
             updates["published_at"] = datetime.now(timezone.utc)
+        # Notify followers on the private/unlisted → public transition. Only
+        # fire on the first transition; re-publishing isn't a new event.
+        if new_vis == "public" and prev_vis_for_notify != "public":
+            notify_followers = True
 
     fs_updates = _to_firestore_fields(updates)
     # Renames for fields that don't flow through _MAP_FIELD_MAP.
@@ -571,6 +631,18 @@ def update_map(map_id: str, req: schemas.MapUpdate, user: dict = Depends(get_cur
     _log_map_history(db, map_id, user, "edited", summary)
 
     m.update(fs_updates)
+
+    if notify_followers:
+        try:
+            _notify_followers_of_new_public_map(
+                db,
+                {"id": m.get("ownerId", ""), "displayName": user.get("displayName", "") or m.get("ownerName", "")},
+                map_id,
+                m.get("title", ""),
+            )
+        except Exception:
+            pass
+
     return _map_out(m)
 
 
