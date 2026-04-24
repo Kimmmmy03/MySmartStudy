@@ -167,6 +167,74 @@ def search_by_code(code: str = Query(...), user: dict = Depends(get_current_user
     return [_map_out(models.doc_to_dict(d)) for d in docs]
 
 
+@router.get("/public/user/{user_id}", response_model=list[schemas.MapOut])
+def list_public_maps_for_user(
+    user_id: str,
+    limit: int = Query(30, ge=1, le=100),
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """Return a user's public maps, newest-first. Drives the public profile
+    page's Maps tab. Viewer-relative flags are filled in so FollowButton /
+    LikeButton render correctly without a second round-trip."""
+    try:
+        docs = (
+            db.collection(models.MAPS)
+            .where(filter=FieldFilter("ownerId", "==", user_id))
+            .where(filter=FieldFilter("visibility", "==", "public"))
+            .order_by("publishedAt", direction="DESCENDING")
+            .limit(limit)
+            .get()
+        )
+    except Exception:
+        # Missing composite index — fall back to per-owner + Python filter.
+        raw = (
+            db.collection(models.MAPS)
+            .where(filter=FieldFilter("ownerId", "==", user_id))
+            .limit(limit * 2)
+            .get()
+        )
+        docs = [d for d in raw if ((d.to_dict() or {}).get("visibility") or "").lower() == "public"]
+
+    collected = []
+    for d in docs:
+        data = models.doc_to_dict(d)
+        if not data:
+            continue
+        if (data.get("visibility") or "").lower() != "public":
+            continue
+        collected.append(data)
+    collected = collected[:limit]
+
+    # Fetch the owner once + whether viewer follows them + liked maps.
+    owner_snap = db.collection(models.USERS).document(user_id).get()
+    owner = owner_snap.to_dict() if owner_snap.exists else None
+    is_followed = db.collection(models.FOLLOWS).document(f"{user['id']}_{user_id}").get().exists if user_id != user["id"] else None
+
+    liked_ids: set[str] = set()
+    if collected and user_id != user["id"]:
+        try:
+            like_refs = [db.collection(models.MAP_LIKES).document(f"{m['id']}_{user['id']}") for m in collected]
+            for d in db.get_all(like_refs):
+                if d.exists:
+                    like_data = d.to_dict() or {}
+                    mid = like_data.get("mapId")
+                    if mid:
+                        liked_ids.add(mid)
+        except Exception:
+            pass
+
+    return [
+        _map_out(
+            m,
+            owner=owner,
+            is_liked_by_me=(m["id"] in liked_ids) if user_id != user["id"] else None,
+            owner_is_followed_by_me=is_followed,
+        )
+        for m in collected
+    ]
+
+
 @router.get("/search/by-email", response_model=list[schemas.MapOut])
 def search_by_email(email: str = Query(...), user: dict = Depends(get_current_user), db=Depends(get_db)):
     """Search maps by exact owner email."""
