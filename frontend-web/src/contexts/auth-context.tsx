@@ -21,6 +21,10 @@ function toProfile(u: UserOut): UserProfile {
     year: u.year ?? undefined,
     semester: u.semester ?? undefined,
     department: u.department ?? undefined,
+    bio: u.bio || undefined,
+    coverPhotoURL: u.cover_photo_url || undefined,
+    followerCount: u.follower_count ?? 0,
+    followingCount: u.following_count ?? 0,
   };
 }
 

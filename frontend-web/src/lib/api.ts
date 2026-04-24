@@ -56,6 +56,13 @@ async function publicRequest<T>(path: string, options?: RequestInit): Promise<T>
 }
 
 // ── Types matching backend schemas (snake_case) ──
+export interface NotificationPrefs {
+  new_follower: boolean;
+  map_like: boolean;
+  map_comment: boolean;
+  followed_user_posts: boolean;
+}
+
 export interface UserOut {
   id: string;
   email: string;
@@ -69,13 +76,23 @@ export interface UserOut {
   points: number;
   streak: number;
   badges: string[];
+  bio?: string;
+  cover_photo_url?: string;
+  follower_count?: number;
+  following_count?: number;
+  notification_prefs?: NotificationPrefs;
+  is_followed_by_me?: boolean | null;
   created_at: string;
 }
+
+export type MapVisibility = "private" | "unlisted" | "public";
 
 export interface MapOut {
   id: string;
   owner_id: string;
   owner_email: string;
+  owner_name?: string;
+  owner_photo_url?: string | null;
   title: string;
   graph_data: string;
   graph_format: string;
@@ -83,7 +100,37 @@ export interface MapOut {
   thumbnail: string;
   share_code: string;
   collaborators: string[];
+  visibility?: MapVisibility;
+  like_count?: number;
+  comment_count?: number;
+  published_at?: string | null;
+  is_liked_by_me?: boolean | null;
+  owner_is_followed_by_me?: boolean | null;
   last_modified: string;
+}
+
+// ── Social graph types (Phase 1 followers feature) ──
+export interface PublicProfileOut {
+  id: string;
+  display_name: string;
+  photo_url: string;
+  cover_photo_url: string;
+  bio: string;
+  role: string;
+  follower_count: number;
+  following_count: number;
+  is_followed_by_me: boolean;
+  created_at?: string | null;
+}
+
+export interface MapCommentOut {
+  id: string;
+  map_id: string;
+  author_id: string;
+  author_name: string;
+  author_photo_url?: string | null;
+  text: string;
+  created_at: string;
 }
 
 export interface CourseOut {
@@ -286,6 +333,8 @@ export const usersApi = {
   updateMe: (body: {
     display_name?: string; class_name?: string; year?: number | null;
     semester?: number | null; department?: string | null; photo_url?: string;
+    bio?: string; cover_photo_url?: string;
+    notification_prefs?: Partial<NotificationPrefs>;
   }) => request<UserOut>("/users/me", { method: "PATCH", body: JSON.stringify(body) }),
 
   uploadAvatar: async (file: File): Promise<{ photo_url: string }> => {
@@ -304,7 +353,47 @@ export const usersApi = {
     return res.json();
   },
 
+  uploadCoverPhoto: async (file: File): Promise<{ cover_photo_url: string }> => {
+    const token = await getFirebaseToken();
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch(`${BASE}/users/me/cover-photo`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: fd,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || "Upload failed");
+    }
+    return res.json();
+  },
+
   getUser: (userId: string) => request<UserOut>(`/users/${userId}`),
+};
+
+// ── Social API (Phase 1 followers feature) ──
+export const socialApi = {
+  follow: (userId: string) =>
+    request<{ ok: boolean; already_following: boolean }>(
+      `/social/follow/${userId}`,
+      { method: "POST" }
+    ),
+
+  unfollow: (userId: string) =>
+    request<{ ok: boolean; was_following: boolean }>(
+      `/social/follow/${userId}`,
+      { method: "DELETE" }
+    ),
+
+  followers: (userId: string, limit = 100) =>
+    request<PublicProfileOut[]>(`/social/followers/${userId}?limit=${limit}`),
+
+  following: (userId: string, limit = 100) =>
+    request<PublicProfileOut[]>(`/social/following/${userId}?limit=${limit}`),
+
+  profile: (userId: string) =>
+    request<PublicProfileOut>(`/social/profile/${userId}`),
 };
 
 // ── Maps API ──
@@ -314,13 +403,14 @@ export const mapsApi = {
 
   create: (body: {
     title?: string; graph_data?: string; graph_format?: string;
-    nodes_text?: string; thumbnail?: string;
+    nodes_text?: string; thumbnail?: string; visibility?: MapVisibility;
   }) => request<MapOut>("/maps/", { method: "POST", body: JSON.stringify(body) }),
 
   get: (mapId: string) => request<MapOut>(`/maps/${mapId}`),
 
   update: (mapId: string, body: {
     title?: string; graph_data?: string; nodes_text?: string; thumbnail?: string;
+    visibility?: MapVisibility;
   }) => request<MapOut>(`/maps/${mapId}`, { method: "PATCH", body: JSON.stringify(body) }),
 
   delete: (mapId: string) =>

@@ -19,6 +19,11 @@ export interface UserProfile {
   year?: number;
   semester?: number;
   department?: string;
+  // Social graph (Phase 1 followers feature)
+  bio?: string;
+  coverPhotoURL?: string;
+  followerCount?: number;
+  followingCount?: number;
 }
 
 export interface MindMap {
