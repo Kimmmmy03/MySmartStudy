@@ -512,7 +512,7 @@ def get_suggested_users(
             db.collection(models.USERS)
             .where(filter=FieldFilter("role", "==", "student"))
             .order_by("followerCount", direction="DESCENDING")
-            .limit(limit * 3)
+            .limit(limit * 5)
             .get()
         )
     except Exception:
@@ -520,20 +520,44 @@ def get_suggested_users(
         candidates = (
             db.collection(models.USERS)
             .where(filter=FieldFilter("role", "==", "student"))
-            .limit(limit * 5)
+            .limit(limit * 8)
             .get()
         )
 
-    out: list[schemas.PublicProfileOut] = []
+    # Two passes: first prefer candidates with at least one public map (they're
+    # actually worth following); fall back to the raw popularity list if the
+    # filter would starve the UI of suggestions.
+    primary: list[schemas.PublicProfileOut] = []
+    fallback: list[schemas.PublicProfileOut] = []
     for d in candidates:
+        if len(primary) >= limit:
+            break
         data = d.to_dict() or {}
         data["id"] = d.id
         if d.id in followed_ids:
             continue
-        out.append(_public_profile(data, is_followed_by_me=False))
-        if len(out) >= limit:
-            break
-    return out
+        profile = _public_profile(data, is_followed_by_me=False)
+        # Cheap check: one public-map query, limit 1.
+        try:
+            has_public = list(
+                db.collection(models.MAPS)
+                .where(filter=FieldFilter("ownerId", "==", d.id))
+                .where(filter=FieldFilter("visibility", "==", "public"))
+                .limit(1)
+                .get()
+            )
+        except Exception:
+            has_public = []
+        if has_public:
+            primary.append(profile)
+        else:
+            fallback.append(profile)
+
+    if len(primary) >= limit:
+        return primary[:limit]
+    # Not enough "active" students — top up with the raw popularity list so
+    # the Explore tab never looks empty.
+    return (primary + fallback)[:limit]
 
 
 @router.get("/users/search", response_model=list[schemas.PublicProfileOut])
