@@ -19,14 +19,31 @@ _MAP_FIELD_MAP = {
     "nodes_text": "nodesText",
 }
 
+_VALID_VISIBILITIES = {"private", "unlisted", "public"}
 
-def _map_out(m: dict) -> schemas.MapOut:
-    """Map camelCase Firestore fields → snake_case API response."""
+
+def _map_out(
+    m: dict,
+    *,
+    owner: dict | None = None,
+    is_liked_by_me: bool | None = None,
+    owner_is_followed_by_me: bool | None = None,
+) -> schemas.MapOut:
+    """Map camelCase Firestore fields → snake_case API response.
+
+    When `owner` is passed the response includes display name + photo for the
+    map author, so feed / explore UIs don't need a second lookup per card.
+    Viewer-relative flags pass through untouched when None so list endpoints
+    can omit them.
+    """
     last_mod = m.get("lastModified") or datetime.now(timezone.utc)
+    owner = owner or {}
     return schemas.MapOut(
         id=m["id"],
         owner_id=m.get("ownerId", ""),
         owner_email=m.get("ownerEmail", ""),
+        owner_name=owner.get("displayName", "") or "",
+        owner_photo_url=owner.get("photoURL") or None,
         title=m.get("title", "Untitled Map"),
         graph_data=m.get("graphData", "{}"),
         graph_format=m.get("graphFormat", "reactflow"),
@@ -34,6 +51,12 @@ def _map_out(m: dict) -> schemas.MapOut:
         thumbnail=m.get("thumbnail", ""),
         share_code=m.get("shareCode", ""),
         collaborators=m.get("collaborators", []),
+        visibility=m.get("visibility", "private") or "private",
+        like_count=int(m.get("likeCount", 0) or 0),
+        comment_count=int(m.get("commentCount", 0) or 0),
+        published_at=m.get("publishedAt"),
+        is_liked_by_me=is_liked_by_me,
+        owner_is_followed_by_me=owner_is_followed_by_me,
         last_modified=last_mod,
     )
 
@@ -107,6 +130,9 @@ def get_my_maps(user: dict = Depends(get_current_user), db=Depends(get_db), limi
 def create_map(req: schemas.MapCreate, user: dict = Depends(get_current_user), db=Depends(get_db)):
     map_id = models.gen_id()
     now = datetime.now(timezone.utc)
+    visibility = (req.visibility or "private").lower()
+    if visibility not in _VALID_VISIBILITIES:
+        visibility = "private"
     data = {
         "ownerId": user["id"],
         "ownerEmail": user.get("email", ""),
@@ -117,6 +143,10 @@ def create_map(req: schemas.MapCreate, user: dict = Depends(get_current_user), d
         "thumbnail": req.thumbnail,
         "shareCode": _gen_unique_share_code(db),
         "collaborators": [],
+        "visibility": visibility,
+        "likeCount": 0,
+        "commentCount": 0,
+        "publishedAt": now if visibility == "public" else None,
         "lastModified": now,
     }
     db.collection(models.MAPS).document(map_id).set(data)
@@ -307,8 +337,32 @@ def get_map(map_id: str, user: dict = Depends(get_current_user), db=Depends(get_
     m = models.doc_to_dict(doc)
     if not m:
         raise HTTPException(status_code=404, detail="Map not found")
+
+    # Read gate: owner / collaborators / lecturers / public visibility all OK.
+    # Unlisted maps are accessible to anyone who hits this endpoint with the id
+    # (they typically arrive via the shareCode lookup which returns the id).
+    viewer_role = (user.get("role") or "").lower()
+    viewer_email = (user.get("email") or "").lower()
+    collab_emails = [c.lower() for c in (m.get("collaborators") or [])]
+    visibility = (m.get("visibility") or "private").lower()
+    is_owner = m.get("ownerId") == user["id"]
+    is_collab = viewer_email and viewer_email in collab_emails
+    is_lecturer = viewer_role == "lecturer"
+    is_admin = viewer_role == "admin"
+    allowed = (
+        is_owner
+        or is_collab
+        or is_lecturer
+        or is_admin
+        or visibility in ("public", "unlisted")
+    )
+    if not allowed:
+        # Hide existence rather than leak a 403 — matches how the UI expects
+        # "you can't see this map" to behave.
+        raise HTTPException(status_code=404, detail="Map not found")
+
     # Log lecturer view + notify owner (deduped to once/day per lecturer per map)
-    if user.get("role") == "lecturer" and m.get("ownerId") != user["id"]:
+    if is_lecturer and m.get("ownerId") != user["id"]:
         try:
             _log_map_history(db, map_id, user, "viewed", f"Lecturer {user.get('displayName', '')} viewed this map")
         except Exception:
@@ -330,7 +384,31 @@ def get_map(map_id: str, user: dict = Depends(get_current_user), db=Depends(get_
                 )
         except Exception:
             pass
-    return _map_out(m)
+
+    # Enrich response with owner profile + viewer-relative flags.
+    owner: dict | None = None
+    is_liked_by_me: bool | None = None
+    owner_is_followed_by_me: bool | None = None
+    try:
+        owner_id = m.get("ownerId", "")
+        if owner_id:
+            o_snap = db.collection(models.USERS).document(owner_id).get()
+            if o_snap.exists:
+                owner = o_snap.to_dict() or {}
+            if user.get("id") and owner_id != user["id"]:
+                like_id = f"{map_id}_{user['id']}"
+                is_liked_by_me = db.collection(models.MAP_LIKES).document(like_id).get().exists
+                follow_id = f"{user['id']}_{owner_id}"
+                owner_is_followed_by_me = db.collection(models.FOLLOWS).document(follow_id).get().exists
+    except Exception:
+        pass
+
+    return _map_out(
+        m,
+        owner=owner,
+        is_liked_by_me=is_liked_by_me,
+        owner_is_followed_by_me=owner_is_followed_by_me,
+    )
 
 
 @router.get("/{map_id}/visitors")
@@ -384,8 +462,30 @@ def update_map(map_id: str, req: schemas.MapUpdate, user: dict = Depends(get_cur
     m = models.doc_to_dict(doc)
     if not m:
         raise HTTPException(status_code=404, detail="Map not found")
+    # Only owner / collaborators can mutate a map.
+    owner_email = (m.get("ownerEmail") or "").lower()
+    viewer_email = (user.get("email") or "").lower()
+    is_owner = m.get("ownerId") == user["id"]
+    is_collab = viewer_email and viewer_email in [c.lower() for c in (m.get("collaborators") or [])]
+    if not (is_owner or is_collab):
+        raise HTTPException(status_code=403, detail="Not authorized to edit this map")
+
     updates = req.model_dump(exclude_unset=True)
+    # Validate + normalise visibility if present. Stamp publishedAt on first
+    # transition to public so trending queries have a sort key.
+    if "visibility" in updates:
+        new_vis = (updates["visibility"] or "private").lower()
+        if new_vis not in _VALID_VISIBILITIES:
+            raise HTTPException(status_code=400, detail="Invalid visibility")
+        updates["visibility"] = new_vis
+        prev_vis = (m.get("visibility") or "private").lower()
+        if new_vis == "public" and prev_vis != "public" and not m.get("publishedAt"):
+            updates["published_at"] = datetime.now(timezone.utc)
+
     fs_updates = _to_firestore_fields(updates)
+    # Renames for fields that don't flow through _MAP_FIELD_MAP.
+    if "published_at" in fs_updates:
+        fs_updates["publishedAt"] = fs_updates.pop("published_at")
     fs_updates["lastModified"] = datetime.now(timezone.utc)
     doc_ref.update(fs_updates)
 
@@ -397,6 +497,8 @@ def update_map(map_id: str, req: schemas.MapUpdate, user: dict = Depends(get_cur
         changed_parts.append("map content")
     if "nodes_text" in updates:
         changed_parts.append("node text")
+    if "visibility" in updates:
+        changed_parts.append(f"visibility to {updates['visibility']}")
     summary = "Updated " + ", ".join(changed_parts) if changed_parts else "Updated map"
     _log_map_history(db, map_id, user, "edited", summary)
 
