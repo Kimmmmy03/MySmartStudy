@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.firestore import db as _firestore_db  # noqa: F401 — ensures Firebase init on startup
-from app.routers import auth, users, maps, courses, assignments, discussions, announcements, resources, reminders, badges, analytics, admin, activity, stats, notifications, participation, quizzes, gradebook, messaging, peer_review, progress, attendance, rubrics, certificates, groups, group_tasks, discussion_topics, completion
+from app.routers import auth, users, maps, courses, assignments, discussions, announcements, resources, reminders, badges, analytics, admin, activity, stats, notifications, participation, quizzes, gradebook, messaging, peer_review, progress, attendance, rubrics, certificates, groups, group_tasks, discussion_topics, completion, social
 from app.routers import ai_plagiarism, ai_grading, ai_companion, ai_study_materials, ai_study_plan, ai_import, ai_images, ai_mindmap_buddy, rag_admin
 from app.routers import site_import, clp
 from app.scheduler import start_scheduler, stop_scheduler
@@ -72,6 +72,7 @@ app.include_router(groups.router)
 app.include_router(group_tasks.router)
 app.include_router(discussion_topics.router)
 app.include_router(completion.router)
+app.include_router(social.router)
 
 # AI feature routers
 app.include_router(ai_plagiarism.router)
