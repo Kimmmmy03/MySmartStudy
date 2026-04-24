@@ -34,6 +34,14 @@ const studentGroups: NavGroup[] = [
     ],
   },
   {
+    id: "community",
+    label: "Community",
+    links: [
+      { href: "/student/feed", label: "Feed", icon: Users },
+      { href: "/student/explore", label: "Explore", icon: Compass },
+    ],
+  },
+  {
     id: "academic",
     label: "Academic",
     links: [

@@ -3,11 +3,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Users, UserPlus2, Loader2, Mail } from "lucide-react";
-import { socialApi, type PublicProfileOut } from "@/lib/api";
+import { ArrowLeft, Users, UserPlus2, Loader2, Mail, Map as MapIcon } from "lucide-react";
+import { socialApi, mapsApi, type PublicProfileOut, type MapOut } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { resolveBackendUrl } from "@/lib/utils";
 import FollowButton from "@/components/follow-button";
+import MapFeedCard from "@/components/map-feed-card";
 
 /**
  * Public profile page (Phase 1 — no map grid yet; feed/explore come in Phase 2).
@@ -27,6 +28,8 @@ export default function PublicProfilePage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [localFollowerCount, setLocalFollowerCount] = useState(0);
+  const [maps, setMaps] = useState<MapOut[]>([]);
+  const [mapsLoading, setMapsLoading] = useState(true);
 
   const isSelf = useMemo(() => !!me && me.id === uid, [me, uid]);
 
@@ -38,6 +41,7 @@ export default function PublicProfilePage() {
     }
     let cancelled = false;
     setLoading(true);
+    setMapsLoading(true);
     setNotFound(false);
     socialApi
       .profile(uid)
@@ -51,6 +55,17 @@ export default function PublicProfilePage() {
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+    mapsApi
+      .publicByUser(uid, 30)
+      .then(list => {
+        if (!cancelled) setMaps(list);
+      })
+      .catch(() => {
+        if (!cancelled) setMaps([]);
+      })
+      .finally(() => {
+        if (!cancelled) setMapsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -159,9 +174,33 @@ export default function PublicProfilePage() {
           </div>
         </div>
 
-        {/* Phase 1 placeholder for the public maps grid — Phase 2 wires this up. */}
-        <div className="border-t border-white/5 p-6 text-center text-xs text-dark-400">
-          Public mind maps will show here soon.
+        {/* Public maps grid (Phase 2) */}
+        <div className="border-t border-white/5 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <MapIcon className="w-4 h-4 text-accent-blue" />
+            <h2 className="text-sm font-semibold text-white">
+              Public mind maps
+              {maps.length > 0 && <span className="text-dark-400 font-normal ml-2">({maps.length})</span>}
+            </h2>
+          </div>
+          {mapsLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-5 h-5 text-accent-purple animate-spin" />
+            </div>
+          ) : maps.length === 0 ? (
+            <div className="text-center py-10">
+              <MapIcon className="w-10 h-10 text-dark-500 mx-auto mb-2" />
+              <p className="text-xs text-dark-400">
+                {profile.display_name || "This student"} hasn&apos;t posted any public mind maps yet.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {maps.map(m => (
+                <MapFeedCard key={m.id} map={m} currentUserId={me?.id} showFollowButton={false} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
