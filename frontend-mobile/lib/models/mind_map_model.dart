@@ -255,6 +255,28 @@ class ReactFlowEdge {
       );
 }
 
+/// Mind map visibility tier — matches web `MapVisibility` string union.
+/// `private` = owner/collaborators only (default).
+/// `unlisted` = anyone with share code can open.
+/// `public` = discoverable via feed/explore + likeable/commentable.
+enum MapVisibility { private, unlisted, public }
+
+extension MapVisibilityX on MapVisibility {
+  String get apiValue => name; // private | unlisted | public
+
+  static MapVisibility fromApi(dynamic raw) {
+    switch (raw?.toString()) {
+      case 'public':
+        return MapVisibility.public;
+      case 'unlisted':
+        return MapVisibility.unlisted;
+      case 'private':
+      default:
+        return MapVisibility.private;
+    }
+  }
+}
+
 /// Mind map model — parses from FastAPI snake_case JSON responses.
 class MindMapModel {
   final String id;
@@ -267,6 +289,9 @@ class MindMapModel {
   final String shareCode;
   final List<String> collaborators;
   final DateTime? lastModified;
+  final MapVisibility visibility;
+  final int likeCount;
+  final int commentCount;
 
   final List<ReactFlowNode> nodes;
   final List<ReactFlowEdge> edges;
@@ -284,6 +309,9 @@ class MindMapModel {
     required this.lastModified,
     required this.nodes,
     required this.edges,
+    this.visibility = MapVisibility.private,
+    this.likeCount = 0,
+    this.commentCount = 0,
   });
 
   factory MindMapModel.fromApi(Map<String, dynamic> data) {
@@ -311,6 +339,12 @@ class MindMapModel {
     final ts = data['last_modified'] ?? data['lastModified'];
     if (ts is String && ts.isNotEmpty) modified = DateTime.tryParse(ts);
 
+    int toInt(dynamic v) {
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      return int.tryParse(v?.toString() ?? '') ?? 0;
+    }
+
     return MindMapModel(
       id: (data['id'] ?? '').toString(),
       ownerId: (data['owner_id'] ?? data['ownerId'] ?? '').toString(),
@@ -326,6 +360,9 @@ class MindMapModel {
           (data['share_code'] ?? data['shareCode'] ?? '').toString(),
       collaborators: List<String>.from(data['collaborators'] ?? []),
       lastModified: modified,
+      visibility: MapVisibilityX.fromApi(data['visibility']),
+      likeCount: toInt(data['like_count'] ?? data['likeCount']),
+      commentCount: toInt(data['comment_count'] ?? data['commentCount']),
       nodes: parsedNodes,
       edges: parsedEdges,
     );

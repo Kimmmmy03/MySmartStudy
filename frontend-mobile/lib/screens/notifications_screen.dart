@@ -27,7 +27,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _load() async {
     try {
-      final raw = await ApiService.getNotifications();
+      // Grouped endpoint collapses same-type same-link notifications into
+      // digest entries ("5 people liked your mind map 'Sejarah'"). Raw
+      // endpoint stays available via getNotifications() for any screen
+      // that needs the unbucketed feed.
+      final raw = await ApiService.getNotificationsGrouped();
       if (!mounted) return;
       setState(() {
         _notifications = raw.map((n) => Map<String, dynamic>.from(n)).toList();
@@ -52,6 +56,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.mail_rounded;
       case 'badge':
         return Icons.emoji_events_rounded;
+      case 'map_like':
+        return Icons.favorite_rounded;
+      case 'map_comment':
+        return Icons.mode_comment_rounded;
+      case 'new_follower':
+        return Icons.person_add_rounded;
+      case 'map_posted':
+        return Icons.auto_awesome_rounded;
       default:
         return Icons.notifications_rounded;
     }
@@ -71,9 +83,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return AppColors.blue;
       case 'badge':
         return AppColors.purple;
+      case 'map_like':
+        return AppColors.pink;
+      case 'map_comment':
+        return AppColors.cyan;
+      case 'new_follower':
+        return AppColors.blue;
+      case 'map_posted':
+        return AppColors.purple;
       default:
         return AppColors.blue;
     }
+  }
+
+  /// Build "Ali, Sarah and 3 others" from the digest `actors` list.
+  String? _actorsLine(List? actors, int count) {
+    if (actors == null || actors.isEmpty || count <= 1) return null;
+    final filtered = actors.where((a) => a != null && a.toString().isNotEmpty).map((a) => a.toString()).toList();
+    if (filtered.isEmpty) return null;
+    if (filtered.length == 1) return filtered[0];
+    if (filtered.length == 2 && count == 2) return '${filtered[0]} and ${filtered[1]}';
+    final rest = count - 2;
+    if (rest <= 0) return filtered.take(2).join(', ');
+    return '${filtered[0]}, ${filtered[1]} and $rest ${rest == 1 ? 'other' : 'others'}';
   }
 
   @override
@@ -130,10 +162,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final c = context.colors;
     final type = notif['type']?.toString() ?? '';
     final title = notif['title']?.toString() ?? '';
-    final body = notif['body']?.toString() ?? '';
+    final body = (notif['body'] ?? notif['message'])?.toString() ?? '';
     final isRead = notif['is_read'] == true || notif['read'] == true;
     final createdAt = notif['created_at']?.toString() ?? '';
     final color = _colorFor(type);
+
+    final kind = notif['kind']?.toString() ?? 'single';
+    final count = notif['count'] is int
+        ? notif['count'] as int
+        : int.tryParse(notif['count']?.toString() ?? '') ?? 1;
+    final actors = notif['actors'] is List ? notif['actors'] as List : const [];
+    final sourceIds = notif['source_ids'] is List
+        ? (notif['source_ids'] as List).map((e) => e.toString()).where((s) => s.isNotEmpty).toList()
+        : <String>[];
+    final isDigest = kind == 'digest' && count > 1;
+    final actorText = isDigest ? _actorsLine(actors, count) : null;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -141,7 +184,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         onTap: () async {
           if (!isRead) {
             HapticFeedback.lightImpact();
-            await ApiService.markNotificationRead(notif['id']?.toString() ?? '');
+            // Digest wraps multiple underlying docs — fan out the mark-read
+            // call so server state matches what the user just dismissed.
+            final ids = sourceIds.isNotEmpty
+                ? sourceIds
+                : [notif['id']?.toString() ?? ''];
+            await Future.wait(ids.where((id) => id.isNotEmpty).map(
+              (id) => ApiService.markNotificationRead(id).catchError((_) => null),
+            ));
             _load();
           }
         },
@@ -164,15 +214,56 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: c.textPrimary,
-                      fontWeight: isRead ? FontWeight.w500 : FontWeight.bold,
-                      fontSize: 13,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            color: c.textPrimary,
+                            fontWeight: isRead ? FontWeight.w500 : FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      if (isDigest) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.purple.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$count',
+                            style: const TextStyle(
+                              color: AppColors.purple,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  if (body.isNotEmpty) ...[
+                  if (actorText != null && actorText.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    RichText(
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      text: TextSpan(
+                        style: TextStyle(color: c.textSecondary, fontSize: 12),
+                        children: [
+                          TextSpan(
+                            text: actorText,
+                            style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600),
+                          ),
+                          if (body.isNotEmpty) TextSpan(text: ' — $body'),
+                        ],
+                      ),
+                    ),
+                  ] else if (body.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(
                       body,

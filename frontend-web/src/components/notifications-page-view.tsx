@@ -1,17 +1,25 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { notificationsApi, NotificationOut } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { notificationsApi, type NotificationDigestItem } from "@/lib/api";
 import { motion } from "framer-motion";
-import { Bell, CheckCheck, AlertTriangle, Info, Award, MessageCircle, BookOpen, Trash2, X } from "lucide-react";
+import { Bell, CheckCheck, AlertTriangle, Info, Award, MessageCircle, BookOpen, Trash2, X, Heart, UserPlus, Users } from "lucide-react";
 import clsx from "clsx";
 
+// Icon + tint per notification type. The social-graph types (map_like,
+// map_comment, new_follower, map_posted) get their own visuals so the bell
+// doesn't look like a wall of identical blue Info dots once Phase 3 is live.
 const typeConfig: Record<string, { icon: typeof Bell; bg: string; text: string }> = {
-  urgent: { icon: AlertTriangle, bg: "bg-red-500/10", text: "text-red-400" },
-  badge: { icon: Award, bg: "bg-accent-amber/10", text: "text-accent-amber" },
-  certificate: { icon: Award, bg: "bg-accent-amber/10", text: "text-accent-amber" },
-  peer_review: { icon: MessageCircle, bg: "bg-accent-pink/10", text: "text-accent-pink" },
-  course: { icon: BookOpen, bg: "bg-accent-emerald/10", text: "text-accent-emerald" },
+  urgent:       { icon: AlertTriangle, bg: "bg-red-500/10",          text: "text-red-400" },
+  badge:        { icon: Award,          bg: "bg-accent-amber/10",     text: "text-accent-amber" },
+  certificate:  { icon: Award,          bg: "bg-accent-amber/10",     text: "text-accent-amber" },
+  peer_review:  { icon: MessageCircle,  bg: "bg-accent-pink/10",      text: "text-accent-pink" },
+  course:       { icon: BookOpen,       bg: "bg-accent-emerald/10",   text: "text-accent-emerald" },
+  map_like:     { icon: Heart,          bg: "bg-accent-pink/10",      text: "text-accent-pink" },
+  map_comment:  { icon: MessageCircle,  bg: "bg-accent-cyan/10",      text: "text-accent-cyan" },
+  new_follower: { icon: UserPlus,       bg: "bg-accent-blue/10",      text: "text-accent-blue" },
+  map_posted:   { icon: Users,          bg: "bg-accent-purple/10",    text: "text-accent-purple" },
 };
 const defaultConfig = { icon: Info, bg: "bg-accent-blue/10", text: "text-accent-blue" };
 
@@ -27,18 +35,51 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
+/** Render "Ali, Sarah and 3 others" for digest entries. */
+function actorsLine(actors: string[] | undefined, count: number): string {
+  if (!actors || actors.length === 0) return "";
+  if (count <= 1) return "";
+  const filtered = actors.filter(Boolean);
+  if (filtered.length === 0) return "";
+  if (filtered.length === 1) return filtered[0];
+  if (filtered.length === 2 && count === 2) return `${filtered[0]} and ${filtered[1]}`;
+  const rest = count - 2;
+  if (rest <= 0) return filtered.slice(0, 2).join(", ");
+  return `${filtered[0]}, ${filtered[1]} and ${rest} ${rest === 1 ? "other" : "others"}`;
+}
+
 export default function NotificationsPageView() {
-  const [notifications, setNotifications] = useState<NotificationOut[]>([]);
+  const router = useRouter();
+  const [notifications, setNotifications] = useState<NotificationDigestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   useEffect(() => {
-    notificationsApi.list(50).then(setNotifications).catch(() => {}).finally(() => setLoading(false));
+    notificationsApi.listGrouped(50).then(setNotifications).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  const handleMarkRead = async (nid: string) => {
-    await notificationsApi.markRead(nid);
-    setNotifications(prev => prev.map(n => n.id === nid ? { ...n, read: true } : n));
+  const markReadLocally = (idsToFlip: string[]) => {
+    const idSet = new Set(idsToFlip);
+    setNotifications(prev =>
+      prev.map(n => {
+        const sources = n.source_ids && n.source_ids.length > 0 ? n.source_ids : [n.id];
+        return sources.every(s => idSet.has(s)) ? { ...n, read: true } : n;
+      })
+    );
+  };
+
+  // A digest represents many underlying notification docs — fan out the
+  // mark-read call across each source id so the server state stays consistent.
+  const handleMarkRead = async (item: NotificationDigestItem) => {
+    if (item.read) return;
+    const ids = item.source_ids && item.source_ids.length > 0 ? item.source_ids : [item.id];
+    await Promise.all(ids.map(id => notificationsApi.markRead(id).catch(() => null)));
+    markReadLocally(ids);
+  };
+
+  const handleClick = (item: NotificationDigestItem) => {
+    handleMarkRead(item);
+    if (item.link) router.push(item.link);
   };
 
   const handleMarkAllRead = async () => {
@@ -46,11 +87,12 @@ export default function NotificationsPageView() {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const handleDelete = async (e: React.MouseEvent, nid: string) => {
+  const handleDelete = async (e: React.MouseEvent, item: NotificationDigestItem) => {
     e.stopPropagation();
     try {
-      await notificationsApi.deleteOne(nid);
-      setNotifications(prev => prev.filter(n => n.id !== nid));
+      const ids = item.source_ids && item.source_ids.length > 0 ? item.source_ids : [item.id];
+      await Promise.all(ids.map(id => notificationsApi.deleteOne(id).catch(() => null)));
+      setNotifications(prev => prev.filter(n => n.id !== item.id));
     } catch { /* empty */ }
   };
 
@@ -128,12 +170,14 @@ export default function NotificationsPageView() {
           {filtered.map((n, i) => {
             const cfg = typeConfig[n.type] || defaultConfig;
             const Icon = cfg.icon;
+            const isDigest = n.kind === "digest" && (n.count ?? 0) > 1;
+            const actorText = isDigest ? actorsLine(n.actors, n.count ?? 0) : "";
             return (
               <motion.div key={n.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.02 * i }}
-                onClick={() => !n.read && handleMarkRead(n.id)}
+                onClick={() => handleClick(n)}
                 className={clsx(
                   "glass-card p-4 flex items-start gap-3 cursor-pointer transition-colors group",
                   !n.read && "border-accent-blue/20 bg-accent-blue/5"
@@ -146,13 +190,25 @@ export default function NotificationsPageView() {
                     <h3 className={clsx("text-sm font-medium",
                       n.read ? "text-gray-500 dark:text-dark-300" : "text-gray-900 dark:text-white"
                     )}>{n.title}</h3>
+                    {isDigest && (
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-accent-purple/15 text-accent-purple">
+                        {n.count}
+                      </span>
+                    )}
                     {!n.read && <span className="w-2 h-2 rounded-full bg-accent-blue flex-shrink-0" />}
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-dark-400 mt-0.5 line-clamp-2">{n.message}</p>
+                  {actorText ? (
+                    <p className="text-xs text-gray-500 dark:text-dark-300 mt-0.5 line-clamp-2">
+                      <span className="font-medium text-gray-700 dark:text-dark-100">{actorText}</span>
+                      {n.message ? <span className="ml-1 text-gray-500 dark:text-dark-400">— {n.message}</span> : null}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500 dark:text-dark-400 mt-0.5 line-clamp-2">{n.message}</p>
+                  )}
                   <p className="text-[10px] text-gray-400 dark:text-dark-500 mt-1.5">{timeAgo(n.createdAt)}</p>
                 </div>
                 <button
-                  onClick={(e) => handleDelete(e, n.id)}
+                  onClick={(e) => handleDelete(e, n)}
                   className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-gray-400 dark:text-dark-500 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0"
                   title="Delete notification"
                 >

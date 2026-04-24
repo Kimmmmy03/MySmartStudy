@@ -901,9 +901,34 @@ export interface NotificationOut {
   createdAt: string;
 }
 
+/** One entry in the grouped notifications feed. A `digest` entry collapses
+ * many raw notifications of the same (type, link) tuple into a single row
+ * with a count + actors list. `single` entries are verbatim passthroughs. */
+export interface NotificationDigestItem {
+  id: string;
+  kind: "digest" | "single";
+  type: string;
+  title: string;
+  message: string;
+  link: string;
+  read: boolean;
+  createdAt: string;
+  // Populated only when kind === "digest"
+  count?: number;
+  actors?: string[];
+  source_ids?: string[];
+}
+
 export const notificationsApi = {
   list: (limit?: number) =>
     request<NotificationOut[]>(`/notifications/?limit=${limit || 20}`),
+
+  /** Instagram-style digest: groups same-type same-link notifications within a
+   * 24h window into one row. Prefer this for the bell + notifications page. */
+  listGrouped: (limit = 40, windowHours = 24) =>
+    request<NotificationDigestItem[]>(
+      `/notifications/grouped?limit=${limit}&window_hours=${windowHours}`
+    ),
 
   markRead: (nid: string) =>
     request<{ ok: boolean }>(`/notifications/${nid}/read`, { method: "PATCH" }),

@@ -818,6 +818,13 @@ class ApiService {
   static Future<List<dynamic>> getNotifications({int limit = 50}) =>
       _get('/notifications/?limit=$limit').then((d) => List.from(d));
 
+  /// Instagram-style grouped feed: collapses same-type same-link
+  /// notifications within a rolling window into one digest entry with
+  /// `actors` + `count`. Screens render the digest count + actor line.
+  static Future<List<dynamic>> getNotificationsGrouped({int limit = 50, int windowHours = 24}) =>
+      _get('/notifications/grouped?limit=$limit&window_hours=$windowHours')
+          .then((d) => List.from(d));
+
   static Future<void> markNotificationRead(String notifId) =>
       _patch('/notifications/$notifId/read', {});
 
@@ -1330,6 +1337,129 @@ class ApiService {
     );
     if (!res.isOk) throw Exception('Download failed: ${res.statusCode}');
     return res.bodyBytes;
+  }
+
+  // ───────────────────────────────────────────────────────────────────
+  // Social — followers, feed, explore, likes, comments
+  // Mirrors frontend-web/src/lib/api.ts::socialApi so the two clients stay
+  // shape-for-shape identical. All responses come back as JSON maps/lists
+  // already decoded by _get/_post/_delete.
+  // ───────────────────────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> followUser(String userId) async {
+    final data = await _post('/social/follow/$userId', {});
+    return Map<String, dynamic>.from(data);
+  }
+
+  static Future<Map<String, dynamic>> unfollowUser(String userId) async {
+    final headers = await _authHeaders();
+    final res = await _safeSend(
+      () => http.delete(Uri.parse('$_base/social/follow/$userId'), headers: headers),
+      'DELETE',
+      '/social/follow/$userId',
+    );
+    if (!res.isOk) {
+      throw Exception('unfollowUser failed: ${res.statusCode} ${res.body}');
+    }
+    final body = res.body;
+    if (body.isEmpty) return {'ok': true};
+    return Map<String, dynamic>.from(jsonDecode(body));
+  }
+
+  static Future<List<dynamic>> getFollowers(String userId, {int limit = 100}) =>
+      _get('/social/followers/$userId?limit=$limit').then((d) => List.from(d));
+
+  static Future<List<dynamic>> getFollowing(String userId, {int limit = 100}) =>
+      _get('/social/following/$userId?limit=$limit').then((d) => List.from(d));
+
+  /// Public profile view for any user — returns the PublicProfileOut shape
+  /// (same as followers/following list items, plus is_following flag).
+  static Future<Map<String, dynamic>> getPublicProfile(String userId) async {
+    final data = await _get('/social/profile/$userId');
+    return Map<String, dynamic>.from(data);
+  }
+
+  static Future<List<dynamic>> getFeed({int limit = 20}) =>
+      _get('/social/feed?limit=$limit').then((d) => List.from(d));
+
+  static Future<List<dynamic>> getTrending({int days = 30, int limit = 20}) =>
+      _get('/social/explore/trending?days=$days&limit=$limit').then((d) => List.from(d));
+
+  static Future<List<dynamic>> getSuggestedUsers({int limit = 10}) =>
+      _get('/social/explore/suggested?limit=$limit').then((d) => List.from(d));
+
+  /// Search users for the social layer (feed/explore discovery). Distinct
+  /// from `searchUsers` above which hits `/messages/search-users` for DMs.
+  static Future<List<dynamic>> searchSocialUsers(String q, {int limit = 15}) =>
+      _get('/social/users/search?q=${Uri.encodeComponent(q)}&limit=$limit')
+          .then((d) => List.from(d));
+
+  /// Like a map. Returns `{ok, already_liked, like_count}`.
+  static Future<Map<String, dynamic>> likeMap(String mapId) async {
+    final data = await _post('/social/maps/$mapId/like', {});
+    return Map<String, dynamic>.from(data);
+  }
+
+  /// Unlike a map. Returns `{ok, was_liked}`.
+  static Future<Map<String, dynamic>> unlikeMap(String mapId) async {
+    final headers = await _authHeaders();
+    final res = await _safeSend(
+      () => http.delete(Uri.parse('$_base/social/maps/$mapId/like'), headers: headers),
+      'DELETE',
+      '/social/maps/$mapId/like',
+    );
+    if (!res.isOk) {
+      throw Exception('unlikeMap failed: ${res.statusCode} ${res.body}');
+    }
+    final body = res.body;
+    if (body.isEmpty) return {'ok': true};
+    return Map<String, dynamic>.from(jsonDecode(body));
+  }
+
+  static Future<List<dynamic>> listMapComments(String mapId, {int limit = 100}) =>
+      _get('/social/maps/$mapId/comments?limit=$limit').then((d) => List.from(d));
+
+  static Future<Map<String, dynamic>> createMapComment(String mapId, String text) async {
+    final data = await _post('/social/maps/$mapId/comments', {'text': text});
+    return Map<String, dynamic>.from(data);
+  }
+
+  static Future<void> deleteMapComment(String mapId, String commentId) =>
+      _delete('/social/maps/$mapId/comments/$commentId');
+
+  /// Public maps authored by a user (for the public-profile grid). Lives
+  /// under /maps, not /social, but belongs to this group conceptually.
+  static Future<List<dynamic>> getPublicMapsByUser(String userId, {int limit = 30}) =>
+      _get('/maps/public/user/$userId?limit=$limit').then((d) => List.from(d));
+
+  /// Upload cover-photo banner. Returns `{cover_photo_url: "..."}`.
+  static Future<Map<String, dynamic>> uploadCoverPhoto(String filePath) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception('Not authenticated');
+    final token = await user.getIdToken();
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$_base/users/me/cover-photo'),
+    );
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    final streamed = await request.send();
+    final res = await http.Response.fromStream(streamed);
+    if (!res.isOk) {
+      throw Exception('Cover photo upload failed: ${res.statusCode} ${res.body}');
+    }
+    return Map<String, dynamic>.from(jsonDecode(res.body));
+  }
+
+  /// Update notification preferences (per-type opt-ins). Takes snake_case
+  /// keys matching backend schema: new_follower, map_like, map_comment,
+  /// followed_user_posts.
+  static Future<Map<String, dynamic>> updateNotificationPrefs(
+      Map<String, bool> prefs) async {
+    final data = await _patch('/users/me', {'notification_prefs': prefs});
+    return Map<String, dynamic>.from(data);
   }
 }
 

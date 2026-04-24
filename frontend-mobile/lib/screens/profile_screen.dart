@@ -111,21 +111,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── Editable form state ──────────────────────────────────────────────────────
   late final TextEditingController _nameCtrl;
+  late final TextEditingController _bioCtrl;
   String _classUnit  = '';
   int    _year       = 1;
   int    _semester   = 1;
   String _department = '';
+  String _coverPhotoUrl = '';
+
+  // Social notification opt-ins (snake_case to match backend schema).
+  bool _prefNewFollower       = true;
+  bool _prefMapLike           = true;
+  bool _prefMapComment        = true;
+  bool _prefFollowedUserPosts = false;
 
   String _origName       = '';
+  String _origBio        = '';
   String _origClass      = '';
   int    _origYear       = 1;
   int    _origSemester   = 1;
   String _origDepartment = '';
+  bool   _uploadingCover = false;
+  bool   _savingPrefs    = false;
 
   bool get _isStudent => (_me?['role'] ?? 'student').toString() == 'student';
 
   bool get _isDirty =>
       _nameCtrl.text.trim() != _origName ||
+      _bioCtrl.text != _origBio ||
       (_isStudent && _classUnit != _origClass) ||
       _year       != _origYear       ||
       _semester   != _origSemester   ||
@@ -138,12 +150,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _nameCtrl = TextEditingController();
     _nameCtrl.addListener(() => setState(() {}));
+    _bioCtrl = TextEditingController();
+    _bioCtrl.addListener(() => setState(() {}));
     _load();
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _bioCtrl.dispose();
     super.dispose();
   }
 
@@ -158,22 +173,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final name = (_me?['display_name'] ?? '').toString();
+    final bio  = (_me?['bio'] ?? '').toString();
     final cls  = (_me?['class_name']   ?? '').toString();
     final yr   = _toInt(_me?['year'],     1);
     final sem  = _toInt(_me?['semester'], 1);
     final dept = (_me?['department']   ?? '').toString();
+    final cover = (_me?['cover_photo_url'] ?? '').toString();
 
     _nameCtrl.text = name;
+    _bioCtrl.text  = bio;
     _classUnit     = cls;
     _year          = yr;
     _semester      = sem;
     _department    = dept;
+    _coverPhotoUrl = cover;
 
     _origName       = name;
+    _origBio        = bio;
     _origClass      = cls;
     _origYear       = yr;
     _origSemester   = sem;
     _origDepartment = dept;
+
+    // Notification prefs — defaults match backend (follower/like/comment on,
+    // followed-user-posts off).
+    final prefs = _me?['notification_prefs'];
+    if (prefs is Map) {
+      _prefNewFollower       = prefs['new_follower'] ?? true;
+      _prefMapLike           = prefs['map_like'] ?? true;
+      _prefMapComment        = prefs['map_comment'] ?? true;
+      _prefFollowedUserPosts = prefs['followed_user_posts'] ?? false;
+    }
   }
 
   Future<void> _load() async {
@@ -204,6 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final updates = <String, dynamic>{
         'display_name': _nameCtrl.text.trim(),
+        'bio': _bioCtrl.text,
       };
       if (role == 'student') {
         updates['class_name'] = _classUnit;
@@ -256,6 +287,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
           SnackBar(content: Text('Upload failed: $e'), backgroundColor: AppColors.red),
         );
       }
+    }
+  }
+
+  // ── Cover photo ──────────────────────────────────────────────────────────────
+
+  Future<void> _pickCoverPhoto() async {
+    HapticFeedback.lightImpact();
+    final picker = ImagePicker();
+    final img = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1600);
+    if (img == null) return;
+    setState(() => _uploadingCover = true);
+    try {
+      final resp = await ApiService.uploadCoverPhoto(img.path);
+      final newUrl = (resp['cover_photo_url'] ?? '').toString();
+      if (!mounted) return;
+      setState(() => _coverPhotoUrl = newUrl);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Cover photo updated!'),
+        backgroundColor: AppColors.emerald,
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Cover upload failed: $e'),
+        backgroundColor: AppColors.red,
+      ));
+    } finally {
+      if (mounted) setState(() => _uploadingCover = false);
+    }
+  }
+
+  // ── Notification prefs — save on every toggle (optimistic) ──────────────────
+
+  Future<void> _toggleNotifPref({
+    bool? newFollower,
+    bool? mapLike,
+    bool? mapComment,
+    bool? followedUserPosts,
+  }) async {
+    if (_savingPrefs) return;
+    HapticFeedback.selectionClick();
+    final prev = {
+      'new_follower': _prefNewFollower,
+      'map_like': _prefMapLike,
+      'map_comment': _prefMapComment,
+      'followed_user_posts': _prefFollowedUserPosts,
+    };
+    setState(() {
+      _prefNewFollower       = newFollower       ?? _prefNewFollower;
+      _prefMapLike           = mapLike           ?? _prefMapLike;
+      _prefMapComment        = mapComment        ?? _prefMapComment;
+      _prefFollowedUserPosts = followedUserPosts ?? _prefFollowedUserPosts;
+      _savingPrefs = true;
+    });
+    try {
+      await ApiService.updateNotificationPrefs({
+        'new_follower': _prefNewFollower,
+        'map_like': _prefMapLike,
+        'map_comment': _prefMapComment,
+        'followed_user_posts': _prefFollowedUserPosts,
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _prefNewFollower       = prev['new_follower']!;
+        _prefMapLike           = prev['map_like']!;
+        _prefMapComment        = prev['map_comment']!;
+        _prefFollowedUserPosts = prev['followed_user_posts']!;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Could not save preference — please try again.'),
+        backgroundColor: AppColors.red,
+      ));
+    } finally {
+      if (mounted) setState(() => _savingPrefs = false);
     }
   }
 
@@ -905,6 +1011,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                             const SizedBox(height: 14),
+                            // Bio (multiline, 280-char cap). Shown on the public
+                            // profile header. Kept optional — blank bios are fine.
+                            TextField(
+                              controller: _bioCtrl,
+                              maxLines: 3,
+                              minLines: 3,
+                              maxLength: 280,
+                              style: TextStyle(color: c.textPrimary, fontSize: 13, height: 1.4),
+                              decoration: AppTheme.inputDecoration(
+                                context,
+                                label: 'Bio',
+                                prefixIcon: Icons.short_text_rounded,
+                              ).copyWith(
+                                alignLabelWithHint: true,
+                                counterStyle: TextStyle(color: c.textMuted, fontSize: 10),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
                             // Email (read-only)
                             _readOnlyField(Icons.email_rounded, email, c, isDark),
                             const SizedBox(height: 14),
@@ -1010,6 +1134,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ),
                               ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // ── Social (cover photo + notification prefs) ────────
+                    const SizedBox(height: 16),
+                    _buildSectionHeader(
+                      'Social & Notifications',
+                      Icons.groups_rounded,
+                      AppColors.purple,
+                      c,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: GlassCard(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildCoverPhotoTile(c, isDark),
+                            const SizedBox(height: 16),
+                            Divider(color: c.border, height: 1),
+                            const SizedBox(height: 14),
+                            Text(
+                              'Notification preferences',
+                              style: TextStyle(
+                                color: c.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Choose which social events send you a notification.',
+                              style: TextStyle(color: c.textMuted, fontSize: 11),
+                            ),
+                            const SizedBox(height: 10),
+                            _buildPrefSwitch(
+                              c: c,
+                              icon: Icons.person_add_rounded,
+                              tint: AppColors.blue,
+                              label: 'New followers',
+                              value: _prefNewFollower,
+                              onChanged: (v) => _toggleNotifPref(newFollower: v),
+                            ),
+                            _buildPrefSwitch(
+                              c: c,
+                              icon: Icons.favorite_rounded,
+                              tint: AppColors.pink,
+                              label: 'Likes on my maps',
+                              value: _prefMapLike,
+                              onChanged: (v) => _toggleNotifPref(mapLike: v),
+                            ),
+                            _buildPrefSwitch(
+                              c: c,
+                              icon: Icons.mode_comment_rounded,
+                              tint: AppColors.cyan,
+                              label: 'Comments on my maps',
+                              value: _prefMapComment,
+                              onChanged: (v) => _toggleNotifPref(mapComment: v),
+                            ),
+                            _buildPrefSwitch(
+                              c: c,
+                              icon: Icons.auto_awesome_rounded,
+                              tint: AppColors.purple,
+                              label: 'New posts from people I follow',
+                              value: _prefFollowedUserPosts,
+                              onChanged: (v) => _toggleNotifPref(followedUserPosts: v),
+                            ),
                           ],
                         ),
                       ),
@@ -1713,6 +1907,126 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Cover photo preview + change button. Resolves relative URLs through
+  /// ApiService so emulator + prod hosts both work. Shows a soft gradient
+  /// placeholder when unset.
+  Widget _buildCoverPhotoTile(AppColorScheme c, bool isDark) {
+    final resolved = ApiService.resolvePhotoUrl(_coverPhotoUrl);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Cover photo',
+          style: TextStyle(
+            color: c.textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Shown at the top of your public profile.',
+          style: TextStyle(color: c.textMuted, fontSize: 11),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          height: 120,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            image: resolved != null
+                ? DecorationImage(
+                    image: NetworkImage(resolved),
+                    fit: BoxFit.cover,
+                  )
+                : null,
+            gradient: resolved == null
+                ? LinearGradient(
+                    colors: [
+                      AppColors.purple.withValues(alpha: 0.35),
+                      AppColors.blue.withValues(alpha: 0.25),
+                      AppColors.cyan.withValues(alpha: 0.2),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            border: Border.all(color: c.border),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _uploadingCover ? null : _pickCoverPhoto,
+                icon: _uploadingCover
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.photo_library_rounded, size: 16),
+                label: Text(resolved == null ? 'Add cover photo' : 'Change cover photo'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.purple,
+                  side: BorderSide(color: AppColors.purple.withValues(alpha: 0.4)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Single switch row for a notification pref. Saves on toggle — no "Save"
+  /// button needed since this section isn't part of the main dirty-state form.
+  Widget _buildPrefSwitch({
+    required AppColorScheme c,
+    required IconData icon,
+    required Color tint,
+    required String label,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: tint.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 16, color: tint),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: c.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            onChanged: _savingPrefs ? null : onChanged,
+            activeColor: tint,
           ),
         ],
       ),
