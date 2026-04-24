@@ -27,6 +27,7 @@ export default function ExplorePage() {
   // Trending
   const [trending, setTrending] = useState<MapOut[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
+  const [trendingDays, setTrendingDays] = useState<7 | 30 | 90>(30);
 
   // Suggested
   const [suggested, setSuggested] = useState<PublicProfileOut[]>([]);
@@ -38,10 +39,10 @@ export default function ExplorePage() {
   const [searching, setSearching] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadTrending = useCallback(async () => {
+  const loadTrending = useCallback(async (days: number) => {
     setTrendingLoading(true);
     try {
-      const data = await socialApi.trending(30, 20);
+      const data = await socialApi.trending(days, 20);
       setTrending(data);
     } catch {
       setTrending([]);
@@ -62,7 +63,8 @@ export default function ExplorePage() {
     }
   }, []);
 
-  useEffect(() => { loadTrending(); loadSuggested(); }, [loadTrending, loadSuggested]);
+  useEffect(() => { loadTrending(trendingDays); }, [loadTrending, trendingDays]);
+  useEffect(() => { loadSuggested(); }, [loadSuggested]);
 
   // Debounced search.
   useEffect(() => {
@@ -184,28 +186,50 @@ export default function ExplorePage() {
 
       {/* Tab content */}
       {tab === "trending" ? (
-        trendingLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 text-accent-purple animate-spin" />
+        <div className="space-y-3">
+          {/* Window selector — scope the top-liked query to a recency window */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-[11px] uppercase tracking-wider text-dark-400 font-semibold">Trending window</p>
+            <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5">
+              {([7, 30, 90] as const).map(d => (
+                <button
+                  key={d}
+                  onClick={() => setTrendingDays(d)}
+                  className={clsx(
+                    "px-3 py-1 rounded-md text-[11px] font-medium transition-colors",
+                    trendingDays === d
+                      ? "bg-accent-purple/20 text-accent-purple"
+                      : "text-dark-300 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  Last {d}d
+                </button>
+              ))}
+            </div>
           </div>
-        ) : trending.length === 0 ? (
-          <div className="glass-card p-10 text-center">
-            <TrendingUp className="w-10 h-10 text-dark-500 mx-auto mb-2" />
-            <p className="text-dark-200 text-sm">No trending maps yet.</p>
-            <p className="text-xs text-dark-400 mt-1">Post a public map or check back later.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {trending.map(m => (
-              <MapFeedCard
-                key={m.id}
-                map={m}
-                currentUserId={user?.id}
-                onFollowChange={patchFollowFlag}
-              />
-            ))}
-          </div>
-        )
+          {trendingLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-6 h-6 text-accent-purple animate-spin" />
+            </div>
+          ) : trending.length === 0 ? (
+            <div className="glass-card p-10 text-center">
+              <TrendingUp className="w-10 h-10 text-dark-500 mx-auto mb-2" />
+              <p className="text-dark-200 text-sm">No trending maps in the last {trendingDays} days.</p>
+              <p className="text-xs text-dark-400 mt-1">Try a wider window, or post a public map.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {trending.map(m => (
+                <MapFeedCard
+                  key={m.id}
+                  map={m}
+                  currentUserId={user?.id}
+                  onFollowChange={patchFollowFlag}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       ) : suggestedLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-6 h-6 text-accent-purple animate-spin" />
