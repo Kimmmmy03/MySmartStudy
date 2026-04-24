@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion";
 import { Map, Pencil, Trash2, Users } from "lucide-react";
+import VisibilityBadge from "@/components/visibility-badge";
+import type { MapVisibility } from "@/lib/api";
 
 interface MapCardProps {
   title: string;
@@ -9,13 +11,14 @@ interface MapCardProps {
   lastModified: string;
   collaborators?: string[];
   ownerEmail?: string;
+  visibility?: MapVisibility | string;
   onClick?: () => void;
   onRename?: () => void;
   onDelete?: () => void;
   showActions?: boolean;
 }
 
-export default function MapCard({ title, thumbnail, lastModified, collaborators, ownerEmail, onClick, onRename, onDelete, showActions = false }: MapCardProps) {
+export default function MapCard({ title, thumbnail, lastModified, collaborators, ownerEmail, visibility, onClick, onRename, onDelete, showActions = false }: MapCardProps) {
   const hasCollaborators = collaborators && collaborators.length > 0;
 
   return (
@@ -37,6 +40,13 @@ export default function MapCard({ title, thumbnail, lastModified, collaborators,
           <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-accent-purple/80 backdrop-blur-sm text-white text-[10px] font-medium shadow-sm">
             <Users className="w-3 h-3" />
             <span>Collaboration</span>
+          </div>
+        )}
+        {/* Visibility badge — sits top-left below the collab badge, or top-left
+            alone when there's no collab chip. */}
+        {visibility && (
+          <div className={hasCollaborators ? "absolute top-9 left-2" : "absolute top-2 left-2"}>
+            <VisibilityBadge visibility={visibility} size="sm" />
           </div>
         )}
         {showActions && (

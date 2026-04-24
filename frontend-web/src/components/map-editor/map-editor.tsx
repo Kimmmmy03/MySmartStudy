@@ -174,7 +174,9 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
   const lastSaveCallbackRef = useRef<((data: string) => void) | null>(null);
 
   const {
-    saveStatus, shareCode, collaborators, setCollaborators, loadMap, saveMap,
+    saveStatus, shareCode, collaborators, setCollaborators,
+    visibility, updateVisibility,
+    loadMap, saveMap,
   } = useMapPersistence({ mapId, ownerId, ownerEmail, nodes, edges, title, canvasRef, reactFlowInstance, isDark, onSaved: (data) => lastSaveCallbackRef.current?.(data) });
 
   useEffect(() => {
@@ -787,6 +789,8 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
         shareCode={shareCode}
         collaborators={collaborators}
         setCollaborators={setCollaborators}
+        visibility={visibility}
+        onVisibilityChange={updateVisibility}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useEffect, useState } from "react";
-import { mapsApi } from "@/lib/api";
+import { mapsApi, type MapVisibility } from "@/lib/api";
 import { toPng } from "html-to-image";
 import { cacheMap, markSynced, getUnsyncedMaps } from "@/lib/offline-cache";
 import { getNodesBounds, getViewportForBounds, type Node, type Edge, type ReactFlowInstance } from "@xyflow/react";
@@ -27,6 +27,7 @@ export function useMapPersistence({ mapId, ownerId, ownerEmail, nodes, edges, ti
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [shareCode, setShareCode] = useState("");
   const [collaborators, setCollaborators] = useState<string[]>([]);
+  const [visibility, setVisibility] = useState<MapVisibility>("private");
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSaveRef = useRef<string>("");
 
@@ -35,6 +36,7 @@ export function useMapPersistence({ mapId, ownerId, ownerEmail, nodes, edges, ti
     const data = await mapsApi.get(id);
     setShareCode(data.share_code || "");
     setCollaborators(data.collaborators || []);
+    setVisibility((data.visibility as MapVisibility) || "private");
 
     let parsedNodes: Node[] = [];
     let parsedEdges: Edge[] = [];
@@ -176,12 +178,27 @@ export function useMapPersistence({ mapId, ownerId, ownerEmail, nodes, edges, ti
     };
   }, [nodes, edges, title, saveMap]);
 
+  // Persist a visibility change immediately (these are explicit user choices
+  // — no need to bundle them into the auto-save debounce).
+  const updateVisibility = useCallback(async (next: MapVisibility): Promise<void> => {
+    if (!currentMapId) return;
+    setVisibility(next);
+    try {
+      const updated = await mapsApi.update(currentMapId, { visibility: next });
+      setVisibility((updated.visibility as MapVisibility) || next);
+    } catch {
+      // Best-effort UI revert is left to the caller via re-reading the hook.
+    }
+  }, [currentMapId]);
+
   return {
     currentMapId,
     saveStatus,
     shareCode,
     collaborators,
     setCollaborators,
+    visibility,
+    updateVisibility,
     loadMap,
     saveMap,
   };

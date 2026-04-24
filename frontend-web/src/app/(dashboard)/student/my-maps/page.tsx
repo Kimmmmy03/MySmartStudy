@@ -6,6 +6,7 @@ import { mapsApi, MapOut } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import MapCard from "@/components/map-card";
+import VisibilityBadge from "@/components/visibility-badge";
 import Modal from "@/components/ui/modal";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Search, LayoutGrid, List, Map as MapIcon, Pencil, Trash2, Users, Link2, Loader2 } from "lucide-react";
@@ -246,6 +247,7 @@ export default function MyMapsPage() {
             <MapCard key={map.id} title={map.title} thumbnail={map.thumbnail} lastModified={formatDateTime(map.last_modified)}
               collaborators={map.collaborators}
               ownerEmail={filterTab === "collaborated" ? map.owner_email : undefined}
+              visibility={map.visibility}
               onClick={() => router.push(`/student/create-map?id=${map.id}`)} showActions
               onRename={() => { setRenameTarget({ id: map.id, title: map.title }); setNewTitle(map.title); }}
               onDelete={() => setDeleteTarget(map.id)} />
@@ -267,6 +269,7 @@ export default function MyMapsPage() {
                       <Users className="w-3 h-3" /> Collaboration
                     </span>
                   )}
+                  {map.visibility && <VisibilityBadge visibility={map.visibility} size="sm" className="shrink-0" />}
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-dark-400">{formatDateTime(map.last_modified)}</p>

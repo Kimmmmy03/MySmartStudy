@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { mapsApi, messagingApi, type UserSearchResult } from "@/lib/api";
+import { mapsApi, messagingApi, type UserSearchResult, type MapVisibility } from "@/lib/api";
 import Modal from "@/components/ui/modal";
 import { motion, AnimatePresence } from "framer-motion";
-import { Copy, Check, X, UserPlus, Search, Users, AlertTriangle, CheckCircle2, XCircle, Share2, Loader2 } from "lucide-react";
+import { Copy, Check, X, UserPlus, Search, Users, AlertTriangle, CheckCircle2, XCircle, Share2, Loader2, Eye } from "lucide-react";
+import VisibilitySelector from "@/components/visibility-selector";
 
 interface ShareModalProps {
   open: boolean;
@@ -13,6 +14,8 @@ interface ShareModalProps {
   shareCode: string;
   collaborators: string[];
   setCollaborators: (collabs: string[]) => void;
+  visibility?: MapVisibility;
+  onVisibilityChange?: (next: MapVisibility) => Promise<void> | void;
 }
 
 interface Toast {
@@ -21,7 +24,16 @@ interface Toast {
   message: string;
 }
 
-export default function ShareModal({ open, onClose, mapId, shareCode, collaborators, setCollaborators }: ShareModalProps) {
+export default function ShareModal({
+  open,
+  onClose,
+  mapId,
+  shareCode,
+  collaborators,
+  setCollaborators,
+  visibility = "private",
+  onVisibilityChange,
+}: ShareModalProps) {
   const [query, setQuery] = useState("");
   const [copied, setCopied] = useState(false);
   const [results, setResults] = useState<UserSearchResult[]>([]);
@@ -190,7 +202,21 @@ export default function ShareModal({ open, onClose, mapId, shareCode, collaborat
         </AnimatePresence>
       </div>
 
-      {/* Share Code Section */}
+      {/* Visibility Section — Phase 1 followers foundation. Drives where the
+          map appears (private / share code only / public on followers' feeds). */}
+      {onVisibilityChange && (
+        <div className="mb-5">
+          <label className="text-sm font-semibold text-dark-200 mb-2 block flex items-center gap-2">
+            <Eye className="w-4 h-4 text-accent-cyan" /> Visibility
+          </label>
+          <VisibilitySelector
+            value={visibility}
+            onChange={(next) => { void onVisibilityChange(next); }}
+          />
+        </div>
+      )}
+
+      {/* Share Code Section — only relevant when the map is unlisted or public */}
       <div className="share-code-card rounded-xl bg-gradient-to-br from-accent-blue/5 to-accent-purple/5 border border-white/5 p-5 mb-5">
         <div className="flex items-center gap-2 mb-3">
           <Share2 className="w-4 h-4 text-accent-blue" />
