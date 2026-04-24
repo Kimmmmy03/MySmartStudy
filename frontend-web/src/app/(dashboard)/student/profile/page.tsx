@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { usersApi } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
-import { Camera, Loader2, CheckCircle, Brain, ImagePlus, Users, UserPlus2, ExternalLink } from "lucide-react";
+import { Camera, Loader2, CheckCircle, Brain, ImagePlus, Users, UserPlus2, ExternalLink, Bell, Heart, MessageCircle, Map as MapIcon } from "lucide-react";
 import SelectWithOther from "@/components/ui/select-with-other";
 import { CLASS_UNITS } from "@/lib/constants";
 import { semesterLabel } from "@/lib/utils";
@@ -261,6 +261,9 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {/* Notification preferences — social graph events (Phase 4) */}
+          {isStudent && <NotificationPrefsSection />}
+
           <button onClick={handleSave} disabled={saving}
             className="btn-gradient w-full text-white py-2.5 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2 relative z-10">
             {saving && <Loader2 className="w-4 h-4 animate-spin relative z-10" />}
@@ -271,4 +274,123 @@ export default function ProfilePage() {
       </div>
     </motion.div>
   );
+}
+
+
+type PrefKey = "newFollower" | "mapLike" | "mapComment" | "followedUserPosts";
+
+const PREF_CONFIG: { key: PrefKey; label: string; hint: string; icon: typeof Bell; tint: string }[] = [
+  { key: "newFollower", label: "New followers", hint: "When someone follows you", icon: UserPlus2, tint: "text-accent-blue bg-accent-blue/10" },
+  { key: "mapLike", label: "Likes on your maps", hint: "When someone likes a mind map you posted", icon: Heart, tint: "text-accent-pink bg-accent-pink/10" },
+  { key: "mapComment", label: "Comments on your maps", hint: "When someone comments on a mind map you posted", icon: MessageCircle, tint: "text-accent-cyan bg-accent-cyan/10" },
+  { key: "followedUserPosts", label: "Posts from people you follow", hint: "When someone you follow publishes a new public map", icon: MapIcon, tint: "text-accent-purple bg-accent-purple/10" },
+];
+
+/**
+ * Notification preferences toggles. Each flip persists immediately through
+ * usersApi.updateMe with a partial notification_prefs payload. Optimistic
+ * UI with rollback on API failure — matches the FollowButton pattern. A
+ * light "Saved" flash confirms the write.
+ */
+function NotificationPrefsSection() {
+  const { profile, refreshProfile } = useAuth();
+  const prefs = profile?.notificationPrefs ?? {
+    newFollower: true,
+    mapLike: true,
+    mapComment: true,
+    followedUserPosts: false,
+  };
+  const [local, setLocal] = useState(prefs);
+  const [pending, setPending] = useState<PrefKey | null>(null);
+  const [savedKey, setSavedKey] = useState<PrefKey | null>(null);
+
+  // Sync when the server-backed profile changes (e.g. after refreshProfile).
+  useEffect(() => {
+    if (profile?.notificationPrefs) setLocal(profile.notificationPrefs);
+  }, [profile?.notificationPrefs]);
+
+  const toggle = async (key: PrefKey) => {
+    if (pending) return;
+    const prev = local[key];
+    const next = !prev;
+    setLocal(p => ({ ...p, [key]: next }));
+    setPending(key);
+    try {
+      const snake: Record<string, boolean> = {
+        new_follower: local.newFollower,
+        map_like: local.mapLike,
+        map_comment: local.mapComment,
+        followed_user_posts: local.followedUserPosts,
+      };
+      // Override just the key that flipped — sending the full object keeps the
+      // backend's merge semantics simple (we never partial-flip this object).
+      const patched = { ...snake, [toSnake(key)]: next };
+      await usersApi.updateMe({ notification_prefs: patched as never });
+      setSavedKey(key);
+      setTimeout(() => setSavedKey(prev2 => (prev2 === key ? null : prev2)), 1200);
+      // Refresh so the auth context picks up the canonical server value.
+      refreshProfile().catch(() => {});
+    } catch {
+      // Rollback
+      setLocal(p => ({ ...p, [key]: prev }));
+    } finally {
+      setPending(null);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Bell className="w-4 h-4 text-dark-300" />
+        <p className="text-sm font-medium text-dark-100">Notification preferences</p>
+      </div>
+      <div className="space-y-2">
+        {PREF_CONFIG.map(p => {
+          const on = !!local[p.key];
+          const busy = pending === p.key;
+          return (
+            <div
+              key={p.key}
+              className="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-white/[0.03]"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${p.tint}`}>
+                  <p.icon className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white">{p.label}</p>
+                  <p className="text-[11px] text-dark-400">{p.hint}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {savedKey === p.key && (
+                  <span className="text-[10px] text-accent-emerald font-medium">Saved</span>
+                )}
+                <button
+                  onClick={() => toggle(p.key)}
+                  disabled={busy}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${on ? "bg-accent-blue" : "bg-dark-600"} ${busy ? "opacity-60" : ""}`}
+                  aria-label={`Toggle ${p.label}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${on ? "translate-x-5" : ""}`} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-[11px] text-dark-400">
+        Emails mirror these settings — turning one off silences both in-app and email for that type.
+      </p>
+    </div>
+  );
+}
+
+function toSnake(key: PrefKey): string {
+  switch (key) {
+    case "newFollower": return "new_follower";
+    case "mapLike": return "map_like";
+    case "mapComment": return "map_comment";
+    case "followedUserPosts": return "followed_user_posts";
+  }
 }

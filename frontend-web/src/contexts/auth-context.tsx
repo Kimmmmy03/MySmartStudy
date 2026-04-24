@@ -25,6 +25,14 @@ function toProfile(u: UserOut): UserProfile {
     coverPhotoURL: u.cover_photo_url || undefined,
     followerCount: u.follower_count ?? 0,
     followingCount: u.following_count ?? 0,
+    notificationPrefs: u.notification_prefs
+      ? {
+          newFollower: u.notification_prefs.new_follower,
+          mapLike: u.notification_prefs.map_like,
+          mapComment: u.notification_prefs.map_comment,
+          followedUserPosts: u.notification_prefs.followed_user_posts,
+        }
+      : undefined,
   };
 }
 

@@ -24,6 +24,12 @@ export interface UserProfile {
   coverPhotoURL?: string;
   followerCount?: number;
   followingCount?: number;
+  notificationPrefs?: {
+    newFollower: boolean;
+    mapLike: boolean;
+    mapComment: boolean;
+    followedUserPosts: boolean;
+  };
 }
 
 export interface MindMap {
