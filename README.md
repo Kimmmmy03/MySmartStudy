@@ -27,11 +27,11 @@ A full-stack, AI-enhanced LMS (Learning Management System) for students and lect
 ### How It Works
 
 1. **Firebase Auth** handles user registration and login on all platforms
-2. The **FastAPI backend** (41 routers) verifies Firebase ID tokens and serves a REST API
+2. The **FastAPI backend** (42 routers) verifies Firebase ID tokens and serves a REST API
 3. **Google Gemini** powers AI features using **Gemini 2.5 Flash** for both SMART_MODEL (companion chat, grading, plagiarism, mindmap buddy) and FAST_MODEL (study materials, timetable parsing, course import, exam plans). All features are enhanced with **RAG** (Retrieval-Augmented Generation via ChromaDB), **GAG** for structured artifacts, and **multi-tier Firestore caching** to avoid redundant API calls
 4. **AI image generation** uses Gemini 2.0 Flash Preview Image Generation (with Imagen 3 fallback) and stores images in **Firebase Storage** for cloud persistence, with a 1-image/day quota and 7-day prompt deduplication
 5. The **Next.js web app** calls the backend API with Bearer token headers
-6. The **Flutter mobile app** (46 screens) calls the same FastAPI backend via HTTP with Firebase ID tokens, sharing the same data layer
+6. The **Flutter mobile app** (60 screens) calls the same FastAPI backend via HTTP with Firebase ID tokens, sharing the same data layer
 7. Both frontends support **dark/light theme** toggling with animated transitions, persisted per user
 8. The mobile app supports **bilingual UI** (English / Bahasa Melayu) with a first-time tutorial overlay
 
@@ -45,7 +45,7 @@ The system uses several strategies to minimise Gemini API token consumption:
 | **Multi-tier Firestore cache** | 10+ cache collections with TTLs ranging from 1 day (daily guide) to permanent (grading, plagiarism) |
 | **Global question dedup** | Non-course-specific companion questions cached 7 days and shared across all users |
 | **Elaboration cache** | Image prompt elaboration results cached 30 days — retries don't re-call Gemini |
-| **Reduced RAG context** | Companion retrieves 3 chunks (not 5); each chunk capped at 2,000 chars |
+| **Reduced RAG context** | Companion retrieves 3 chunks (not 5); each chunk capped at 2,000 chars |F
 | **Trimmed chat history** | Companion history window: 12 messages loaded, 15 stored (was 20/50) |
 | **Condensed system prompts** | `study_companion` and `rag_companion` prompts reduced ~65% in token length |
 | **Nightly RAG indexing** | Course re-embedding runs once at 2 AM UTC to minimise API usage |
@@ -59,10 +59,10 @@ The system uses several strategies to minimise Gemini API token consumption:
 MySmartStudy/
   backend/
     app/
-      routers/                 # 41 route handlers
+      routers/                 # 42 route handlers
         auth.py                # Firebase token verification + user sync
-        users.py               # Profile management + avatar upload
-        maps.py                # Mind map CRUD + collaboration + presence
+        users.py               # Profile management + avatar + cover photo + notification prefs
+        maps.py                # Mind map CRUD + collaboration + presence + visibility
         courses.py             # Course CRUD + enrollment + student management
         assignments.py         # Assignment CRUD + conditional access
         quizzes.py             # Quiz CRUD + auto-grading + attempts
@@ -77,10 +77,12 @@ MySmartStudy/
         attendance.py          # Session-based attendance tracking
         certificates.py        # Course completion certificates
         groups.py              # Student groups + auto-assign
+        group_tasks.py         # Group task assignment + per-group submission tracking
         completion.py          # Course completion tracking + analytics
+        social.py              # Followers, feed, explore, likes, comments, public profiles
         auto_badges.py         # Automatic badge engine (9 criteria)
         messaging.py           # Private messaging + conversations
-        notifications.py       # In-app notifications + FCM tokens
+        notifications.py       # In-app notifications + FCM tokens + Instagram-style digest grouping
         activity.py            # Activity feed + reflections
         analytics.py           # Lecturer analytics dashboard
         progress.py            # Course progress + calendar events
@@ -124,7 +126,7 @@ MySmartStudy/
         icon.png               # App Router favicon (IPG logo on white circle, auto-served at /icon.png)
         (auth)/                # Login, Register, Forgot Password, Logout
         (dashboard)/
-          student/             # 27 student pages
+          student/             # 21 student page groups (course/[cid] expands to 6 sub-tools)
             dashboard/         # Activity heatmap, upcoming deadlines, stats
             my-maps/           # Mind map gallery with search
             create-map/        # React Flow map editor
@@ -136,10 +138,12 @@ MySmartStudy/
               forum/           # Topic-based discussion forum
               resources/       # Course materials + progress tracking
               peer-reviews/    # Review classmates' work
+            feed/              # Social feed — public maps from followed creators (story rail, stat chips)
+            explore/           # Discovery — trending maps + suggested creators + user search
             gradebook/         # Unified gradebook across courses
             grades/            # Per-course grades
             messages/          # Private messaging
-            notifications/     # Notification center
+            notifications/     # Notification center with digest grouping
             calendar/          # Calendar view with events
             attendance/        # Attendance records per course
               check-in/        # QR/code-based check-in
@@ -150,8 +154,9 @@ MySmartStudy/
             study-guide/       # AI daily study recommendations
             study-materials/   # AI-generated study materials library
             exam-planner/      # AI exam study plan generator
-            profile/           # Profile editor + avatar
-          lecturer/            # 13 lecturer pages
+            profile/[uid]/     # Public profile screen — bio, cover, follower counts, public maps
+            profile/           # Profile editor + avatar + cover photo + notification prefs
+          lecturer/            # 12 lecturer page groups (course/[cid] expands to 11 sub-tools)
             dashboard/         # Analytics overview
             class-management/  # Course list + create
             course/[cid]/      # Course detail + tools
@@ -169,9 +174,10 @@ MySmartStudy/
             review-maps/       # Review student mind maps
             view-map/[id]/     # Annotate maps
             analytics/         # Engagement heatmap, at-risk students
+            learning-plan/     # AI-assisted course learning plan editor
             manage-badges/     # Award/revoke badges
             messages/          # Private messaging
-            notifications/     # Notification center
+            notifications/     # Notification center with digest grouping
             planner/           # Personal planner
             profile/           # Profile editor
           admin/               # 4 admin pages
@@ -202,7 +208,7 @@ MySmartStudy/
       models/                  # Dart model classes
         user_profile.dart      # UserProfile model
         mind_map_model.dart    # MindMapModel
-      screens/                 # 46 Flutter screen widgets
+      screens/                 # 60 Flutter screen widgets
         main_shell.dart        # Tab navigation shell (5 tabs) + AI FAB overlay
         home_screen.dart       # Dashboard + shimmer loading + deadlines + today's tasks + tutorial
         subjects_screen.dart   # Course list (student enrolled / lecturer teaching)
@@ -214,16 +220,25 @@ MySmartStudy/
         student_submit_screen.dart  # Submit assignment
         lecturer_submissions_screen.dart # View + grade + AI plagiarism check + AI grade suggest
         quizzes_screen.dart         # Quiz list + take quiz (student) + results (lecturer)
+        quiz_course_picker_screen.dart # Course picker for cross-course quiz creation
         forum_screen.dart           # Topic-based forum + threaded posts
         gradebook_screen.dart       # Student grades / lecturer class gradebook
         attendance_screen.dart      # Attendance records / session management
+        attendance_session_detail_screen.dart # Per-session detail + bulk update
+        attendance_checkin_screen.dart # QR/code-based check-in for students
         peer_reviews_screen.dart    # View peer reviews on assignments
         completion_screen.dart      # Course completion tracking (lecturer)
+        student_report_screen.dart  # Per-student report drilldown (lecturer)
         groups_screen.dart          # Student groups + create + auto-assign
-        notifications_screen.dart   # In-app notification center
+        group_task_detail_screen.dart # Group task assignment detail (per-group submissions)
+        notifications_screen.dart   # In-app notification center with digest grouping
+        feed_screen.dart            # Social feed — public maps from followed creators
+        explore_screen.dart         # Discovery — trending maps + suggested creators
+        public_profile_screen.dart  # Public profile — bio, cover, follower counts, public maps grid
         messaging_screen.dart       # Private messaging + conversations
         activity_screen.dart        # Activity log timeline
         calendar_screen.dart        # Monthly calendar with events
+        calendar_planner_screen.dart # Combined calendar + planner view
         certificates_screen.dart    # Earned certificates + claim
         discussion_chat_screen.dart # Real-time class chat
         announcement_form_screen.dart   # Announcements list + create
@@ -231,13 +246,18 @@ MySmartStudy/
         resources_screen.dart       # Course materials + modules + AI generate (summary/flashcard/quiz)
         tasks_screen.dart           # Personal planner / reminders
         mind_maps_screen.dart       # Mind map gallery
-        mind_map_viewer.dart        # View mind map details
+        mind_map_viewer.dart        # View mind map details + likes + comments + visibility badge
         grades_screen.dart          # Simple grades view
         achievements_screen.dart    # Badge showcase
         review_maps_screen.dart     # Lecturer map review
         manage_badges_screen.dart   # Award/revoke badges
         lecturer_analytics_screen.dart  # Analytics dashboard
-        profile_screen.dart         # Profile editor + avatar + theme toggle + language picker
+        lecturer_class_management_screen.dart # Lecturer course list + manage students
+        learning_plan_screen.dart   # AI-assisted course learning plan editor (lecturer)
+        plagiarism_screen.dart      # AI plagiarism analysis launcher
+        plagiarism_report_screen.dart # AI plagiarism report viewer with similarity graph
+        rubric_grading_screen.dart  # Criterion-based grading workflow
+        profile_screen.dart         # Profile editor + avatar + cover + notif prefs + theme + language
         login_screen.dart           # Login with Rive animation
         register_screen.dart        # Registration with role selection
         ai_companion_screen.dart    # AI study companion chat interface
@@ -248,6 +268,7 @@ MySmartStudy/
         ai_flashcard_viewer.dart    # Interactive flashcard flip viewer
         ai_summary_viewer.dart      # AI-generated summary reader
         ai_practice_quiz_screen.dart    # AI-generated practice quiz
+        ai_image_generator_screen.dart  # AI educational image / diagram generator (Imagen)
         welcome_screen.dart        # First-time welcome/onboarding screen
       services/
         api_service.dart       # HTTP API client (120+ endpoints including AI)
@@ -287,7 +308,7 @@ MySmartStudy/
 
 ## Features
 
-### Student Features (28 features)
+### Student Features (33 features)
 
 | # | Feature | Web | Mobile | Description |
 |---|---------|:---:|:------:|-------------|
@@ -319,8 +340,13 @@ MySmartStudy/
 | 26 | **AI Study Materials** | Yes | Yes | Generate summaries, flashcards, and practice quizzes from course resources |
 | 27 | **AI Flashcard Viewer** | - | Yes | Interactive flip-card viewer with navigation and shuffle for AI-generated flashcards |
 | 28 | **AI Mind Map Buddy** | Yes | - | Context-aware AI assistant during map editing — suggests nodes, connections, and improvements in real-time |
+| 29 | **Followers / Public Profile** | Yes | Yes | Follow / unfollow classmates; public profile screen with bio, cover photo, follower / following counts, and a grid of the user's public maps |
+| 30 | **Feed** | Yes | Yes | Newest-first feed of public mind maps from creators the viewer follows; story-style avatar rail; live stat chips for total maps / creators / likes / comments |
+| 31 | **Explore** | Yes | Yes | Discovery surface with trending public maps (7d / 30d / 90d window), suggested creators (cover-photo cards), and typeahead user search by name or email |
+| 32 | **Map Likes & Comments** | Yes | Yes | Like / unlike public maps with optimistic counters; threaded comments on the map viewer; like + comment counts surface in feed cards and trending grid |
+| 33 | **Notification Digest + Preferences** | Yes | Yes | Instagram-style "5 people liked your map" grouping in the bell + page view (web + mobile); per-type opt-out (new follower, map like, map comment, followed-user posts) on the profile |
 
-### Lecturer Features (16 features)
+### Lecturer Features (18 features)
 
 | # | Feature | Web | Mobile | Description |
 |---|---------|:---:|:------:|-------------|
@@ -340,6 +366,8 @@ MySmartStudy/
 | 14 | **Map Review** | Yes | Yes | Browse and annotate student mind maps |
 | 15 | **AI Plagiarism Detection** | Yes | Yes | Analyze submissions for potential plagiarism with similarity scoring and flagged sections |
 | 16 | **AI Grading Assistant** | Yes | Yes | AI-recommended grades with suggested feedback, score breakdown, one-click apply |
+| 17 | **Course Learning Plan (CLP)** | Yes | Yes | Lecturer-authored learning plan editor; AI-assisted CLP extraction from PDF and structured artifact generation |
+| 18 | **Group Tasks** | Yes | Yes | Assign group-level tasks with per-group submissions, member rosters, and round-robin auto-assign |
 
 ### Admin Features (3 features)
 
@@ -367,14 +395,14 @@ MySmartStudy/
 
 ---
 
-## Firestore Collections (42+ collections)
+## Firestore Collections (45+ collections)
 
 All data is stored in flat top-level Firestore collections with **camelCase** field names:
 
 | Collection | Purpose | Key Fields |
 |---|---|---|
-| `users` | User profiles | `displayName`, `email`, `role`, `className`, `photoURL`, `points`, `streak`, `badges` |
-| `maps` | Mind maps | `ownerId`, `ownerEmail`, `title`, `graphData`, `graphFormat`, `shareCode`, `collaborators` |
+| `users` | User profiles | `displayName`, `email`, `role`, `className`, `photoURL`, `coverPhotoURL`, `bio`, `points`, `streak`, `badges`, `followerCount`, `followingCount`, `notificationPrefs{newFollower, mapLike, mapComment, followedUserPosts}` |
+| `maps` | Mind maps | `ownerId`, `ownerEmail`, `title`, `graphData`, `graphFormat`, `shareCode`, `collaborators`, `visibility` (`private`/`unlisted`/`public`), `likeCount`, `commentCount`, `publishedAt` |
 | `courses` | Courses/subjects | `lecturerId`, `lecturerName`, `courseName`, `courseCode`, `joinCode`, `enrolledStudents` |
 | `assignments` | Assignments | `courseId`, `lecturerId`, `title`, `deadline`, `availableFrom`, `availableUntil`, `prerequisiteId`, `minGrade` |
 | `submissions` | Student submissions | `assignmentId`, `studentId`, `submissionType`, `grade`, `feedback` |
@@ -417,6 +445,10 @@ All data is stored in flat top-level Firestore collections with **camelCase** fi
 | `mapHistory` | Map version tracking | `mapId`, `version`, `graphData`, `editedBy` |
 | `ragIndexState` | RAG indexing state | `docId`, `courseId`, `contentHash`, `lastIndexedAt`, `chunkCount` |
 | `knowledgeGraphs` | Course concept graphs | `courseId`, `nodes`, `edges`, `nodeCount`, `lastUpdatedAt` |
+| `follows` | Follow edges (one-way) | `followerId`, `followingId`, `createdAt` (composite-keyed; supports follower/following lookups + suggested-user exclusion) |
+| `mapLikes` | Likes on public maps | `mapId`, `userId`, `createdAt` (denormalized counter on the parent map doc kept in sync via transaction) |
+| `mapComments` | Threaded comments on public maps | `mapId`, `authorId`, `authorName`, `text`, `createdAt`; soft-deleted by author or owner |
+| `groupTasks` | Group-level task assignments | `courseId`, `assignmentId`, `groupId`, `status`, `submittedAt`, `members[]` |
 
 **Many-to-many relationships** use arrays instead of association tables:
 - `enrolledStudents` array on course docs
@@ -497,16 +529,17 @@ When a user taps a course, `SubjectDetailScreen` shows a grid of tool cards:
 
 | Metric | Value |
 |--------|-------|
-| Backend API routers | 41 |
-| Backend lines of code | ~10,400 |
-| Web frontend pages | 35 |
-| Flutter mobile screens | 46 |
-| Firestore collections | 42+ |
-| Student features | 28 |
-| Lecturer features | 16 |
+| Backend API routers | 42 |
+| Backend lines of code | ~12,000 |
+| Web frontend pages | 38 (top-level routes; nested course tools expand further) |
+| Flutter mobile screens | 60 |
+| Firestore collections | 45+ |
+| Student features | 33 |
+| Lecturer features | 18 |
 | AI feature routers | 9 |
 | Gamification badge criteria | 9 |
-| AI result cache collections | 6 |
+| AI result cache collections | 6+ |
+| Web API client namespaces | 41 |
 | Supported languages (mobile) | 2 (English, Bahasa Melayu) |
 | Supported user roles | 3 (Student, Lecturer, Admin) |
 
@@ -594,8 +627,9 @@ All endpoints (except auth and public) require `Authorization: Bearer <firebase_
 |--------|---------|-------------|
 | POST | `/api/auth/sync` | Sync Firebase user to Firestore |
 | GET | `/api/auth/me` | Current user profile |
-| PATCH | `/api/users/me` | Update profile fields |
+| PATCH | `/api/users/me` | Update profile fields (now includes `bio`, `notification_prefs.{new_follower, map_like, map_comment, followed_user_posts}`) |
 | POST | `/api/users/me/avatar` | Upload profile photo |
+| POST | `/api/users/me/cover-photo` | Upload public-profile cover photo |
 
 ### Maps
 | Method | Endpoint | Description |
@@ -723,10 +757,44 @@ All endpoints (except auth and public) require `Authorization: Bearer <firebase_
 ### Notifications
 | Method | Endpoint | Description |
 |--------|---------|-------------|
-| GET | `/api/notifications/` | List notifications |
+| GET | `/api/notifications/` | List raw notifications |
+| GET | `/api/notifications/grouped` | List **digest-grouped** notifications (Instagram-style "5 people liked your map" collapsing within a configurable `window_hours`); each entry exposes `kind` (`single`/`digest`), `count`, `actors[]`, `source_ids[]` for fan-out mark-read/delete |
 | PATCH | `/api/notifications/{nid}/read` | Mark as read |
 | POST | `/api/notifications/read-all` | Mark all read |
+| DELETE | `/api/notifications/{nid}` | Delete a notification |
+| DELETE | `/api/notifications/` | Clear all notifications for the user |
 | POST | `/api/notifications/register-token` | Register FCM token |
+
+### Social (Followers, Feed, Explore, Likes, Comments)
+| Method | Endpoint | Description |
+|--------|---------|-------------|
+| POST | `/api/social/follow/{user_id}` | Follow user (idempotent — returns `{ok, already_following}`) |
+| DELETE | `/api/social/follow/{user_id}` | Unfollow user (returns `{ok, was_following}`) |
+| GET | `/api/social/followers/{user_id}` | List a user's followers (public profiles) |
+| GET | `/api/social/following/{user_id}` | List who a user follows |
+| GET | `/api/social/profile/{user_id}` | Public profile (`bio`, `coverPhotoURL`, follower/following counts, `is_followed_by_me`) |
+| GET | `/api/social/feed` | Newest-first feed of public maps from followed creators |
+| GET | `/api/social/explore/trending` | Top public maps within a `days` window (7/30/90), ordered by like count |
+| GET | `/api/social/explore/suggested` | Suggested creators (highest follower counts among unfollowed users with public maps; capped at 50) |
+| GET | `/api/social/users/search` | Typeahead user search by name or email |
+| POST | `/api/social/maps/{map_id}/like` | Like a public map (returns `{ok, already_liked, like_count}`) |
+| DELETE | `/api/social/maps/{map_id}/like` | Unlike a public map |
+| GET | `/api/social/maps/{map_id}/comments` | List threaded comments on a public map |
+| POST | `/api/social/maps/{map_id}/comments` | Post a comment |
+| DELETE | `/api/social/maps/{map_id}/comments/{comment_id}` | Delete a comment (author or map owner only) |
+
+### Group Tasks
+| Method | Endpoint | Description |
+|--------|---------|-------------|
+| GET | `/api/group-tasks/` | List group tasks for a course |
+| POST | `/api/group-tasks/` | Create a group task |
+| GET | `/api/group-tasks/{tid}` | Group task detail |
+| DELETE | `/api/group-tasks/{tid}` | Delete a group task |
+| POST | `/api/group-tasks/{tid}/groups` | Attach a group to the task |
+| DELETE | `/api/group-tasks/{tid}/groups/{gid}` | Detach a group |
+| POST | `/api/group-tasks/{tid}/groups/{gid}/members` | Add members to a group on this task |
+| DELETE | `/api/group-tasks/{tid}/groups/{gid}/members/{sid}` | Remove a member |
+| POST | `/api/group-tasks/{tid}/auto-assign` | Round-robin auto-assign students to groups |
 
 ### AI Features
 | Method | Endpoint | Description |
@@ -781,9 +849,40 @@ All endpoints (except auth and public) require `Authorization: Bearer <firebase_
 
 ---
 
-## RAG / GAG Architecture
+## RAG / GAG / Agentic Architecture
 
-The AI features are enhanced with three retrieval-augmented patterns:
+Every AI feature in MySmartStudy is grounded in three layered techniques. Pick the one that matches the question your endpoint is answering:
+
+| Technique | What it does | When to reach for it |
+|---|---|---|
+| **RAG** (Retrieval-Augmented Generation) | Search a vector store, prepend the top-N matching chunks to the prompt, ask Gemini for a free-text answer with `[Source N]` citations. | The model needs **facts grounded in course content** (lecture notes, PDFs, announcements). Companion chat, study material generation, mind map buddy. |
+| **GAG** (Generation-Augmented Generation) | Same retrieval as RAG, but the model is asked to fill a **structured JSON schema** instead of free-text. The output is a typed artifact (study plan, rubric scores, grading rationale, knowledge-graph node list) that the UI can render directly. | You need a **typed output** the UI can render as cards/charts/graphs. Daily study guide, exam plan, AI grading, plagiarism narrative, mind map node suggestions. |
+| **Agentic (multi-agent fan-out/fan-in)** | Decompose the request into **independent agents** that fetch from Firestore / RAG / knowledge graph in parallel via `asyncio.gather`, with per-agent error isolation. A synthesizer agent then combines the results into the final RAG or GAG call. | The endpoint needs **lots of independent context** (current submission + assignment metadata + class statistics + timetable + deadlines). Avoids serial Firestore round-trips and lets one failed source degrade gracefully instead of failing the whole request. |
+
+**End-to-end shape of a typical AI request** (e.g. AI Grading on `POST /api/ai/grading/recommend/{sid}`):
+
+```
+1. fan_out({                         ← agentic
+     submission:  fetch_submission(sid),
+     assignment:  fetch_assignment_with_rubric(),
+     class_stats: aggregate_class_stats(),
+   })  → asyncio.gather, ~30s timeout, errors isolated per agent
+
+2. retrieve_multistep(query)         ← RAG
+     · cross-encoder rerank
+     · query decomposition (compound → atomic)
+     · HyDE for terse queries
+     → top-K relevant chunks across course resources
+
+3. gemini.generate(structured_schema, ← GAG
+     prompt = base_prompt + agent_results + retrieved_chunks)
+     → typed JSON: { suggested_grade, comparative_analysis,
+                     improvement_suggestions[], rubric_scores[] }
+
+4. cache to Firestore (`aiGradeRecommendations`) for one-click reuse.
+```
+
+The same shape powers Daily Study Guide, Plagiarism Network, Mind Map Buddy, and Companion Chat — only the agents and the GAG schema change.
 
 ### Standard RAG
 **ChromaDB vector store** + **Gemini text-embedding-004** for semantic search across course content (PDFs, announcements, discussions, mind maps, quizzes, assignments). Content is chunked (~500 tokens, 50-token overlap), embedded, and stored in per-course ChromaDB collections. Incremental indexing uses SHA-256 content hashing to skip unchanged documents.
@@ -903,7 +1002,7 @@ Data-intensive endpoints use a **fan-out / fan-in** pattern (`backend/app/multi_
 
 ---
 
-## Backend Modules (38 routers)
+## Backend Modules (42 routers)
 
 All backend routers are located in `backend/app/routers/`:
 
@@ -927,26 +1026,30 @@ All backend routers are located in `backend/app/routers/`:
 | 16 | **Certificates** | `certificates.py` | Course completion certificates + verification |
 | 17 | **Completion** | `completion.py` | Course completion tracking + per-student analytics |
 | 18 | **Groups** | `groups.py` | Student groups + auto-assign via round-robin |
-| 19 | **Messaging** | `messaging.py` | Private messaging + conversations + user search |
-| 20 | **Notifications** | `notifications.py` | In-app notifications + FCM token registration |
-| 21 | **Activity** | `activity.py` | Activity feed + weekly reflections |
-| 22 | **Analytics** | `analytics.py` | Lecturer analytics: engagement heatmap, at-risk students, submission trends |
-| 23 | **Progress** | `progress.py` | Course progress + calendar events |
-| 24 | **Participation** | `participation.py` | Participation scoring per course |
-| 25 | **Auto Badges** | `auto_badges.py` | Automatic badge engine with 9 award criteria |
-| 26 | **Badges** | `badges.py` | Manual badge award/revoke management |
-| 27 | **Reminders** | `reminders.py` | Personal planner tasks CRUD |
-| 28 | **Stats** | `stats.py` | Study activity heatmap + monthly comparison |
-| 29 | **Admin** | `admin.py` | User management + audit logs + homepage editor + image upload |
-| 30 | **AI Companion** | `ai_companion.py` | Standard RAG — AI study companion chat with course material retrieval + citations + learning profile |
-| 31 | **AI Study Plan** | `ai_study_plan.py` | RAG+GAG (Generation) — AI daily guide with difficulty ratings, resource links, suggested activities |
-| 32 | **AI Study Materials** | `ai_study_materials.py` | Standard RAG — summaries, flashcards, quizzes from resources + topic-based multi-source generation |
-| 33 | **AI Plagiarism** | `ai_plagiarism.py` | RAG+GAG (Graph) — plagiarism detection + assignment-wide network analysis with similarity clustering |
-| 34 | **AI Grading** | `ai_grading.py` | RAG+GAG (Generation) — grade recommendations with comparative analysis + improvement suggestions |
-| 35 | **AI Images** | `ai_images.py` | AI educational image/diagram generation |
-| 36 | **AI Import** | `ai_import.py` | AI content import helpers |
-| 37 | **AI Mind Map Buddy** | `ai_mindmap_buddy.py` | RAG+GAG (Graph) — mind map assistant with knowledge graph traversal, source-attributed node suggestions |
-| 38 | **RAG Admin** | `rag_admin.py` | Manual RAG indexing triggers + index status per course |
+| 19 | **Group Tasks** | `group_tasks.py` | Group-level task assignment + per-group submission tracking + auto-assign |
+| 20 | **Social** | `social.py` | Followers (one-way), feed, explore (trending + suggested), user search, public profiles, map likes, threaded map comments |
+| 21 | **Messaging** | `messaging.py` | Private messaging + conversations + user search |
+| 22 | **Notifications** | `notifications.py` | In-app notifications + FCM tokens + Instagram-style digest grouping (`/grouped`) |
+| 23 | **Activity** | `activity.py` | Activity feed + weekly reflections |
+| 24 | **Analytics** | `analytics.py` | Lecturer analytics: engagement heatmap, at-risk students, submission trends |
+| 25 | **Progress** | `progress.py` | Course progress + calendar events |
+| 26 | **Participation** | `participation.py` | Participation scoring per course |
+| 27 | **Auto Badges** | `auto_badges.py` | Automatic badge engine with 9 award criteria |
+| 28 | **Badges** | `badges.py` | Manual badge award/revoke management |
+| 29 | **Reminders** | `reminders.py` | Personal planner tasks CRUD |
+| 30 | **Stats** | `stats.py` | Study activity heatmap + monthly comparison |
+| 31 | **Admin** | `admin.py` | User management + audit logs + homepage editor + image upload |
+| 32 | **CLP** | `clp.py` | Course Learning Plan file handling + structured artifact extraction |
+| 33 | **Site Import** | `site_import.py` | LMS migration / external content import utilities |
+| 34 | **AI Companion** | `ai_companion.py` | RAG multistep — AI study companion chat with course material retrieval + citations + learning profile |
+| 35 | **AI Study Plan** | `ai_study_plan.py` | Multi-agent RAG+GAG — AI daily guide with difficulty ratings, resource links, suggested activities |
+| 36 | **AI Study Materials** | `ai_study_materials.py` | Standard RAG — summaries, flashcards, quizzes from resources + topic-based multi-source generation |
+| 37 | **AI Plagiarism** | `ai_plagiarism.py` | Multi-agent RAG+GAG (Graph) — plagiarism detection + assignment-wide network analysis with similarity clustering |
+| 38 | **AI Grading** | `ai_grading.py` | Multi-agent RAG+GAG (Generation) — grade recommendations with comparative analysis + improvement suggestions |
+| 39 | **AI Images** | `ai_images.py` | AI educational image/diagram generation (Imagen 3 / Gemini Image, Firebase Storage, dedup, daily quota) |
+| 40 | **AI Import** | `ai_import.py` | AI content import helpers (course materials, quiz questions) |
+| 41 | **AI Mind Map Buddy** | `ai_mindmap_buddy.py` | Multi-agent RAG+GAG (Graph) — mind map assistant with knowledge graph traversal, source-attributed node suggestions |
+| 42 | **RAG Admin** | `rag_admin.py` | Manual RAG indexing triggers + index status per course |
 
 ### Frontend Modules
 
@@ -997,8 +1100,10 @@ All backend routers are located in `backend/app/routers/`:
 | `certificatesApi` | 4 | Student certs, claim, verify |
 | `completionApi` | 2 | Per-student completion, summary |
 | `groupsApi` | 6 | Group CRUD, members, auto-assign |
+| `groupTasksApi` | 6 | Group task CRUD, per-group submissions, member rosters, auto-assign |
+| `socialApi` | 14 | Followers (follow/unfollow/lists), public profile, feed, explore (trending/suggested), user search, map likes, threaded map comments |
 | `messagingApi` | 5 | Conversations, messages, user search |
-| `notificationsApi` | 4 | List, mark read, FCM token |
+| `notificationsApi` | 6 | List raw, **list grouped (digest)**, mark read, mark all read, delete, FCM token |
 | `activityApi` | 1 | Activity feed |
 | `reflectionsApi` | 2 | Weekly reflections |
 | `progressApi` | 2 | Course progress, calendar events |
@@ -1009,6 +1114,16 @@ All backend routers are located in `backend/app/routers/`:
 | `remindersApi` | 4 | Planner task CRUD |
 | `adminApi` | 7 | User management, audit logs, homepage CMS |
 | `homepageApi` | 1 | Public homepage content |
+| `aiCompanionApi` | 6 | Chat send/history/clear, learning profile get/update, style assessment |
+| `aiStudyPlanApi` | 6 | Daily guide, exam plan create/list/delete, timetable text/PDF analysis |
+| `aiStudyMaterialsApi` | 4 | Generate (single resource / topic-RAG), list, delete |
+| `aiPlagiarismApi` | 3 | Analyze submission, fetch report, assignment-wide network analysis |
+| `aiGradingApi` | 2 | Recommend grade, fetch saved recommendation |
+| `aiImagesApi` | 3 | Generate educational image, list history, delete |
+| `aiImportApi` | 2 | AI content import helpers |
+| `aiMindmapBuddyApi` | 7 | Analyze map, recommend nodes, suggest-all, chat, memory get/clear, preferences |
+| `siteImportApi` | 3 | LMS migration / content import utilities |
+| `clpApi` | 4 | Course Learning Plan upload + structured extraction |
 
 ---
 
