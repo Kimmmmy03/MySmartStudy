@@ -70,11 +70,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [profile, badgeCheckReady]);
 
-  // Check for newly earned badges on every page navigation
-  // 1. Calls /badges/check to trigger server-side auto-award
-  // 2. Refreshes profile to get latest badges
-  // 3. Compares with localStorage to find unseen badges
-  // 4. Shows celebration overlay for any new ones
+  // Check for newly earned badges on every page navigation.
+  //
+  // Server-authoritative: `/badges/check` returns `newly_awarded` — the IDs
+  // it *just* added to the user's `badges` array on this call. Anything
+  // already in `badges` from a prior award won't appear, so we celebrate
+  // only what's genuinely new. We previously diffed against a localStorage
+  // "seen" list, which re-fired the celebration on a fresh browser /
+  // incognito / cleared-cache login because the seen list was empty even
+  // when the badge was already earned.
   useEffect(() => {
     if (!badgeCheckReady) return;
     if (isCheckingBadgesRef.current) return;
@@ -82,43 +86,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const doCheck = async () => {
       isCheckingBadgesRef.current = true;
       try {
-        // Trigger server-side badge checks (awards any pending badges)
-        await badgesApi.checkMyBadges();
-        // Refresh profile to get the latest badge list
-        const fresh = await refreshProfile();
-        if (!fresh) return;
-
-        const currentBadges: string[] = fresh.badges || [];
-        const storageKey = `mss-seen-badges-${fresh.id}`;
-        const seenRaw = localStorage.getItem(storageKey);
-        const seenBadges: string[] = seenRaw ? JSON.parse(seenRaw) : [];
-
-        // Find badges not yet seen AND not already celebrated this session
-        const newBadgeIds = currentBadges.filter(
-          (id) => !seenBadges.includes(id) && !celebratedRef.current.has(id)
+        const { newly_awarded } = await badgesApi.checkMyBadges();
+        const justAwarded = (newly_awarded || []).filter(
+          (id) => !celebratedRef.current.has(id)
         );
+        if (justAwarded.length === 0) return;
 
-        if (newBadgeIds.length > 0) {
-          // Mark as celebrated so we don't re-show on next navigation
-          newBadgeIds.forEach((id) => celebratedRef.current.add(id));
+        // Refresh the profile so the achievements page + badge counters
+        // pick up the new badges without an extra fetch on the next view.
+        await refreshProfile();
 
-          const defs = await badgesApi.definitions();
-          const badgeInfos = newBadgeIds.map((id) => {
-            const badge = resolveBadge(id, defs);
-            const def = defs.find((d) => d.id === id);
-            return {
-              id,
-              name: badge.name,
-              icon: badge.icon,
-              color: def?.color || "from-amber-500 to-yellow-400",
-              description: badge.description || "Badge earned!",
-            };
-          });
-          setCelebrationBadges(badgeInfos);
-        }
+        justAwarded.forEach((id) => celebratedRef.current.add(id));
 
-        // Keep localStorage in sync with current badges
-        localStorage.setItem(storageKey, JSON.stringify(currentBadges));
+        const defs = await badgesApi.definitions();
+        const badgeInfos = justAwarded.map((id) => {
+          const badge = resolveBadge(id, defs);
+          const def = defs.find((d) => d.id === id);
+          return {
+            id,
+            name: badge.name,
+            icon: badge.icon,
+            color: def?.color || "from-amber-500 to-yellow-400",
+            description: badge.description || "Badge earned!",
+          };
+        });
+        setCelebrationBadges(badgeInfos);
       } catch {
         /* silent */
       } finally {
