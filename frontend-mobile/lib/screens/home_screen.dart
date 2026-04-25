@@ -39,6 +39,8 @@ import 'attendance_session_detail_screen.dart';
 import '../widgets/glass_bottom_sheet.dart';
 import 'mind_maps_screen.dart';
 import 'grades_screen.dart';
+import 'feed_screen.dart';
+import 'explore_screen.dart';
 import 'review_maps_screen.dart';
 import 'lecturer_analytics_screen.dart';
 import 'announcements_screen.dart';
@@ -1465,6 +1467,10 @@ class HomeScreenState extends State<HomeScreen> {
             () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MindMapsScreen()))),
         _QuickAction('Achievements',   Icons.emoji_events_rounded,         _pPeach,
             () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AchievementsScreen()))),
+        _QuickAction('Feed',           Icons.dynamic_feed_rounded,         _pPeriwinkle,
+            () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedScreen()))),
+        _QuickAction('Explore',        Icons.explore_rounded,              _pLavender,
+            () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExploreScreen()))),
       ],
       if (isLecturer) ...[
         // Row 1 — core lecturer tasks (Class Management lives in the bottom nav)

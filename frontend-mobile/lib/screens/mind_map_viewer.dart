@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/mind_map_model.dart';
+import '../services/api_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_theme_ext.dart';
@@ -29,6 +30,16 @@ class _MindMapViewerScreenState extends State<MindMapViewerScreen> {
   final TransformationController _transformCtrl = TransformationController();
   bool _exporting = false;
   Size? _lastScreen;
+
+  // Social state — only relevant for unlisted/public maps. We initialise from
+  // the model's snapshot counts and let optimistic toggles drive the UI.
+  late int _likeCount = widget.mindMap.likeCount;
+  late int _commentCount = widget.mindMap.commentCount;
+  bool _liked = false;
+  bool _likeBusy = false;
+
+  bool get _socialEnabled =>
+      widget.mindMap.visibility != MapVisibility.private;
 
   @override
   void initState() {
@@ -288,6 +299,145 @@ class _MindMapViewerScreenState extends State<MindMapViewerScreen> {
     }
   }
 
+  // ── Likes + comments ──────────────────────────────────────────────────────
+  //
+  // Web's LikeButton optimistically flips locally and trusts the server's
+  // returned count (`{ok, already_liked, like_count}`) as the authority. We
+  // mirror that here. The backend only writes a notification on the FIRST
+  // like (subsequent toggles are idempotent), so spamming the heart is fine.
+
+  Future<void> _toggleLike() async {
+    if (_likeBusy) return;
+    HapticFeedback.lightImpact();
+    final mapId = widget.mindMap.id;
+    final wasLiked = _liked;
+    setState(() {
+      _liked = !wasLiked;
+      _likeCount += wasLiked ? -1 : 1;
+      _likeBusy = true;
+    });
+    try {
+      final resp = wasLiked
+          ? await ApiService.unlikeMap(mapId)
+          : await ApiService.likeMap(mapId);
+      if (!mounted) return;
+      // Trust the server count when present (covers the "already liked /
+      // wasn't liked" edge cases without forcing a full refetch).
+      final serverCount = resp['like_count'];
+      setState(() {
+        if (serverCount is int) _likeCount = serverCount;
+        if (resp['already_liked'] == true) _liked = true;
+        if (resp['was_liked'] == false) _liked = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _liked = wasLiked;
+        _likeCount += wasLiked ? 1 : -1;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Couldn\'t update like — try again.')),
+      );
+    } finally {
+      if (mounted) setState(() => _likeBusy = false);
+    }
+  }
+
+  void _openComments() {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => _CommentsSheet(
+        mapId: widget.mindMap.id,
+        onCountChanged: (n) {
+          if (mounted) setState(() => _commentCount = n);
+        },
+      ),
+    );
+  }
+
+  Widget _buildSocialBar() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(99),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.85),
+            borderRadius: BorderRadius.circular(99),
+            border: Border.all(color: Colors.black.withOpacity(0.08)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _socialPill(
+                icon: _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                tint: AppColors.pink,
+                count: _likeCount,
+                onTap: _toggleLike,
+                active: _liked,
+              ),
+              const SizedBox(width: 4),
+              _socialPill(
+                icon: Icons.mode_comment_outlined,
+                tint: AppColors.cyan,
+                count: _commentCount,
+                onTap: _openComments,
+                active: false,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _socialPill({
+    required IconData icon,
+    required Color tint,
+    required int count,
+    required VoidCallback onTap,
+    required bool active,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      shape: const StadiumBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const StadiumBorder(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: active ? tint : Colors.black87),
+              const SizedBox(width: 4),
+              Text(
+                '$count',
+                style: TextStyle(
+                  color: active ? tint : Colors.black87,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Light theme constants — clean light canvas ────────────────────────────
   static const _cCanvas  = Color(0xFFF8F9FB);
   static const _cPanel   = Color(0xFFFFFFFF);
@@ -358,6 +508,14 @@ class _MindMapViewerScreenState extends State<MindMapViewerScreen> {
           bottom: 20 + MediaQuery.of(context).padding.bottom,
           child: _buildZoomControls(),
         ),
+        // ── Like + comment social bar (bottom-left). Only on non-private
+        //    maps; private maps have no audience to react. ──
+        if (_socialEnabled)
+          Positioned(
+            left: 16,
+            bottom: 20 + MediaQuery.of(context).padding.bottom,
+            child: _buildSocialBar(),
+          ),
       ]),
     );
   }
@@ -745,6 +903,282 @@ class _MindMapViewerScreenState extends State<MindMapViewerScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Bottom-sheet comments drawer. Mirrors the web `CommentsDrawer` — list
+/// of comments newest-first, inline composer, optimistic add. The parent
+/// screen reads `commentCount` via the `onCountChanged` callback so the
+/// floating bar's count stays in sync without a refetch.
+class _CommentsSheet extends StatefulWidget {
+  final String mapId;
+  final ValueChanged<int> onCountChanged;
+  const _CommentsSheet({required this.mapId, required this.onCountChanged});
+
+  @override
+  State<_CommentsSheet> createState() => _CommentsSheetState();
+}
+
+class _CommentsSheetState extends State<_CommentsSheet> {
+  final _ctrl = TextEditingController();
+  List<Map<String, dynamic>> _items = [];
+  bool _loading = true;
+  bool _posting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      final raw = await ApiService.listMapComments(widget.mapId, limit: 100);
+      if (!mounted) return;
+      setState(() {
+        _items = raw.map((e) => Map<String, dynamic>.from(e)).toList();
+        _loading = false;
+      });
+      widget.onCountChanged(_items.length);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _submit() async {
+    final text = _ctrl.text.trim();
+    if (text.isEmpty || _posting) return;
+    HapticFeedback.lightImpact();
+    setState(() => _posting = true);
+    try {
+      final created = await ApiService.createMapComment(widget.mapId, text);
+      if (!mounted) return;
+      setState(() {
+        _items = [Map<String, dynamic>.from(created), ..._items];
+        _ctrl.clear();
+      });
+      widget.onCountChanged(_items.length);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Couldn\'t post your comment.')),
+      );
+    } finally {
+      if (mounted) setState(() => _posting = false);
+    }
+  }
+
+  Future<void> _delete(Map<String, dynamic> c) async {
+    final id = (c['id'] ?? '').toString();
+    if (id.isEmpty) return;
+    final original = List<Map<String, dynamic>>.from(_items);
+    setState(() => _items.removeWhere((x) => x['id'] == id));
+    widget.onCountChanged(_items.length);
+    try {
+      await ApiService.deleteMapComment(widget.mapId, id);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _items = original);
+      widget.onCountChanged(_items.length);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Couldn\'t delete that comment.')),
+      );
+    }
+  }
+
+  String _timeAgo(String iso) {
+    final dt = DateTime.tryParse(iso);
+    if (dt == null) return '';
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    return Padding(
+      padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
+      child: Container(
+        constraints: BoxConstraints(maxHeight: mq.size.height * 0.78),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle + header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Icon(Icons.mode_comment_rounded,
+                          size: 18, color: AppColors.cyan),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Comments (${_items.length})',
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // List
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _items.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(28),
+                            child: Text(
+                              'No comments yet — be the first to say something.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.black54),
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                          itemCount: _items.length,
+                          separatorBuilder: (_, __) =>
+                              const Divider(height: 18),
+                          itemBuilder: (_, i) => _buildCommentTile(_items[i]),
+                        ),
+            ),
+            const Divider(height: 1),
+            // Composer
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 8, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _ctrl,
+                      maxLines: 4,
+                      minLines: 1,
+                      textInputAction: TextInputAction.newline,
+                      style: const TextStyle(color: Colors.black87, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'Write a comment…',
+                        hintStyle: const TextStyle(color: Colors.black38),
+                        filled: true,
+                        fillColor: Colors.black.withOpacity(0.04),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    onPressed: _posting ? null : _submit,
+                    icon: _posting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.send_rounded,
+                            color: AppColors.cyan),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCommentTile(Map<String, dynamic> c) {
+    final author = (c['author_name'] ?? c['user_name'] ?? 'Anonymous').toString();
+    final text = (c['text'] ?? '').toString();
+    final created = (c['created_at'] ?? '').toString();
+    final isMine = c['is_mine'] == true || c['can_delete'] == true;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CircleAvatar(
+          radius: 16,
+          backgroundColor: AppColors.purple.withOpacity(0.15),
+          child: Text(
+            author.isNotEmpty ? author[0].toUpperCase() : '?',
+            style: const TextStyle(
+              color: AppColors.purple,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    author,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _timeAgo(created),
+                    style: const TextStyle(color: Colors.black45, fontSize: 11),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(text,
+                  style: const TextStyle(color: Colors.black87, fontSize: 13)),
+            ],
+          ),
+        ),
+        if (isMine)
+          IconButton(
+            onPressed: () => _delete(c),
+            icon: const Icon(Icons.delete_outline_rounded,
+                size: 18, color: Colors.black38),
+          ),
+      ],
     );
   }
 }

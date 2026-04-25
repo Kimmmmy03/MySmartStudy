@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import '../models/mind_map_model.dart';
 import '../services/api_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_theme_ext.dart';
@@ -8,6 +9,8 @@ import '../widgets/glass_card.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/animated_list_item.dart';
 import '../widgets/skeletons.dart';
+import 'mind_map_viewer.dart';
+import 'public_profile_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -93,6 +96,39 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return AppColors.purple;
       default:
         return AppColors.blue;
+    }
+  }
+
+  /// Resolve a backend-issued notification link (e.g. "/view-map/abc" or
+  /// "/student/profile/uid") to a mobile route. Backend writes web-style
+  /// paths; we parse and push the matching native screen.
+  Future<void> _navigateLink(String? link) async {
+    if (link == null || link.isEmpty) return;
+    final mapMatch = RegExp(r'^/view-map/([^/?#]+)').firstMatch(link);
+    if (mapMatch != null) {
+      final id = mapMatch.group(1)!;
+      try {
+        final data = await ApiService.getMap(id);
+        if (!mounted) return;
+        final model = MindMapModel.fromApi(data);
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => MindMapViewerScreen(mindMap: model),
+        ));
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open this map.')),
+        );
+      }
+      return;
+    }
+    final profileMatch = RegExp(r'/profile/([^/?#]+)').firstMatch(link);
+    if (profileMatch != null) {
+      final uid = profileMatch.group(1)!;
+      if (!mounted) return;
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => PublicProfileScreen(uid: uid),
+      ));
     }
   }
 
@@ -182,8 +218,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: GlassCard(
         onTap: () async {
+          HapticFeedback.lightImpact();
           if (!isRead) {
-            HapticFeedback.lightImpact();
             // Digest wraps multiple underlying docs — fan out the mark-read
             // call so server state matches what the user just dismissed.
             final ids = sourceIds.isNotEmpty
@@ -192,8 +228,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             await Future.wait(ids.where((id) => id.isNotEmpty).map(
               (id) => ApiService.markNotificationRead(id).catchError((_) => null),
             ));
+            if (!mounted) return;
             _load();
           }
+          await _navigateLink(notif['link']?.toString());
         },
         borderColor: isRead ? null : color.withOpacity(0.3),
         padding: const EdgeInsets.all(14),
