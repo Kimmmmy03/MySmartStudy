@@ -69,7 +69,7 @@ export default function ExplorePage() {
   const loadSuggested = useCallback(async () => {
     setSuggestedLoading(true);
     try {
-      const data = await socialApi.suggested(12);
+      const data = await socialApi.suggested(50);
       setSuggested(data);
     } catch {
       setSuggested([]);
