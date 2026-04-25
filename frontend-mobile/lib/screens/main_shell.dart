@@ -175,6 +175,28 @@ class MainShellState extends State<MainShell> with WidgetsBindingObserver {
   void _onNavTap(int visualIndex) {
     HapticFeedback.selectionClick();
     final page = _notchMode ? _notchVisualToPage[visualIndex] : visualIndex;
+    if (page == _currentIndex) return;
+
+    // Sync hook — keeps tab data fresh when the user returns to a tab.
+    //
+    // Each tab page is built once via `_builtPages` and kept alive (so tab
+    // switches feel instant), but that same caching means a tab's data
+    // ages indefinitely. If the user creates a mind map on web, switches
+    // to mobile, and taps the Maps tab, MindMapsScreen.initState already
+    // ran on app launch and the new map never shows up.
+    //
+    // Strategy:
+    //   • Home (index 0): heavy state (news pager, animations) — call its
+    //     public refresh() instead of rebuilding.
+    //   • Other tabs: drop the cached entry so initState runs on next
+    //     build and data is re-fetched. Cheap because their state is just
+    //     scroll position + a fetched list.
+    if (page == 0) {
+      _homeKey.currentState?.refresh();
+    } else {
+      _builtPages.remove(page);
+    }
+
     setState(() => _currentIndex = page);
   }
 

@@ -213,6 +213,12 @@ class HomeScreenState extends State<HomeScreen> {
     } catch (_) {}
   }
 
+  /// Full re-fetch of every section on the home screen — recent maps,
+  /// deadlines, news, today's tasks, activity feed. Called by MainShell when
+  /// the user re-enters the Home tab so data created on web (e.g. a new mind
+  /// map) shows up without requiring a pull-to-refresh or app restart.
+  Future<void> refresh() => _load();
+
   Future<List<Map<String, dynamic>>> _fetchNews() async {
     try {
       final raw = await ApiService.getHomepageContent();
