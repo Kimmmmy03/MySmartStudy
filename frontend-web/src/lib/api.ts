@@ -1501,6 +1501,22 @@ export interface AuditLogOut {
   createdAt: string;
 }
 
+// ── Admin Broadcast Announcement Types ──
+export type BroadcastAudience = "all" | "students" | "lecturers" | "specific";
+
+export interface BroadcastAnnouncementOut {
+  id: string;
+  audience: BroadcastAudience;
+  subject: string;
+  body: string;
+  recipientCount: number;
+  recipientIds: string[];
+  sentBy: string;
+  sentByName: string;
+  sentByEmail: string;
+  createdAt: string;
+}
+
 // ── Admin API ──
 export const adminApi = {
   getAuditLogs: (params?: { limit?: number; resource_type?: string; user_id?: string }) => {
@@ -1599,6 +1615,21 @@ export const adminApi = {
 
   getUserAnalytics: (uid: string, days = 30) =>
     request<UserAnalyticsResponse>(`/admin/users/${uid}/analytics?days=${days}`),
+
+  // Broadcast announcements (SMTP fanout to lecturers / students / all / specific users)
+  broadcastAnnouncement: (body: {
+    audience: BroadcastAudience;
+    user_ids?: string[];
+    subject: string;
+    body: string;
+  }) =>
+    request<BroadcastAnnouncementOut>("/admin/announcements", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  listBroadcasts: (limit = 30) =>
+    request<BroadcastAnnouncementOut[]>(`/admin/announcements?limit=${limit}`),
 };
 
 // ── Usage Analytics types ──
