@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from firebase_admin import auth as firebase_auth
 from .. import models, schemas
 from ..firestore import get_db
 from ..auth import require_admin, get_current_user
 from ..storage import save_upload
+from ..audit import audit_log
+from ..services.email_service import send_notification_email
 from datetime import datetime, timezone
 import os, uuid, logging
+from typing import Literal
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 logger = logging.getLogger(__name__)
@@ -641,3 +644,122 @@ def get_user_analytics(
         "firstSeenAt": agg.get("firstSeenAt") if agg else None,
         "lastSeenAt": agg.get("lastSeenAt") if agg else None,
     }
+
+
+# ── Admin Broadcast Announcements (SMTP email fanout) ───────────────────────
+
+class BroadcastAnnouncementRequest(BaseModel):
+    audience: Literal["all", "students", "lecturers", "specific"]
+    user_ids: list[str] = Field(default_factory=list)  # required when audience == "specific"
+    subject: str = Field(min_length=1, max_length=200)
+    body: str = Field(min_length=1, max_length=10_000)
+
+
+def _resolve_broadcast_recipients(db, audience: str, user_ids: list[str]) -> list[dict]:
+    """Return [{id, email, displayName}] for the chosen audience.
+
+    Filters out users without an email address. For "specific", missing IDs
+    are silently dropped (we don't want one bad ID to fail the whole send).
+    """
+    out: list[dict] = []
+    if audience == "specific":
+        for uid in user_ids:
+            doc = db.collection(models.USERS).document(uid).get()
+            if not doc.exists:
+                continue
+            u = doc.to_dict() or {}
+            email = (u.get("email") or "").strip()
+            if not email:
+                continue
+            out.append({"id": uid, "email": email, "displayName": u.get("displayName", "")})
+        return out
+
+    query = db.collection(models.USERS)
+    if audience == "students":
+        query = query.where(filter=FieldFilter("role", "==", "student"))
+    elif audience == "lecturers":
+        query = query.where(filter=FieldFilter("role", "==", "lecturer"))
+    # "all" → no role filter
+
+    for d in query.get():
+        u = d.to_dict() or {}
+        email = (u.get("email") or "").strip()
+        if not email:
+            continue
+        out.append({"id": d.id, "email": email, "displayName": u.get("displayName", "")})
+    return out
+
+
+@router.post("/announcements", status_code=201)
+def broadcast_announcement(
+    req: BroadcastAnnouncementRequest,
+    user: dict = Depends(require_admin),
+    db=Depends(get_db),
+):
+    """Email a broadcast announcement to the chosen audience and persist a record.
+
+    Each recipient gets a fire-and-forget SMTP email via send_notification_email
+    (spawns a daemon thread per recipient — safe even if SMTP is unconfigured).
+    """
+    if req.audience == "specific" and not req.user_ids:
+        raise HTTPException(400, "Select at least one user for a specific broadcast")
+
+    recipients = _resolve_broadcast_recipients(db, req.audience, req.user_ids)
+    if not recipients:
+        raise HTTPException(400, "No recipients with valid email addresses found")
+
+    for r in recipients:
+        send_notification_email(
+            to_email=r["email"],
+            display_name=r["displayName"],
+            title=req.subject,
+            message=req.body,
+            cta_label="Open MySmartStudy",
+        )
+
+    record_id = models.gen_id()
+    now = datetime.now(timezone.utc)
+    record = {
+        "audience": req.audience,
+        "subject": req.subject,
+        "body": req.body,
+        "recipientCount": len(recipients),
+        "recipientIds": [r["id"] for r in recipients] if req.audience == "specific" else [],
+        "sentBy": user["id"],
+        "sentByName": user.get("displayName", ""),
+        "sentByEmail": user.get("email", ""),
+        "createdAt": now,
+    }
+    db.collection(models.ADMIN_ANNOUNCEMENTS).document(record_id).set(record)
+
+    audit_log(
+        db,
+        user_id=user["id"],
+        action="broadcast",
+        resource_type="announcement",
+        resource_id=record_id,
+        details=f"Sent to {len(recipients)} recipient(s) via {req.audience}",
+    )
+
+    record["id"] = record_id
+    return record
+
+
+@router.get("/announcements")
+def list_broadcast_announcements(
+    limit: int = Query(30, le=100),
+    user: dict = Depends(require_admin),
+    db=Depends(get_db),
+):
+    """Recent admin broadcast emails, newest first."""
+    try:
+        docs = (
+            db.collection(models.ADMIN_ANNOUNCEMENTS)
+            .order_by("createdAt", direction="DESCENDING")
+            .limit(limit)
+            .get()
+        )
+    except Exception:
+        # No index yet → fall back to unsorted
+        docs = db.collection(models.ADMIN_ANNOUNCEMENTS).limit(limit).get()
+    return [models.doc_to_dict(d) for d in docs]

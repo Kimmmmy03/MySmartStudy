@@ -40,6 +40,7 @@ COURSE_GROUPS = "courseGroups"
 GROUP_TASKS = "groupTasks"
 GRADE_SETTINGS = "gradeSettings"
 DISCUSSION_TOPICS = "discussionTopics"
+ADMIN_ANNOUNCEMENTS = "adminAnnouncements"  # admin-broadcast emails (subject, body, audience, recipientCount)
 
 # ── AI feature collections ──
 AI_PLAGIARISM_REPORTS = "aiPlagiarismReports"
