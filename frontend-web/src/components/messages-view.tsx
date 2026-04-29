@@ -36,6 +36,11 @@ export default function MessagesView() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
 
+  // Delete-confirmation modal — id of the message awaiting confirmation,
+  // or null when no dialog is open.
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   // User profile panel
   const [showProfile, setShowProfile] = useState(false);
   const [profileUser, setProfileUser] = useState<UserOut | null>(null);
@@ -125,9 +130,10 @@ export default function MessagesView() {
     setMessages(sortMessages(data));
   };
 
-  const handleDelete = async (msgId: string) => {
-    if (!activeConv) return;
-    if (!window.confirm("Delete this message? This can't be undone.")) return;
+  const confirmDelete = async () => {
+    if (!activeConv || !pendingDeleteId) return;
+    const msgId = pendingDeleteId;
+    setDeleting(true);
     // Optimistic: flip the local copy to deleted so the placeholder shows
     // immediately even if the server round-trip takes a moment.
     setMessages(prev =>
@@ -144,6 +150,9 @@ export default function MessagesView() {
       // Revert on failure by refetching the truth.
       const data = await messagingApi.getMessages(activeConv.id);
       setMessages(sortMessages(data));
+    } finally {
+      setDeleting(false);
+      setPendingDeleteId(null);
     }
   };
 
@@ -466,7 +475,7 @@ export default function MessagesView() {
                                 <Pencil className="w-3 h-3" />
                               </button>
                               <button
-                                onClick={() => handleDelete(msg.id)}
+                                onClick={() => setPendingDeleteId(msg.id)}
                                 className="w-6 h-6 bg-red-500/90 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-500"
                                 title="Delete"
                               >
@@ -503,6 +512,42 @@ export default function MessagesView() {
           )}
         </div>
       </div>
+
+      {/* Delete confirmation — uses the project's Modal so the dialog
+          matches the rest of the UI instead of the OS browser prompt. */}
+      <Modal
+        open={pendingDeleteId !== null}
+        onClose={() => { if (!deleting) setPendingDeleteId(null); }}
+        title="Delete message?"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center flex-shrink-0">
+              <Trash2 className="w-5 h-5 text-red-400" />
+            </div>
+            <p className="text-sm text-dark-200">
+              This message will be replaced with a &ldquo;Message deleted&rdquo; placeholder for everyone in the chat. This can&rsquo;t be undone.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => setPendingDeleteId(null)}
+              disabled={deleting}
+              className="px-4 py-2 rounded-lg text-sm text-dark-200 hover:bg-white/5 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {deleting && <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* New Conversation Modal */}
       <Modal open={showNew} onClose={() => { setShowNew(false); setSearchQuery(""); setSearchResults([]); }} title="New Message">
