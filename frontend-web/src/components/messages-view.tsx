@@ -50,6 +50,30 @@ export default function MessagesView() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Long-press to reveal the edit/delete pills on touch devices. We track
+  // the currently-revealed message id so only one bubble shows actions at
+  // a time (matches WhatsApp/Telegram). Tapping anywhere else dismisses it.
+  const [actionsOpenId, setActionsOpenId] = useState<string | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const startLongPress = (msgId: string) => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = setTimeout(() => {
+      setActionsOpenId(msgId);
+      // Soft haptic feedback on supported devices.
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        try { navigator.vibrate(15); } catch { /* ignore */ }
+      }
+    }, 500);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
   // User profile panel
   const [showProfile, setShowProfile] = useState(false);
   const [profileUser, setProfileUser] = useState<UserOut | null>(null);
@@ -214,6 +238,28 @@ export default function MessagesView() {
     refreshConversations();
   };
 
+  // Dismiss the long-press action menu when tapping anywhere outside a
+  // message bubble (touchstart catches the first finger-down on mobile).
+  useEffect(() => {
+    if (!actionsOpenId) return;
+    const dismiss = (e: TouchEvent | MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest("[data-msg-bubble]")) return;
+      setActionsOpenId(null);
+    };
+    document.addEventListener("touchstart", dismiss, { passive: true });
+    document.addEventListener("mousedown", dismiss);
+    return () => {
+      document.removeEventListener("touchstart", dismiss);
+      document.removeEventListener("mousedown", dismiss);
+    };
+  }, [actionsOpenId]);
+
+  // Cancel any pending long-press timer when the component unmounts.
+  useEffect(() => () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }, []);
+
   // Close the sort dropdown on outside click.
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -278,14 +324,14 @@ export default function MessagesView() {
       </div>
 
       {/* Mobile reserves: sticky navbar (3.5rem) + main p-4 top (1rem) +
-          fixed MobileBottomNav cushion from main pb-24 (6rem) = ~10.5rem.
-          When the page header is visible (no chat selected), reserve another
-          ~3rem for the h1 + mb-3. Desktop has no bottom nav so the original
-          12rem reserve still applies. dvh keeps the input above the
-          on-screen keyboard. */}
+          MobileBottomNav cushion from main pb-24 (6rem) + safe-area inset
+          on iOS (~1-2rem) ≈ 12rem. When the page header is visible (no
+          chat selected) reserve another ~3rem for the h1 + mb-3. Desktop
+          has no bottom nav so the original 12rem reserve still applies.
+          dvh keeps the input above the on-screen keyboard. */}
       <div className={clsx(
         "glass-card overflow-hidden md:h-[calc(100vh-12rem)]",
-        activeConv ? "h-[calc(100dvh-11rem)]" : "h-[calc(100dvh-14rem)]"
+        activeConv ? "h-[calc(100dvh-13rem)]" : "h-[calc(100dvh-16rem)]"
       )}>
         <div className="flex h-full">
           {/* Conversation List */}
@@ -572,7 +618,21 @@ export default function MessagesView() {
                             <UserAvatar name={otherName} photoUrl={otherPhoto} size={28} />
                           </div>
                         )}
-                        <div className={clsx("max-w-[85%] md:max-w-[70%] rounded-2xl px-3.5 md:px-4 py-2 md:py-2.5 relative",
+                        <div
+                          data-msg-bubble
+                          onTouchStart={() => { if (isMine && !isEditing && !isDeleted) startLongPress(msg.id); }}
+                          onTouchEnd={cancelLongPress}
+                          onTouchCancel={cancelLongPress}
+                          onTouchMove={cancelLongPress}
+                          onContextMenu={e => {
+                            // Long-press on iOS triggers contextmenu; suppress
+                            // the OS menu so our action pills win.
+                            if (isMine && !isEditing && !isDeleted) {
+                              e.preventDefault();
+                              setActionsOpenId(msg.id);
+                            }
+                          }}
+                          className={clsx("max-w-[85%] md:max-w-[70%] rounded-2xl px-3.5 md:px-4 py-2 md:py-2.5 relative select-none md:select-auto",
                           isDeleted
                             ? "bg-dark-700/40 border border-white/5 text-dark-400 italic"
                             : isMine
@@ -618,24 +678,29 @@ export default function MessagesView() {
                             )}
                           </div>
                           {isMine && !isEditing && !isDeleted && (
-                            // Always visible on touch devices (no hover state),
-                            // hidden until hover on desktop so the bubble stays clean.
-                            <div className="absolute -top-2 -right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1">
+                            // Desktop: hover-reveal. Mobile: hidden until the
+                            // user long-presses the bubble (matches WhatsApp).
+                            <div className={clsx(
+                              "absolute -top-2 -right-2 transition-opacity flex gap-1",
+                              actionsOpenId === msg.id
+                                ? "opacity-100"
+                                : "opacity-0 md:group-hover:opacity-100 pointer-events-none md:pointer-events-auto"
+                            )}>
                               <button
-                                onClick={() => { setEditingId(msg.id); setEditText(msg.text); }}
-                                className="w-6 h-6 bg-dark-600 text-dark-100 rounded-full flex items-center justify-center shadow-md hover:bg-dark-500 active:scale-90"
+                                onClick={() => { setActionsOpenId(null); setEditingId(msg.id); setEditText(msg.text); }}
+                                className="w-7 h-7 md:w-6 md:h-6 bg-dark-600 text-dark-100 rounded-full flex items-center justify-center shadow-md hover:bg-dark-500 active:scale-90"
                                 title="Edit"
                                 aria-label="Edit message"
                               >
-                                <Pencil className="w-3 h-3" />
+                                <Pencil className="w-3.5 h-3.5 md:w-3 md:h-3" />
                               </button>
                               <button
-                                onClick={() => setPendingDeleteId(msg.id)}
-                                className="w-6 h-6 bg-red-500/90 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-500 active:scale-90"
+                                onClick={() => { setActionsOpenId(null); setPendingDeleteId(msg.id); }}
+                                className="w-7 h-7 md:w-6 md:h-6 bg-red-500/90 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-500 active:scale-90"
                                 title="Delete"
                                 aria-label="Delete message"
                               >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-3.5 h-3.5 md:w-3 md:h-3" />
                               </button>
                             </div>
                           )}
