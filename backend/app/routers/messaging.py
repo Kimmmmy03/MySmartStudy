@@ -65,16 +65,11 @@ def _conv_out(c: dict, db, current_user_id: str) -> dict:
             names.append("Unknown")
             photos.append("")
 
-    # Count unread messages (messages not from this user, after last read)
+    # Count unread messages (messages not from this user, not yet in their readBy).
+    # Note: Firestore's `not-in` does not support comparing array fields against
+    # array literals, so we count in Python instead of via a server-side filter.
     unread = 0
     try:
-        unread_docs = (
-            db.collection(models.MESSAGES)
-            .where(filter=FieldFilter("conversationId", "==", c["id"]))
-            .where(filter=FieldFilter("readBy", "not-in", [[current_user_id]]))
-            .get()
-        )
-        # Simpler approach: count messages not sent by current user
         msg_docs = (
             db.collection(models.MESSAGES)
             .where(filter=FieldFilter("conversationId", "==", c["id"]))
@@ -153,6 +148,13 @@ def get_messages(
         docs = db.collection(models.MESSAGES).where(filter=FieldFilter("conversationId", "==", conv_id)).get()
 
     items = [models.doc_to_dict(d) for d in docs]
+    # Always sort chronologically in Python — protects against the fallback
+    # path above (no order_by) and against any Firestore index gaps. Without
+    # this, chat history rendered in arbitrary order on the web client.
+    _epoch = datetime.min.replace(tzinfo=timezone.utc)
+    items.sort(key=lambda m: m.get("createdAt") or _epoch)
+    if len(items) > limit:
+        items = items[-limit:]
     photo_map = models.get_user_photo_urls(db, [m.get("senderId") for m in items])
     messages = [_msg_out(m, photo_map.get(m.get("senderId"))) for m in items]
 
