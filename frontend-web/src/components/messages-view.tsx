@@ -277,10 +277,16 @@ export default function MessagesView() {
         </button>
       </div>
 
-      {/* Use dvh on mobile so on-screen keyboards / browser chrome
-          don't shove the input bar out of view. Desktop keeps the
-          original vh-based reserve so the page header still has room. */}
-      <div className="glass-card overflow-hidden h-[calc(100dvh-8rem)] md:h-[calc(100vh-12rem)]">
+      {/* Mobile reserves: sticky navbar (3.5rem) + main p-4 top (1rem) +
+          fixed MobileBottomNav cushion from main pb-24 (6rem) = ~10.5rem.
+          When the page header is visible (no chat selected), reserve another
+          ~3rem for the h1 + mb-3. Desktop has no bottom nav so the original
+          12rem reserve still applies. dvh keeps the input above the
+          on-screen keyboard. */}
+      <div className={clsx(
+        "glass-card overflow-hidden md:h-[calc(100vh-12rem)]",
+        activeConv ? "h-[calc(100dvh-11rem)]" : "h-[calc(100dvh-14rem)]"
+      )}>
         <div className="flex h-full">
           {/* Conversation List */}
           <div className={clsx("border-r border-white/5 flex flex-col",
