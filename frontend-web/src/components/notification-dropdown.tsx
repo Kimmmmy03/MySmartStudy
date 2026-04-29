@@ -14,6 +14,7 @@ const typeConfig: Record<string, { icon: typeof Bell; bg: string; text: string }
   urgent:       { icon: AlertTriangle, bg: "bg-red-500/10",       text: "text-red-400" },
   badge:        { icon: Award,          bg: "bg-accent-amber/10",  text: "text-accent-amber" },
   certificate:  { icon: Award,          bg: "bg-accent-amber/10",  text: "text-accent-amber" },
+  message:      { icon: MessageCircle,  bg: "bg-accent-blue/10",   text: "text-accent-blue" },
   peer_review:  { icon: MessageCircle,  bg: "bg-accent-pink/10",   text: "text-accent-pink" },
   course:       { icon: BookOpen,       bg: "bg-accent-emerald/10", text: "text-accent-emerald" },
   map_like:     { icon: Heart,          bg: "bg-accent-pink/10",   text: "text-accent-pink" },
@@ -45,20 +46,36 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
-export default function NotificationDropdown() {
+interface NotificationDropdownProps {
+  /** "messages" filters to DM notifications only; "general" hides them. */
+  kind?: "general" | "messages";
+}
+
+export default function NotificationDropdown({ kind = "general" }: NotificationDropdownProps = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationDigestItem[]>([]);
+  const [allNotifications, setAllNotifications] = useState<NotificationDigestItem[]>([]);
   const ref = useRef<HTMLDivElement>(null);
 
+  // Fetch a slightly wider window so message + general buckets each have
+  // enough rows even when one type dominates the user's feed.
   const fetchNotifications = useCallback(async () => {
     try {
-      const data = await notificationsApi.listGrouped(20);
-      setNotifications(data);
+      const data = await notificationsApi.listGrouped(40);
+      setAllNotifications(data);
     } catch {
       // Silently fail
     }
   }, []);
+
+  const isMessages = kind === "messages";
+  const notifications = allNotifications.filter((n) =>
+    isMessages ? n.type === "message" : n.type !== "message"
+  );
+  const TriggerIcon = isMessages ? MessageCircle : Bell;
+  const headerLabel = isMessages ? "Messages" : "Notifications";
+  const emptyLabel = isMessages ? "No new messages" : "No notifications";
+  const ariaLabel = isMessages ? "Messages" : "Notifications";
 
   useEffect(() => {
     fetchNotifications();
@@ -86,7 +103,7 @@ export default function NotificationDropdown() {
     const ids = item.source_ids && item.source_ids.length > 0 ? item.source_ids : [item.id];
     await Promise.all(ids.map((id) => notificationsApi.markRead(id).catch(() => null)));
     const idSet = new Set(ids);
-    setNotifications((prev) =>
+    setAllNotifications((prev) =>
       prev.map((n) => {
         const sources = n.source_ids && n.source_ids.length > 0 ? n.source_ids : [n.id];
         return sources.every((s) => idSet.has(s)) ? { ...n, read: true } : n;
@@ -103,8 +120,22 @@ export default function NotificationDropdown() {
   };
 
   const handleMarkAllRead = async () => {
-    await notificationsApi.markAllRead();
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    // Only mark the rows visible in this bucket as read so the messages bell
+    // and the general bell don't clobber each other.
+    const visibleIds = new Set<string>();
+    for (const n of notifications) {
+      const sources = n.source_ids && n.source_ids.length > 0 ? n.source_ids : [n.id];
+      sources.forEach((s) => visibleIds.add(s));
+    }
+    await Promise.all(
+      Array.from(visibleIds).map((id) => notificationsApi.markRead(id).catch(() => null))
+    );
+    setAllNotifications((prev) =>
+      prev.map((n) => {
+        const sources = n.source_ids && n.source_ids.length > 0 ? n.source_ids : [n.id];
+        return sources.every((s) => visibleIds.has(s)) ? { ...n, read: true } : n;
+      })
+    );
   };
 
   const handleDelete = async (e: React.MouseEvent, item: NotificationDigestItem) => {
@@ -112,14 +143,23 @@ export default function NotificationDropdown() {
     try {
       const ids = item.source_ids && item.source_ids.length > 0 ? item.source_ids : [item.id];
       await Promise.all(ids.map((id) => notificationsApi.deleteOne(id).catch(() => null)));
-      setNotifications((prev) => prev.filter((n) => n.id !== item.id));
+      setAllNotifications((prev) => prev.filter((n) => n.id !== item.id));
     } catch { /* empty */ }
   };
 
   const handleClearAll = async () => {
+    // Bucket-scoped: clear only rows currently shown in this dropdown.
+    const idsToDelete = new Set<string>();
+    for (const n of notifications) {
+      const sources = n.source_ids && n.source_ids.length > 0 ? n.source_ids : [n.id];
+      sources.forEach((s) => idsToDelete.add(s));
+    }
+    if (idsToDelete.size === 0) return;
     try {
-      await notificationsApi.clearAll();
-      setNotifications([]);
+      await Promise.all(
+        Array.from(idsToDelete).map((id) => notificationsApi.deleteOne(id).catch(() => null))
+      );
+      setAllNotifications((prev) => prev.filter((n) => !notifications.some((vn) => vn.id === n.id)));
     } catch { /* empty */ }
   };
 
@@ -128,8 +168,10 @@ export default function NotificationDropdown() {
       <button
         onClick={() => setOpen(!open)}
         className="relative p-2 rounded-xl hover:bg-white/5 transition-colors"
+        aria-label={ariaLabel}
+        title={ariaLabel}
       >
-        <Bell className="w-5 h-5 text-dark-200 notif-bell-icon" />
+        <TriggerIcon className="w-5 h-5 text-dark-200 notif-bell-icon" />
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -149,7 +191,7 @@ export default function NotificationDropdown() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 notif-divider flex-shrink-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-900 dark:text-white notif-header">Notifications</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white notif-header">{headerLabel}</span>
                 {unreadCount > 0 && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent-blue/15 text-accent-blue font-medium">
                     {unreadCount}
@@ -182,8 +224,8 @@ export default function NotificationDropdown() {
             <div className="flex-1 overflow-y-auto">
               {notifications.length === 0 ? (
                 <div className="p-8 text-center">
-                  <Bell className="w-8 h-8 text-gray-300 dark:text-dark-600 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500 dark:text-dark-400 notif-empty">No notifications</p>
+                  <TriggerIcon className="w-8 h-8 text-gray-300 dark:text-dark-600 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500 dark:text-dark-400 notif-empty">{emptyLabel}</p>
                 </div>
               ) : (
                 <div>

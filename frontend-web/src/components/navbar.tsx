@@ -90,7 +90,8 @@ export default function Navbar({ onMobileMenuToggle }: { onMobileMenuToggle?: ()
             )}
           </AnimatePresence>
         </button>
-<NotificationDropdown />
+<NotificationDropdown kind="messages" />
+        <NotificationDropdown kind="general" />
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
