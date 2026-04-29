@@ -309,7 +309,9 @@ MySmartStudy/
         fcm-provider.tsx       # Firebase Cloud Messaging push notification provider
         map-library-modal.tsx  # Mind map selection modal for submissions
         similarity-report.tsx  # Plagiarism similarity report viewer
-        navbar.tsx             # Top navigation with theme toggle
+        navbar.tsx             # Top navigation with theme toggle + dual notification dropdowns (Messages bell + general Notifications bell, each with bucket-scoped Mark-all-read / Clear)
+        notification-dropdown.tsx # Reusable dropdown — kind="messages" filters DM notifications, kind="general" hides them
+        messages-view.tsx      # Shared inbox UI (Student + Lecturer) — search, sort/filter (Recent / A→Z / Lecturers / Students), per-bubble avatars, soft-delete with in-app modal, themed chat background, expanded profile panel
         sidebar.tsx            # Side navigation with role-based links
       contexts/                # AuthProvider, ThemeProvider
       hooks/                   # useAuth hook
@@ -422,7 +424,7 @@ MySmartStudy/
 | 13 | **Certificates** | Yes | Yes | Claim completion certificates when 100% progress, view earned certs |
 | 14 | **Activity Log** | Yes | Yes | Timeline of all actions grouped by date with type icons |
 | 15 | **Notifications** | Yes | Yes | In-app notifications with type badges, mark-read, mark-all-read |
-| 16 | **Private Messaging** | Yes | Yes | Direct messages with any user, conversation list, user search |
+| 16 | **Private Messaging** | Yes | Yes | Direct messages with any user, conversation list, user search, edit + soft-delete (with "Message deleted" placeholder), inbox search + sort/filter (Recent / A→Z / Lecturers / Students), per-bubble sender avatars, themed chat background, expanded profile panel with class / department / year / semester chips, deep-link from email + in-app notification (auto-opens the conversation) |
 | 17 | **Calendar** | Yes | Yes | Monthly calendar view with event dots, day filtering, assignments/quizzes/reminders |
 | 18 | **Planner** | Yes | Yes | Personal task manager with priorities, types, date-based organization |
 | 19 | **Achievements** | Yes | Yes | 12 auto-awarded badges (cartographer, quiz_whiz, helper, etc.) |
@@ -587,8 +589,8 @@ All data is stored in flat top-level Firestore collections with **camelCase** fi
 | `certificates` | Completion certificates | `studentId`, `courseId`, `certificateNumber`, `completionPercentage` |
 | `courseGroups` | Student groups | `courseId`, `name`, `description`, `members` |
 | `gradeSettings` | Grade weights | `courseId`, `assignmentWeight`, `quizWeight` |
-| `messages` | Private messages | `conversationId`, `senderId`, `text` |
-| `conversations` | Chat conversations | `participants`, `lastMessage`, `lastMessageAt` |
+| `messages` | Private messages | `conversationId`, `senderId`, `text`, `edited`, `editedAt`, `deleted`, `deletedAt`, `readBy[]`, `createdAt` |
+| `conversations` | Chat conversations | `participants`, `lastMessage`, `lastMessageAt` (responses also expose `participant_roles[]` for inbox role-filtering) |
 | `notifications` | In-app notifications | `userId`, `title`, `message`, `type`, `link`, `read` |
 | `activityFeed` | Activity log | `userId`, `action`, `resourceType`, `resourceId`, `title` |
 | `reflections` | Weekly reflections | `ownerId`, `confidence`, `notes`, `weekLabel` |
@@ -695,7 +697,7 @@ When a user taps a course, `SubjectDetailScreen` shows a grid of tool cards:
 | Completion | `getCourseCompletion`, `getCompletionSummary` | Progress analytics |
 | Groups | `getCourseGroups`, `createGroup`, `autoAssignGroups` | Group management |
 | Notifications | `getNotifications`, `markNotificationRead`, `markAllNotificationsRead` | Notification center |
-| Messaging | `getConversations`, `startConversation`, `getMessages`, `sendMessage`, `searchUsers` | Private messaging |
+| Messaging | `conversations`, `getOrCreate`, `getMessages`, `send`, `edit`, `delete` (soft), `searchUsers` | Private messaging — soft-delete keeps the row in chronological order so both participants see the "Message deleted" placeholder |
 | Activity | `getActivity`, `createReflection`, `getReflections` | Activity feed |
 | Progress | `getCourseProgress`, `getCalendarEvents` | Calendar + progress |
 | Certificates | `getMyCertificates`, `claimCertificate` | Certificate management |
@@ -937,11 +939,13 @@ All endpoints (except auth and public) require `Authorization: Bearer <firebase_
 ### Messaging
 | Method | Endpoint | Description |
 |--------|---------|-------------|
-| GET | `/api/messages/conversations` | List conversations |
-| POST | `/api/messages/conversations/{uid}` | Start conversation |
-| GET | `/api/messages/conversations/{cid}/messages` | Get messages |
-| POST | `/api/messages/conversations/{cid}` | Send message |
-| GET | `/api/messages/search-users` | Search users |
+| GET | `/api/messages/conversations` | List conversations (response includes `participant_roles[]`) |
+| POST | `/api/messages/conversations/{uid}` | Start (or fetch) conversation with another user |
+| GET | `/api/messages/conversations/{cid}/messages` | Get messages — sorted chronologically server-side, marks them read |
+| POST | `/api/messages/conversations/{cid}/messages` | Send message — also fans out a DM notification linking to `/{role}/messages?conv={cid}` |
+| PATCH | `/api/messages/conversations/{cid}/messages/{mid}` | Edit message (sender only, blocked once deleted) |
+| DELETE | `/api/messages/conversations/{cid}/messages/{mid}` | Soft-delete (sender only) — sets `deleted=true`, blanks `text`, keeps the row so the placeholder shows in chronological position |
+| GET | `/api/messages/search-users` | Search users (by name / email, optional role filter) |
 
 ### Notifications
 | Method | Endpoint | Description |
