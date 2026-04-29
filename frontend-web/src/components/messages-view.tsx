@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { formatTime, formatChatTimestamp, resolveBadge } from "@/lib/utils";
 import Modal from "@/components/ui/modal";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { Send, Search, MessageSquare, X, ArrowLeft, Plus, Award, Flame, Trophy, ChevronDown, ChevronUp, Pencil, Check } from "lucide-react";
+import { Send, Search, MessageSquare, X, ArrowLeft, Plus, Award, Flame, Trophy, ChevronDown, ChevronUp, Pencil, Check, Trash2, GraduationCap, Building2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 import BadgeIcon from "@/components/badge-icon";
@@ -123,6 +123,28 @@ export default function MessagesView() {
     setEditText("");
     const data = await messagingApi.getMessages(activeConv.id);
     setMessages(sortMessages(data));
+  };
+
+  const handleDelete = async (msgId: string) => {
+    if (!activeConv) return;
+    if (!window.confirm("Delete this message? This can't be undone.")) return;
+    // Optimistic: flip the local copy to deleted so the placeholder shows
+    // immediately even if the server round-trip takes a moment.
+    setMessages(prev =>
+      prev.map(m =>
+        m.id === msgId ? { ...m, deleted: true, text: "" } : m
+      )
+    );
+    try {
+      await messagingApi.delete(activeConv.id, msgId);
+      const data = await messagingApi.getMessages(activeConv.id);
+      setMessages(sortMessages(data));
+      refreshConversations();
+    } catch {
+      // Revert on failure by refetching the truth.
+      const data = await messagingApi.getMessages(activeConv.id);
+      setMessages(sortMessages(data));
+    }
   };
 
   const handleSearch = (q: string) => {
@@ -284,10 +306,35 @@ export default function MessagesView() {
                             <p className="text-xs text-dark-400 truncate">{profileUser.email}</p>
                             <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-dark-300 capitalize mt-1 inline-block">
                               {profileUser.role}
-                              {profileUser.department ? ` · ${profileUser.department}` : ""}
                             </span>
                           </div>
                         </div>
+
+                        {/* Academic info — only render the chips that have data,
+                            so a lecturer (no class) doesn't show empty boxes. */}
+                        {(profileUser.class_name || profileUser.year || profileUser.semester || profileUser.department) && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {profileUser.class_name && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] bg-accent-blue/10 text-accent-blue border border-accent-blue/20">
+                                <GraduationCap className="w-3 h-3" />
+                                {profileUser.class_name}
+                              </span>
+                            )}
+                            {profileUser.department && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] bg-accent-purple/10 text-accent-purple border border-accent-purple/20">
+                                <Building2 className="w-3 h-3" />
+                                {profileUser.department}
+                              </span>
+                            )}
+                            {(profileUser.year || profileUser.semester) && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] bg-accent-emerald/10 text-accent-emerald border border-accent-emerald/20">
+                                {profileUser.year ? `Year ${profileUser.year}` : ""}
+                                {profileUser.year && profileUser.semester ? " · " : ""}
+                                {profileUser.semester ? `Sem ${profileUser.semester}` : ""}
+                              </span>
+                            )}
+                          </div>
+                        )}
 
                         {/* Stats */}
                         <div className="flex gap-3">
@@ -347,21 +394,36 @@ export default function MessagesView() {
               </AnimatePresence>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 chat-bg">
                 {messages.length === 0 ? (
                   <p className="text-dark-400 text-sm text-center py-8">No messages yet. Say hello!</p>
                 ) : (
                   messages.map(msg => {
                     const isMine = msg.sender_id === user?.uid;
                     const isEditing = editingId === msg.id;
+                    const isDeleted = !!msg.deleted;
+                    const otherName = activeConv.participant_names[0] || "User";
+                    const otherPhoto = activeConv.participant_photos[0];
                     return (
-                      <div key={msg.id} className={clsx("flex group", isMine ? "justify-end" : "justify-start")}>
+                      <div key={msg.id} className={clsx("flex group items-end gap-2", isMine ? "justify-end" : "justify-start")}>
+                        {!isMine && (
+                          <div className="flex-shrink-0 mb-1">
+                            <UserAvatar name={otherName} photoUrl={otherPhoto} size={28} />
+                          </div>
+                        )}
                         <div className={clsx("max-w-[70%] rounded-2xl px-4 py-2.5 relative",
-                          isMine
-                            ? "bg-accent-blue text-white rounded-br-md"
-                            : "bg-dark-800/50 border border-white/10 rounded-bl-md"
-                        )} style={!isMine ? { borderRadius: "16px 16px 16px 4px" } : { borderRadius: "16px 16px 4px 16px" }}>
-                          {isEditing ? (
+                          isDeleted
+                            ? "bg-dark-700/40 border border-white/5 text-dark-400 italic"
+                            : isMine
+                              ? "bg-accent-blue text-white rounded-br-md"
+                              : "bg-dark-800/50 border border-white/10 rounded-bl-md"
+                        )} style={isDeleted ? { borderRadius: "16px" } : !isMine ? { borderRadius: "16px 16px 16px 4px" } : { borderRadius: "16px 16px 4px 16px" }}>
+                          {isDeleted ? (
+                            <p className="text-sm flex items-center gap-1.5">
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Message deleted
+                            </p>
+                          ) : isEditing ? (
                             <div className="flex items-center gap-2">
                               <input
                                 type="text"
@@ -387,20 +449,30 @@ export default function MessagesView() {
                             <p className={clsx("text-sm", isMine ? "text-white" : "text-dark-100")}>{msg.text}</p>
                           )}
                           <div className="flex items-center gap-1.5 mt-1">
-                            <p className={clsx("text-[10px]", isMine ? "text-blue-200" : "text-dark-400")}>
+                            <p className={clsx("text-[10px]", isDeleted ? "text-dark-500" : isMine ? "text-blue-200" : "text-dark-400")}>
                               {formatTime(msg.created_at)}
                             </p>
-                            {msg.edited && (
+                            {msg.edited && !isDeleted && (
                               <span className={clsx("text-[10px] italic", isMine ? "text-blue-200" : "text-dark-400")}>· edited</span>
                             )}
                           </div>
-                          {isMine && !isEditing && (
-                            <button
-                              onClick={() => { setEditingId(msg.id); setEditText(msg.text); }}
-                              className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 w-6 h-6 bg-dark-600 text-dark-100 rounded-full flex items-center justify-center transition-opacity shadow-md"
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </button>
+                          {isMine && !isEditing && !isDeleted && (
+                            <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                              <button
+                                onClick={() => { setEditingId(msg.id); setEditText(msg.text); }}
+                                className="w-6 h-6 bg-dark-600 text-dark-100 rounded-full flex items-center justify-center shadow-md hover:bg-dark-500"
+                                title="Edit"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(msg.id)}
+                                className="w-6 h-6 bg-red-500/90 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-500"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>

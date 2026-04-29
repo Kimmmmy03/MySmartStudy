@@ -1324,3 +1324,25 @@ html.light .view-toggle-group .bg-accent-blue {
 html.light .bg-dark-900 { background: #f4f6fb; }
 html.light .bg-dark-800\/50 { background: rgba(238, 240, 247, 0.85); }
 html.light .border-white\/10 { border-color: rgba(27, 42, 128, 0.1); }
+
+/* DM chat background — soft radial wash + subtle dot grid so the chat
+   pane feels distinct from regular dashboard surfaces. The SVG is
+   inlined so it works offline and doesn't add an HTTP request. */
+.chat-bg {
+  background-color: rgba(15, 19, 36, 0.55);
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(46, 77, 167, 0.18) 0%, transparent 45%),
+    radial-gradient(circle at 80% 100%, rgba(168, 85, 247, 0.14) 0%, transparent 50%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><circle cx='1' cy='1' r='1' fill='%23ffffff' fill-opacity='0.04'/></svg>");
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size: auto, auto, 24px 24px;
+}
+html.light .chat-bg {
+  background-color: rgba(244, 246, 251, 0.85);
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(46, 77, 167, 0.10) 0%, transparent 45%),
+    radial-gradient(circle at 80% 100%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><circle cx='1' cy='1' r='1' fill='%231b2a80' fill-opacity='0.07'/></svg>");
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size: auto, auto, 24px 24px;
+}

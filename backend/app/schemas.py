@@ -580,6 +580,8 @@ class MessageOut(BaseModel):
     text: str
     edited: bool = False
     edited_at: Optional[datetime] = None
+    deleted: bool = False
+    deleted_at: Optional[datetime] = None
     created_at: datetime
 
     class Config:

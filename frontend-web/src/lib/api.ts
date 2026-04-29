@@ -1147,6 +1147,10 @@ export interface PrivateMessageOut {
   text: string;
   edited: boolean;
   edited_at: string | null;
+  /** Soft-delete flag — when true, server returns text as "" and the
+   * client renders a "Message deleted" placeholder. */
+  deleted?: boolean;
+  deleted_at?: string | null;
   created_at: string;
 }
 
@@ -1174,6 +1178,9 @@ export const messagingApi = {
 
   edit: (convId: string, msgId: string, text: string) =>
     request<PrivateMessageOut>(`/messages/conversations/${convId}/messages/${msgId}`, { method: "PATCH", body: JSON.stringify({ text }) }),
+
+  delete: (convId: string, msgId: string) =>
+    request<PrivateMessageOut>(`/messages/conversations/${convId}/messages/${msgId}`, { method: "DELETE" }),
 
   searchUsers: (q: string, role?: string) =>
     request<UserSearchResult[]>(`/messages/search-users?q=${encodeURIComponent(q)}${role ? `&role=${encodeURIComponent(role)}` : ""}`),

@@ -10,15 +10,21 @@ router = APIRouter(prefix="/api/messages", tags=["Messaging"])
 
 
 def _msg_out(m: dict, photo_url: str | None = None) -> schemas.MessageOut:
+    deleted = bool(m.get("deleted", False))
+    # Don't leak the original text after a soft delete; the client renders
+    # a "Message deleted" placeholder when deleted=True.
+    text = "" if deleted else m.get("text", "")
     return schemas.MessageOut(
         id=m["id"],
         conversation_id=m.get("conversationId", ""),
         sender_id=m.get("senderId", ""),
         sender_name=m.get("senderName", ""),
         sender_photo_url=photo_url if photo_url is not None else m.get("senderPhotoUrl"),
-        text=m.get("text", ""),
+        text=text,
         edited=m.get("edited", False),
         edited_at=m.get("editedAt"),
+        deleted=deleted,
+        deleted_at=m.get("deletedAt"),
         created_at=m.get("createdAt", datetime.now(timezone.utc)),
     )
 
@@ -267,12 +273,62 @@ def edit_message(
         raise HTTPException(status_code=404, detail="Message not found")
     if d.get("senderId") != user["id"]:
         raise HTTPException(status_code=403, detail="Can only edit your own messages")
+    if d.get("deleted"):
+        raise HTTPException(status_code=400, detail="Cannot edit a deleted message")
 
     now = datetime.now(timezone.utc)
     doc_ref.update({"text": req.text, "edited": True, "editedAt": now})
     d["text"] = req.text
     d["edited"] = True
     d["editedAt"] = now
+    return _msg_out(d, models.get_user_photo_url(db, d.get("senderId", "")))
+
+
+@router.delete("/conversations/{conv_id}/messages/{msg_id}")
+def delete_message(
+    conv_id: str,
+    msg_id: str,
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """Soft-delete a private message. Only the sender can delete.
+
+    We mark deleted=True and clear the text on read (in _msg_out) instead of
+    removing the doc, so both participants see a 'Message deleted' placeholder
+    in chronological position rather than the message vanishing silently.
+    """
+    conv_doc = db.collection(models.CONVERSATIONS).document(conv_id).get()
+    conv = models.doc_to_dict(conv_doc)
+    if not conv or user["id"] not in conv.get("participants", []):
+        raise HTTPException(status_code=403, detail="Not a participant")
+
+    doc_ref = db.collection(models.MESSAGES).document(msg_id)
+    doc = doc_ref.get()
+    d = models.doc_to_dict(doc)
+    if not d or d.get("conversationId") != conv_id:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if d.get("senderId") != user["id"]:
+        raise HTTPException(status_code=403, detail="Can only delete your own messages")
+    if d.get("deleted"):
+        # Idempotent: already soft-deleted.
+        return _msg_out(d, models.get_user_photo_url(db, d.get("senderId", "")))
+
+    now = datetime.now(timezone.utc)
+    doc_ref.update({"deleted": True, "deletedAt": now, "text": ""})
+    d["deleted"] = True
+    d["deletedAt"] = now
+    d["text"] = ""
+
+    # Update the conversation last-message preview only when the deleted
+    # message was actually the latest one — otherwise the inbox row would
+    # flicker for unrelated deletions.
+    last_at = conv.get("lastMessageAt")
+    msg_at = d.get("createdAt")
+    if last_at and msg_at and _to_aware_dt(last_at) == _to_aware_dt(msg_at):
+        db.collection(models.CONVERSATIONS).document(conv_id).update({
+            "lastMessage": "Message deleted",
+        })
+
     return _msg_out(d, models.get_user_photo_url(db, d.get("senderId", "")))
 
 

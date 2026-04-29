@@ -287,6 +287,107 @@ def test_send_message_link_includes_conv_id():
         messaging.create_notification = original
 
 
+def test_delete_message_soft_deletes_and_blanks_text():
+    """Delete endpoint should mark deleted=True, clear text, and only update
+    the conversation's last-message preview when the deleted msg was the latest."""
+    from app.routers import messaging
+
+    # Conversation with two messages; the deleted one IS the latest.
+    msg_time = datetime(2026, 4, 30, 10, 0, tzinfo=timezone.utc)
+    conv = FakeDocSnapshot("conv1", {
+        "participants": ["sender", "other"],
+        "lastMessage": "secret plans",
+        "lastMessageAt": msg_time,
+    })
+    msg = FakeDocSnapshot("msg1", {
+        "conversationId": "conv1",
+        "senderId": "sender",
+        "senderName": "Sender",
+        "text": "secret plans",
+        "createdAt": msg_time,
+    })
+
+    msg_doc_ref = MagicMock()
+    msg_doc_ref.get.return_value = msg
+    msg_updates = {}
+    def msg_update(d): msg_updates.update(d)
+    msg_doc_ref.update.side_effect = msg_update
+
+    conv_doc_ref = MagicMock()
+    conv_doc_ref.get.return_value = conv
+    conv_updates = {}
+    def conv_update(d): conv_updates.update(d)
+    conv_doc_ref.update.side_effect = conv_update
+
+    db = MagicMock()
+    def collection(name):
+        coll = MagicMock()
+        if name == "conversations":
+            coll.document.return_value = conv_doc_ref
+        elif name == "messages":
+            coll.document.return_value = msg_doc_ref
+        elif name == "users":
+            ref = MagicMock()
+            ref.get.return_value = FakeDocSnapshot("sender", {"photoURL": ""})
+            coll.document.return_value = ref
+        return coll
+    db.collection.side_effect = collection
+
+    out = messaging.delete_message(
+        conv_id="conv1",
+        msg_id="msg1",
+        user={"id": "sender", "displayName": "Sender"},
+        db=db,
+    )
+
+    assert msg_updates.get("deleted") is True, f"deleted not set: {msg_updates}"
+    assert msg_updates.get("text") == "", f"text not cleared: {msg_updates}"
+    assert conv_updates.get("lastMessage") == "Message deleted", \
+        f"conv lastMessage not updated: {conv_updates}"
+    # Response shouldn't leak the original text.
+    assert out.text == "", f"response text should be empty after delete, got '{out.text}'"
+    assert out.deleted is True
+    print("PASS: delete_message soft-deletes, clears text, updates conv preview")
+
+
+def test_delete_message_rejects_non_sender():
+    """Recipients (non-senders) must not be able to delete messages."""
+    from app.routers import messaging
+    from fastapi import HTTPException
+
+    conv = FakeDocSnapshot("conv1", {"participants": ["sender", "other"]})
+    msg = FakeDocSnapshot("msg1", {
+        "conversationId": "conv1",
+        "senderId": "sender",
+        "text": "you can't touch this",
+    })
+
+    db = MagicMock()
+    def collection(name):
+        coll = MagicMock()
+        ref = MagicMock()
+        if name == "conversations":
+            ref.get.return_value = conv
+        elif name == "messages":
+            ref.get.return_value = msg
+        coll.document.return_value = ref
+        return coll
+    db.collection.side_effect = collection
+
+    raised = False
+    try:
+        messaging.delete_message(
+            conv_id="conv1",
+            msg_id="msg1",
+            user={"id": "other", "displayName": "Other"},
+            db=db,
+        )
+    except HTTPException as e:
+        raised = (e.status_code == 403)
+    assert raised, "expected 403 when non-sender tries to delete"
+    print("PASS: delete_message rejects non-sender with 403")
+
+
 if __name__ == "__main__":
     test_old_code_would_have_failed()
     test_to_aware_dt_handles_strings_datetimes_and_none()
@@ -294,4 +395,6 @@ if __name__ == "__main__":
     test_list_conversations_handles_string_lastmessageat()
     test_send_message_links_to_role_inbox()
     test_send_message_link_includes_conv_id()
+    test_delete_message_soft_deletes_and_blanks_text()
+    test_delete_message_rejects_non_sender()
     print("\nAll tests passed.")
