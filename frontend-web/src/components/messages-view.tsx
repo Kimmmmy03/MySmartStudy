@@ -338,17 +338,25 @@ export default function MessagesView() {
         </button>
       </div>
 
-      {/* Mobile uses svh (small viewport height — always the smallest
-          dimension, ignoring browser UI shifts). dvh changes as iOS
-          Safari's URL bar auto-hides, so a container sized to dvh ends
-          up taller than the visible area as soon as the user scrolls.
-          Reserves: navbar 3.5rem + main p-4 top 1rem + page-header
-          (mb-3 + button row) ~3rem + main pb-24 6rem + bottom-nav UI
-          + safe-area inset ~3rem ≈ 16-17rem total. When a chat is open
-          the page header is hidden so reserve drops by ~3rem. */}
+      {/* Mobile: pin between the sticky navbar (3.5rem from top) and a
+          gap that clears the fixed MobileBottomNav (~5.5rem of UI plus
+          safe-area inset). The +0.75rem on top is breathing room under
+          the page header when it's visible. Using `fixed` sidesteps the
+          fragile rem math we were doing — the chat can't extend past
+          the visible viewport because its top/bottom are anchored
+          directly to the viewport edges.
+          Desktop keeps the original vh-based glass card so the page
+          header still has room above it. */}
       <div className={clsx(
-        "glass-card overflow-hidden md:h-[calc(100vh-12rem)]",
-        activeConv ? "h-[calc(100svh-14rem)]" : "h-[calc(100svh-17rem)]"
+        "glass-card overflow-hidden",
+        "md:static md:h-[calc(100vh-12rem)]",
+        // Mobile: fixed anchors. Top accounts for navbar + page header
+        // when present; bottom clears the bottom nav + safe-area.
+        "fixed left-3 right-3 z-10",
+        activeConv
+          ? "top-[calc(3.5rem+0.75rem)]"
+          : "top-[calc(3.5rem+3.75rem)]",
+        "bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)]"
       )}>
         <div className="flex h-full">
           {/* Conversation List */}
