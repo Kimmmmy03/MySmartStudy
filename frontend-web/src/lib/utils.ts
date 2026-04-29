@@ -45,6 +45,22 @@ export function formatDateTime(iso: string | null | undefined): string {
   return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
+/** WhatsApp-style relative timestamp for conversation rows:
+ *  same day -> "10:30 AM", yesterday -> "Yesterday",
+ *  within last 7 days -> weekday name, older -> short date. */
+export function formatChatTimestamp(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const now = new Date();
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const dayDiff = Math.floor((startOfDay(now) - startOfDay(d)) / 86_400_000);
+  if (dayDiff <= 0) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (dayDiff === 1) return "Yesterday";
+  if (dayDiff < 7) return d.toLocaleDateString([], { weekday: "short" });
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
 /** Convert a stored semester value ("1", "2", "3") to its display label using
  * Roman numerals (I, II, III). Non-numeric values pass through unchanged so
  * legacy records (e.g. old "Short" entries from before the dropdown was

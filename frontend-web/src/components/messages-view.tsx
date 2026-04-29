@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { messagingApi, usersApi, badgesApi, ConversationOut, PrivateMessageOut, UserSearchResult, type UserOut, type BadgeDefinition } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
-import { formatTime, resolveBadge } from "@/lib/utils";
+import { formatTime, formatChatTimestamp, resolveBadge } from "@/lib/utils";
 import Modal from "@/components/ui/modal";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Send, Search, MessageSquare, X, ArrowLeft, Plus, Award, Flame, Trophy, ChevronDown, ChevronUp, Pencil, Check } from "lucide-react";
@@ -38,24 +38,47 @@ export default function MessagesView() {
   const [badgeDefs, setBadgeDefs] = useState<BadgeDefinition[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(false);
 
+  // Sort conversations newest-first; defensive against backend ordering gaps.
+  const sortConversations = (list: ConversationOut[]) =>
+    [...list].sort((a, b) => {
+      const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+      const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+      return tb - ta;
+    });
+
+  // Sort messages oldest-first so the latest sits at the bottom (WhatsApp-style).
+  const sortMessages = (list: PrivateMessageOut[]) =>
+    [...list].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+  const refreshConversations = () =>
+    messagingApi.conversations().then(c => setConversations(sortConversations(c))).catch(() => {});
+
   useEffect(() => {
-    messagingApi.conversations().then(setConversations).finally(() => setLoading(false));
+    messagingApi.conversations()
+      .then(c => setConversations(sortConversations(c)))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   // Poll conversations
   useEffect(() => {
-    const interval = setInterval(() => {
-      messagingApi.conversations().then(setConversations);
-    }, 8000);
+    const interval = setInterval(refreshConversations, 8000);
     return () => clearInterval(interval);
   }, []);
 
-  // Poll active conversation messages
+  // Poll active conversation messages. Also refresh the conversation list so
+  // last_message preview + ordering update without waiting for the slower
+  // 8s conversations poll.
   useEffect(() => {
     if (!activeConv) return;
-    const fetch = () => messagingApi.getMessages(activeConv.id).then(setMessages);
+    const fetch = () => {
+      messagingApi.getMessages(activeConv.id)
+        .then(m => setMessages(sortMessages(m)))
+        .catch(() => {});
+      refreshConversations();
+    };
     fetch();
-    const interval = setInterval(fetch, 4000);
+    const interval = setInterval(fetch, 3000);
     return () => clearInterval(interval);
   }, [activeConv?.id]);
 
@@ -68,8 +91,8 @@ export default function MessagesView() {
     await messagingApi.send(activeConv.id, text.trim());
     setText("");
     const data = await messagingApi.getMessages(activeConv.id);
-    setMessages(data);
-    messagingApi.conversations().then(setConversations);
+    setMessages(sortMessages(data));
+    refreshConversations();
   };
 
   const handleEdit = async (msgId: string) => {
@@ -78,7 +101,7 @@ export default function MessagesView() {
     setEditingId(null);
     setEditText("");
     const data = await messagingApi.getMessages(activeConv.id);
-    setMessages(data);
+    setMessages(sortMessages(data));
   };
 
   const handleSearch = (q: string) => {
@@ -127,7 +150,7 @@ export default function MessagesView() {
     setShowNew(false);
     setSearchQuery("");
     setSearchResults([]);
-    messagingApi.conversations().then(setConversations);
+    refreshConversations();
   };
 
   return (
@@ -163,13 +186,23 @@ export default function MessagesView() {
                   <div className="flex items-center gap-3">
                     <UserAvatar name={conv.participant_names[0] || "User"} photoUrl={conv.participant_photos[0]} size={40} />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-white truncate">{conv.participant_names[0] || "User"}</p>
-                        {conv.unread_count > 0 && (
-                          <span className="bg-accent-blue text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                            {conv.unread_count}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {conv.last_message_at && (
+                            <span className={clsx(
+                              "text-[10px]",
+                              conv.unread_count > 0 ? "text-accent-blue font-medium" : "text-dark-400"
+                            )}>
+                              {formatChatTimestamp(conv.last_message_at)}
+                            </span>
+                          )}
+                          {conv.unread_count > 0 && (
+                            <span className="bg-accent-blue text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                              {conv.unread_count}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {conv.last_message && (
                         <p className="text-xs text-dark-400 truncate mt-0.5">{conv.last_message}</p>
