@@ -338,15 +338,17 @@ export default function MessagesView() {
         </button>
       </div>
 
-      {/* Mobile reserves: sticky navbar (3.5rem) + main p-4 top (1rem) +
-          MobileBottomNav cushion from main pb-24 (6rem) + safe-area inset
-          on iOS (~1-2rem) ≈ 12rem. When the page header is visible (no
-          chat selected) reserve another ~3rem for the h1 + mb-3. Desktop
-          has no bottom nav so the original 12rem reserve still applies.
-          dvh keeps the input above the on-screen keyboard. */}
+      {/* Mobile uses svh (small viewport height — always the smallest
+          dimension, ignoring browser UI shifts). dvh changes as iOS
+          Safari's URL bar auto-hides, so a container sized to dvh ends
+          up taller than the visible area as soon as the user scrolls.
+          Reserves: navbar 3.5rem + main p-4 top 1rem + page-header
+          (mb-3 + button row) ~3rem + main pb-24 6rem + bottom-nav UI
+          + safe-area inset ~3rem ≈ 16-17rem total. When a chat is open
+          the page header is hidden so reserve drops by ~3rem. */}
       <div className={clsx(
         "glass-card overflow-hidden md:h-[calc(100vh-12rem)]",
-        activeConv ? "h-[calc(100dvh-13rem)]" : "h-[calc(100dvh-16rem)]"
+        activeConv ? "h-[calc(100svh-14rem)]" : "h-[calc(100svh-17rem)]"
       )}>
         <div className="flex h-full">
           {/* Conversation List */}
