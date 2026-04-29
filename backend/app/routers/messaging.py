@@ -107,8 +107,11 @@ def list_conversations(user: dict = Depends(get_current_user), db=Depends(get_db
         .get()
     )
     convs = [models.doc_to_dict(d) for d in docs]
-    # Sort by last message time
-    convs.sort(key=lambda c: c.get("lastMessageAt") or datetime.min, reverse=True)
+    # Firestore timestamps are tz-aware; bare datetime.min is naive and would
+    # crash sort() with TypeError when a fresh conversation (lastMessageAt=None)
+    # sits next to one with messages.
+    _epoch = datetime.min.replace(tzinfo=timezone.utc)
+    convs.sort(key=lambda c: c.get("lastMessageAt") or _epoch, reverse=True)
     return [_conv_out(c, db, user["id"]) for c in convs]
 
 
@@ -198,15 +201,21 @@ def send_message(
         "lastMessageAt": now,
     })
 
-    # Notify the other participant
+    # Notify the other participant. Web routes are role-prefixed
+    # (/student/messages, /lecturer/messages) — a bare /messages/{id} link
+    # 404s, so resolve the recipient's role per-user.
     other_ids = [pid for pid in conv.get("participants", []) if pid != user["id"]]
     for oid in other_ids:
+        recipient_doc = db.collection(models.USERS).document(oid).get()
+        recipient = (recipient_doc.to_dict() or {}) if recipient_doc.exists else {}
+        role = recipient.get("role") or "student"
+        link = f"/{role}/messages" if role in ("student", "lecturer") else "/student/messages"
         create_notification(
             db, oid,
             f"New message from {user.get('displayName', 'Someone')}",
             req.text[:100],
             "message",
-            f"/messages/{conv_id}",
+            link,
         )
 
     return _msg_out(data)
