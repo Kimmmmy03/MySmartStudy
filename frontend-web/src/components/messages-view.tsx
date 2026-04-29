@@ -145,13 +145,28 @@ export default function MessagesView() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Re-entrancy guard: setText("") is async, so a quick Enter-Enter-Enter
+  // can fire handleSend several times before React re-renders the empty
+  // textarea — each call reads the still-populated text and POSTs again.
+  // The ref blocks subsequent calls until the in-flight send finishes.
+  const sendingRef = useRef(false);
   const handleSend = async () => {
-    if (!text.trim() || !activeConv) return;
-    await messagingApi.send(activeConv.id, text.trim());
-    setText("");
-    const data = await messagingApi.getMessages(activeConv.id);
-    setMessages(sortMessages(data));
-    refreshConversations();
+    if (sendingRef.current) return;
+    const payload = text.trim();
+    if (!payload || !activeConv) return;
+    sendingRef.current = true;
+    setText(""); // clear immediately so the user sees the input empty
+    try {
+      await messagingApi.send(activeConv.id, payload);
+      const data = await messagingApi.getMessages(activeConv.id);
+      setMessages(sortMessages(data));
+      refreshConversations();
+    } catch {
+      // Restore the draft so the user doesn't lose their text on a network blip.
+      setText(payload);
+    } finally {
+      sendingRef.current = false;
+    }
   };
 
   const handleEdit = async (msgId: string) => {
