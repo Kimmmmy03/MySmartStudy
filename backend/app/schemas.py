@@ -592,6 +592,9 @@ class ConversationOut(BaseModel):
     participants: list[str]  # user IDs
     participant_names: list[str]
     participant_photos: list[str]
+    # role of each entry in participant_names (parallel arrays). Used by the
+    # web client to filter the inbox by "lecturer" or "student".
+    participant_roles: list[str] = []
     last_message: Optional[str] = None
     last_message_at: Optional[datetime] = None
     unread_count: int = 0

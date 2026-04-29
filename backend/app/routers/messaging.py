@@ -59,6 +59,7 @@ def _conv_out(c: dict, db, current_user_id: str) -> dict:
     participants = c.get("participants", [])
     names = []
     photos = []
+    roles = []
     for pid in participants:
         if pid == current_user_id:
             continue
@@ -67,9 +68,11 @@ def _conv_out(c: dict, db, current_user_id: str) -> dict:
         if u:
             names.append(u.get("displayName", ""))
             photos.append(u.get("photoURL", ""))
+            roles.append(u.get("role", "") or "")
         else:
             names.append("Unknown")
             photos.append("")
+            roles.append("")
 
     # Count unread messages (messages not from this user, not yet in their readBy).
     # Note: Firestore's `not-in` does not support comparing array fields against
@@ -93,6 +96,7 @@ def _conv_out(c: dict, db, current_user_id: str) -> dict:
         participants=participants,
         participant_names=names,
         participant_photos=photos,
+        participant_roles=roles,
         last_message=c.get("lastMessage"),
         last_message_at=c.get("lastMessageAt"),
         unread_count=unread,

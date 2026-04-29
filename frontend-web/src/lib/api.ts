@@ -1133,6 +1133,9 @@ export interface ConversationOut {
   participants: string[];
   participant_names: string[];
   participant_photos: string[];
+  /** Parallel to participant_names — role of each non-self participant.
+   * Optional because older deployments don't return it. */
+  participant_roles?: string[];
   last_message: string | null;
   last_message_at: string | null;
   unread_count: number;

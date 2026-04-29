@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { formatTime, formatChatTimestamp, resolveBadge } from "@/lib/utils";
 import Modal from "@/components/ui/modal";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { Send, Search, MessageSquare, X, ArrowLeft, Plus, Award, Flame, Trophy, ChevronDown, ChevronUp, Pencil, Check, Trash2, GraduationCap, Building2 } from "lucide-react";
+import { Send, Search, MessageSquare, X, ArrowLeft, Plus, Award, Flame, Trophy, ChevronDown, ChevronUp, Pencil, Check, Trash2, GraduationCap, Building2, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 import BadgeIcon from "@/components/badge-icon";
@@ -31,6 +31,15 @@ export default function MessagesView() {
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Inbox search + sort/filter (separate from the new-conversation search above).
+  // sortMode is a single dropdown that combines ordering ("recent"/"alpha") with
+  // role filtering ("lecturers"/"students") since the user only ever picks one.
+  type SortMode = "recent" | "alpha" | "lecturers" | "students";
+  const [inboxQuery, setInboxQuery] = useState("");
+  const [sortMode, setSortMode] = useState<SortMode>("recent");
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
 
   // Edit message
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -205,6 +214,49 @@ export default function MessagesView() {
     refreshConversations();
   };
 
+  // Close the sort dropdown on outside click.
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
+        setShowSortMenu(false);
+      }
+    }
+    if (showSortMenu) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showSortMenu]);
+
+  // Apply inbox search + sort/filter on top of the already-sorted state.
+  // The search matches participant name (case-insensitive); empty = no filter.
+  const visibleConversations = (() => {
+    const q = inboxQuery.trim().toLowerCase();
+    let list = conversations;
+    if (q) {
+      list = list.filter(c => (c.participant_names[0] || "").toLowerCase().includes(q));
+    }
+    if (sortMode === "lecturers") {
+      list = list.filter(c => (c.participant_roles?.[0] || "") === "lecturer");
+    } else if (sortMode === "students") {
+      list = list.filter(c => (c.participant_roles?.[0] || "") === "student");
+    }
+    if (sortMode === "alpha") {
+      list = [...list].sort((a, b) =>
+        (a.participant_names[0] || "").localeCompare(b.participant_names[0] || "")
+      );
+    } else if (sortMode === "lecturers" || sortMode === "students") {
+      // Within a role filter, fall back to recent ordering.
+      list = sortConversations(list);
+    }
+    // "recent" already comes pre-sorted from sortConversations on fetch.
+    return list;
+  })();
+
+  const sortLabels: Record<typeof sortMode, string> = {
+    recent: "Recent",
+    alpha: "A → Z",
+    lecturers: "Lecturers",
+    students: "Students",
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
       <div className="flex items-center justify-between mb-6">
@@ -218,9 +270,77 @@ export default function MessagesView() {
       <div className="glass-card overflow-hidden" style={{ height: "calc(100vh - 12rem)" }}>
         <div className="flex h-full">
           {/* Conversation List */}
-          <div className={clsx("border-r border-white/5 overflow-y-auto",
-            activeConv ? "hidden md:block md:w-80" : "w-full md:w-80"
+          <div className={clsx("border-r border-white/5 flex flex-col",
+            activeConv ? "hidden md:flex md:w-80" : "w-full md:w-80"
           )}>
+            {/* Inbox toolbar — search + sort/filter. Hidden while loading
+                so the empty-state message gets the full panel. */}
+            {!loading && conversations.length > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/5 flex-shrink-0">
+                <div className="relative flex-1">
+                  <Search className="w-3.5 h-3.5 text-dark-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={inboxQuery}
+                    onChange={e => setInboxQuery(e.target.value)}
+                    placeholder="Search chats..."
+                    className="glass-input w-full pl-8 pr-7 py-1.5 text-xs"
+                  />
+                  {inboxQuery && (
+                    <button
+                      onClick={() => setInboxQuery("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-dark-400 hover:text-white"
+                      aria-label="Clear search"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+                <div className="relative" ref={sortMenuRef}>
+                  <button
+                    onClick={() => setShowSortMenu(s => !s)}
+                    className={clsx(
+                      "flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] border transition-colors",
+                      sortMode === "recent"
+                        ? "border-white/10 text-dark-300 hover:bg-white/5"
+                        : "border-accent-blue/40 text-accent-blue bg-accent-blue/10"
+                    )}
+                    title="Sort & filter"
+                  >
+                    <SlidersHorizontal className="w-3 h-3" />
+                    {sortLabels[sortMode]}
+                  </button>
+                  <AnimatePresence>
+                    {showSortMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -4, scale: 0.96 }}
+                        transition={{ duration: 0.12 }}
+                        className="absolute right-0 top-full mt-1.5 w-40 glass-card z-30 py-1 dropdown-menu"
+                      >
+                        {(["recent", "alpha", "lecturers", "students"] as SortMode[]).map(mode => (
+                          <button
+                            key={mode}
+                            onClick={() => { setSortMode(mode); setShowSortMenu(false); }}
+                            className={clsx(
+                              "w-full text-left px-3 py-1.5 text-xs hover:bg-white/5 transition-colors flex items-center justify-between",
+                              sortMode === mode ? "text-accent-blue font-medium" : "text-dark-200"
+                            )}
+                          >
+                            {sortLabels[mode]}
+                            {sortMode === mode && <Check className="w-3 h-3" />}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
+
+            {/* List body */}
+            <div className="flex-1 overflow-y-auto">
             {loading ? (
               <p className="text-dark-400 text-sm text-center py-8">Loading...</p>
             ) : conversations.length === 0 ? (
@@ -229,8 +349,16 @@ export default function MessagesView() {
                 <p className="text-dark-400 text-sm">No conversations yet</p>
                 <p className="text-dark-500 text-xs mt-1">Start a new message</p>
               </div>
+            ) : visibleConversations.length === 0 ? (
+              <div className="text-center py-10 px-4">
+                <Search className="w-8 h-8 text-dark-500 mx-auto mb-2" />
+                <p className="text-dark-400 text-sm">No matches</p>
+                <p className="text-dark-500 text-xs mt-1">
+                  {inboxQuery ? "Try a different search term" : "Try a different filter"}
+                </p>
+              </div>
             ) : (
-              conversations.map(conv => (
+              visibleConversations.map(conv => (
                 <button key={conv.id} onClick={() => { setActiveConv(conv); setShowProfile(false); setProfileUser(null); }}
                   className={clsx("w-full text-left px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors",
                     activeConv?.id === conv.id && "bg-white/5"
@@ -264,6 +392,7 @@ export default function MessagesView() {
                 </button>
               ))
             )}
+            </div>
           </div>
 
           {/* Chat Area */}
