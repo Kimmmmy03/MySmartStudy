@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 
 /**
@@ -12,11 +12,14 @@ import { useAuth } from "@/hooks/use-auth";
  * at /student/messages and /lecturer/messages. Without this redirect,
  * clicking those notifications hits the Next.js not-found page.
  *
- * We don't preserve the conv_id segment because the inbox doesn't deep-link
- * into a specific conversation; landing on the inbox is the right outcome.
+ * Preserve the conv_id (from the path or query) as ?conv= on the inbox URL
+ * so the messages view can auto-open the conversation. New notifications
+ * created by the backend already use this query-param form directly.
  */
 export default function MessagesRedirect() {
   const router = useRouter();
+  const params = useParams();
+  const searchParams = useSearchParams();
   const { profile, loading } = useAuth();
 
   useEffect(() => {
@@ -28,8 +31,16 @@ export default function MessagesRedirect() {
     // Mirror the backend's per-recipient mapping: only student/lecturer have
     // their own inbox route. Anything else (admin, unset) lands on /student.
     const role = profile.role === "lecturer" ? "lecturer" : "student";
-    router.replace(`/${role}/messages`);
-  }, [loading, profile, router]);
+
+    // Slug catch-all: /messages/{conv_id} → first slug segment is the id.
+    const slug = params?.slug;
+    const pathConvId = Array.isArray(slug) ? slug[0] : (typeof slug === "string" ? slug : "");
+    const queryConvId = searchParams?.get("conv") || "";
+    const convId = queryConvId || pathConvId;
+
+    const target = `/${role}/messages${convId ? `?conv=${encodeURIComponent(convId)}` : ""}`;
+    router.replace(target);
+  }, [loading, profile, params, searchParams, router]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

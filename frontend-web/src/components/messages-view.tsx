@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { messagingApi, usersApi, badgesApi, ConversationOut, PrivateMessageOut, UserSearchResult, type UserOut, type BadgeDefinition } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { formatTime, formatChatTimestamp, resolveBadge } from "@/lib/utils";
@@ -14,6 +15,9 @@ import BadgeIcon from "@/components/badge-icon";
 export default function MessagesView() {
   const { user, profile } = useAuth();
   const isStudent = profile?.role === "student";
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [conversations, setConversations] = useState<ConversationOut[]>([]);
   const [activeConv, setActiveConv] = useState<ConversationOut | null>(null);
   const [messages, setMessages] = useState<PrivateMessageOut[]>([]);
@@ -59,6 +63,23 @@ export default function MessagesView() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  // Auto-open a conversation when arriving via a notification link
+  // (?conv={id}). Strip the query after selecting so a refresh doesn't
+  // re-open it after the user navigates away inside the inbox.
+  useEffect(() => {
+    const convId = searchParams?.get("conv");
+    if (!convId || conversations.length === 0) return;
+    if (activeConv?.id === convId) return;
+    const target = conversations.find(c => c.id === convId);
+    if (target) {
+      setActiveConv(target);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("conv");
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname);
+    }
+  }, [searchParams, conversations, activeConv?.id, pathname, router]);
 
   // Poll conversations
   useEffect(() => {

@@ -93,6 +93,31 @@ def _conv_out(c: dict, db, current_user_id: str) -> dict:
     ).model_dump()
 
 
+_EPOCH = datetime.min.replace(tzinfo=timezone.utc)
+
+
+def _to_aware_dt(value) -> datetime:
+    """Normalise heterogeneous timestamp values to a tz-aware datetime so a
+    Python sort doesn't crash. Firestore can return DatetimeWithNanoseconds,
+    a plain datetime, an ISO string (legacy seed data), or None — comparing
+    these directly raises TypeError. Anything we can't parse falls back to
+    epoch so the row sorts to the bottom rather than blowing up the request.
+    """
+    if value is None:
+        return _EPOCH
+    if isinstance(value, datetime):
+        # Naive datetimes from old code paths still need a tzinfo to compare
+        # against tz-aware Firestore timestamps.
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return _EPOCH
+    return _EPOCH
+
+
 @router.get("/conversations")
 def list_conversations(user: dict = Depends(get_current_user), db=Depends(get_db)):
     """Get all conversations for the current user."""
@@ -102,11 +127,7 @@ def list_conversations(user: dict = Depends(get_current_user), db=Depends(get_db
         .get()
     )
     convs = [models.doc_to_dict(d) for d in docs]
-    # Firestore timestamps are tz-aware; bare datetime.min is naive and would
-    # crash sort() with TypeError when a fresh conversation (lastMessageAt=None)
-    # sits next to one with messages.
-    _epoch = datetime.min.replace(tzinfo=timezone.utc)
-    convs.sort(key=lambda c: c.get("lastMessageAt") or _epoch, reverse=True)
+    convs.sort(key=lambda c: _to_aware_dt(c.get("lastMessageAt")), reverse=True)
     return [_conv_out(c, db, user["id"]) for c in convs]
 
 
@@ -151,8 +172,7 @@ def get_messages(
     # Always sort chronologically in Python — protects against the fallback
     # path above (no order_by) and against any Firestore index gaps. Without
     # this, chat history rendered in arbitrary order on the web client.
-    _epoch = datetime.min.replace(tzinfo=timezone.utc)
-    items.sort(key=lambda m: m.get("createdAt") or _epoch)
+    items.sort(key=lambda m: _to_aware_dt(m.get("createdAt")))
     if len(items) > limit:
         items = items[-limit:]
     photo_map = models.get_user_photo_urls(db, [m.get("senderId") for m in items])
@@ -205,13 +225,15 @@ def send_message(
 
     # Notify the other participant. Web routes are role-prefixed
     # (/student/messages, /lecturer/messages) — a bare /messages/{id} link
-    # 404s, so resolve the recipient's role per-user.
+    # 404s. We pass conv as a query param so the inbox page can auto-open
+    # the conversation instead of dropping the user on an empty list.
     other_ids = [pid for pid in conv.get("participants", []) if pid != user["id"]]
     for oid in other_ids:
         recipient_doc = db.collection(models.USERS).document(oid).get()
         recipient = (recipient_doc.to_dict() or {}) if recipient_doc.exists else {}
         role = recipient.get("role") or "student"
-        link = f"/{role}/messages" if role in ("student", "lecturer") else "/student/messages"
+        base = f"/{role}/messages" if role in ("student", "lecturer") else "/student/messages"
+        link = f"{base}?conv={conv_id}"
         create_notification(
             db, oid,
             f"New message from {user.get('displayName', 'Someone')}",
