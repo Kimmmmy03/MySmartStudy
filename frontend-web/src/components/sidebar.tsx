@@ -288,9 +288,13 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
                             collapsed
                               ? "px-0 py-2.5 justify-center rounded-xl"
                               : "px-3 py-3 lg:py-2 rounded-2xl lg:rounded-xl",
+                            // text-dark-100 instead of text-white so the
+                            // light theme palette override (globals.css)
+                            // turns it dark; sidebar-link-active also
+                            // bumps it to navy in light mode.
                             active
-                              ? "text-white bg-gradient-to-r from-accent-blue/25 to-accent-purple/15 lg:from-ipg-navy/15 lg:to-ipg-navy/15 sidebar-link-active"
-                              : "text-dark-200 hover:text-white hover:bg-white/5"
+                              ? "text-dark-100 bg-gradient-to-r from-accent-blue/25 to-accent-purple/15 lg:from-ipg-navy/15 lg:to-ipg-navy/15 sidebar-link-active"
+                              : "text-dark-200 hover:text-dark-100 hover:bg-white/5"
                           )}
                         >
                           {active && (

@@ -197,6 +197,7 @@ export default function NotificationDropdown({ kind = "general" }: NotificationD
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
             onClick={() => setOpen(false)}
           />
@@ -206,10 +207,11 @@ export default function NotificationDropdown({ kind = "general" }: NotificationD
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={isMobile ? { y: "100%" } : { opacity: 0, y: -5, scale: 0.95 }}
+            initial={isMobile ? { y: "100%" } : { opacity: 0, y: -4, scale: 0.97 }}
             animate={isMobile ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
-            exit={isMobile ? { y: "100%" } : { opacity: 0, y: -5, scale: 0.95 }}
-            transition={isMobile ? { type: "spring", damping: 30, stiffness: 320 } : { duration: 0.15 }}
+            exit={isMobile ? { y: "100%" } : { opacity: 0, y: -4, scale: 0.97 }}
+            // Faster snap: stiffer spring on mobile, shorter duration on desktop.
+            transition={isMobile ? { type: "spring", damping: 28, stiffness: 480, mass: 0.6 } : { duration: 0.1, ease: "easeOut" }}
             className={clsx(
               "overflow-hidden glass-card notification-dropdown flex flex-col",
               isMobile

@@ -180,11 +180,18 @@ export default function AiCompanionWidget() {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Listen for mobile bottom nav trigger
+  // Listen for mobile bottom nav trigger.
+  // 'open-ai-companion' (legacy) only opens; 'toggle-ai-companion' flips the
+  // current state so a second tap on the FAB closes the panel.
   useEffect(() => {
-    const handler = () => setOpen(true);
-    window.addEventListener("open-ai-companion", handler);
-    return () => window.removeEventListener("open-ai-companion", handler);
+    const open = () => setOpen(true);
+    const toggle = () => setOpen(prev => !prev);
+    window.addEventListener("open-ai-companion", open);
+    window.addEventListener("toggle-ai-companion", toggle);
+    return () => {
+      window.removeEventListener("open-ai-companion", open);
+      window.removeEventListener("toggle-ai-companion", toggle);
+    };
   }, []);
   const [guide, setGuide] = useState<DailyGuide | null>(null);
   const [loading, setLoading] = useState(false);

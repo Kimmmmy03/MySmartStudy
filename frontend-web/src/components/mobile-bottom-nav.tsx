@@ -40,7 +40,9 @@ export default function MobileBottomNav({ role }: { role?: string }) {
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
       try { navigator.vibrate(15); } catch { /* ignore */ }
     }
-    window.dispatchEvent(new CustomEvent("open-ai-companion"));
+    // Toggle so a second tap on the same FAB collapses the AI panel
+    // (using the same circular reveal animation in reverse).
+    window.dispatchEvent(new CustomEvent("toggle-ai-companion"));
   };
 
   // Floating capsule that visually detaches from the screen edge.
