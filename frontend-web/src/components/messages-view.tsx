@@ -320,34 +320,34 @@ export default function MessagesView() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-      {/* Page header — collapse to a tight bar on mobile so the chat
-          gets back vertical space; hide it entirely once a conversation
-          is open on phones since the chat header already shows context. */}
-      <div className={clsx(
-        "flex items-center justify-between mb-3 md:mb-6",
-        activeConv && "hidden md:flex"
-      )}>
-        <h1 className="text-xl md:text-2xl font-bold text-white">Messages</h1>
+      {/* Desktop-only page header. Mobile gives all vertical real estate
+          to the chat panel — "New Message" lives as a FAB instead. */}
+      <div className="hidden md:flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-white">Messages</h1>
         <button onClick={() => setShowNew(true)}
-          className="btn-gradient relative z-10 flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg text-sm">
+          className="btn-gradient relative z-10 flex items-center gap-2 px-4 py-2 rounded-lg text-sm">
           <span className="relative z-10 flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">New Message</span>
-            <span className="sm:hidden">New</span>
+            New Message
           </span>
         </button>
       </div>
 
-      {/* Mobile: svh + a deliberately generous reserve. Reserves are:
-          navbar 3.5 + p-4 top 1 + page-header (mb-3 + button row) ~3
-          + main pb-24 6 + bottom-nav UI 3 + safe-area inset ~2.5
-          ≈ 19rem when header visible / 16rem when chat is open.
-          Headroom is intentional — better an extra inch of space than
-          a clipped bottom row. Desktop keeps the in-flow vh sizing. */}
+      {/* Mobile: position:fixed, anchored to viewport edges. Top sits
+          under the sticky navbar (h-14 = 3.5rem); bottom clears the
+          fixed MobileBottomNav (~4rem of UI + safe-area inset).
+          z-20 keeps it below the navbar (z-40) and bottom-nav (z-50)
+          so neither is ever obscured. `isolate` creates a clean
+          stacking context so child blur/transform effects can't leak.
+          Desktop keeps the original in-flow sizing. */}
       <div className={clsx(
-        "glass-card overflow-hidden",
-        "md:h-[calc(100vh-12rem)]",
-        activeConv ? "h-[calc(100svh-16rem)]" : "h-[calc(100svh-19rem)]"
+        "glass-card overflow-hidden isolate",
+        // Desktop: in-flow with original height.
+        "md:static md:h-[calc(100vh-12rem)] md:rounded-2xl md:inset-x-auto",
+        // Mobile: pinned to viewport, no rounded sides (native chat feel),
+        // top under sticky navbar, bottom above MobileBottomNav + safe-area.
+        "fixed inset-x-0 z-20 rounded-none border-x-0",
+        "top-[calc(3.5rem+env(safe-area-inset-top,0px))] bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)]"
       )}>
         <div className="flex h-full">
           {/* Conversation List */}
@@ -758,6 +758,22 @@ export default function MessagesView() {
           )}
         </div>
       </div>
+
+      {/* Mobile FAB for "New Message" — replaces the page-header button
+          that's now hidden on phones. Sits above the bottom nav, anchored
+          to the right edge. Hidden when a chat is open (the chat header
+          owns that screen). z-30 keeps it above the chat container (z-20)
+          but below the bottom nav (z-50). */}
+      {!activeConv && (
+        <button
+          onClick={() => setShowNew(true)}
+          className="md:hidden fixed right-4 z-30 w-14 h-14 rounded-full bg-gradient-to-br from-accent-blue to-accent-purple text-white shadow-lg shadow-accent-blue/40 flex items-center justify-center active:scale-95 transition-transform"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 5.25rem)" }}
+          aria-label="New message"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      )}
 
       {/* Delete confirmation — uses the project's Modal so the dialog
           matches the rest of the UI instead of the OS browser prompt. */}
