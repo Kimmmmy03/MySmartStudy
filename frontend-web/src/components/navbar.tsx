@@ -69,8 +69,11 @@ export default function Navbar({ onMobileMenuToggle }: { onMobileMenuToggle?: ()
           </button>
         )}
 
-        {/* Logo — clean on mobile (no box wrapper), full chip on desktop */}
-        <div className="flex items-center gap-2 lg:gap-3 lg:px-3 lg:py-1.5 lg:rounded-xl lg:bg-white/5 lg:border lg:border-white/8 navbar-logo-box">
+        {/* Logo chip — rounded pill on mobile, larger rounded rectangle on
+            desktop. Padding + radius now apply on every breakpoint so the
+            navbar-logo-box CSS (frosted background + border) doesn't leave
+            unrounded square edges around the small mobile content. */}
+        <div className="flex items-center gap-2 lg:gap-3 px-2.5 lg:px-3 py-1 lg:py-1.5 rounded-full lg:rounded-xl bg-white/5 border border-white/10 navbar-logo-box">
           <Image
             src="/logo.png"
             alt="MySmartStudy"
@@ -79,7 +82,7 @@ export default function Navbar({ onMobileMenuToggle }: { onMobileMenuToggle?: ()
             className="lg:w-[34px] lg:h-[34px]"
           />
           <span className="hidden sm:inline text-lg font-bold text-gradient">MySmartStudy</span>
-          <span className="sm:hidden text-base font-bold text-gradient">MSS</span>
+          <span className="sm:hidden text-sm font-bold text-gradient">MSS</span>
         </div>
       </div>
 
