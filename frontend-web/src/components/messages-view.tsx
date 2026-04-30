@@ -348,7 +348,7 @@ export default function MessagesView() {
         // corners "float" above the dashboard background — modern chat
         // app feel rather than a fullscreen takeover.
         "fixed inset-x-2 z-20 rounded-3xl",
-        "top-[calc(3.5rem+env(safe-area-inset-top,0px)+0.25rem)] bottom-[calc(env(safe-area-inset-bottom,0px)+4.75rem)]"
+        "top-[calc(3.5rem+env(safe-area-inset-top,0px)+0.25rem)] bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)]"
       )}>
         <div className="flex h-full">
           {/* Conversation List */}
@@ -776,7 +776,7 @@ export default function MessagesView() {
         <button
           onClick={() => setShowNew(true)}
           className="md:hidden fixed right-4 z-30 w-14 h-14 rounded-full bg-gradient-to-br from-accent-blue to-accent-purple text-white shadow-lg shadow-accent-blue/40 flex items-center justify-center active:scale-95 transition-transform"
-          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 5.25rem)" }}
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 6.25rem)" }}
           aria-label="New message"
         >
           <Plus className="w-6 h-6" />
