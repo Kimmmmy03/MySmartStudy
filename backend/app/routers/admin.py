@@ -531,7 +531,8 @@ def get_top_users(
         features = {k: int(v or 0) for k, v in (data.get("features") or {}).items()}
         platforms = {k: int(v or 0) for k, v in (data.get("platforms") or {}).items()}
 
-        # Enrich with user info
+        # Enrich with user info — includes academic context (class / year /
+        # semester / department) so the analytics table can group by cohort.
         user_info = {}
         try:
             u_doc = db.collection(models.USERS).document(uid).get()
@@ -542,6 +543,10 @@ def get_top_users(
                     "email": u.get("email", ""),
                     "photoURL": u.get("photoURL", ""),
                     "role": u.get("role", ""),
+                    "className": u.get("className", "") or "",
+                    "year": u.get("year"),
+                    "semester": u.get("semester"),
+                    "department": u.get("department", "") or "",
                 }
         except Exception:
             pass
@@ -633,6 +638,10 @@ def get_user_analytics(
             "email": u.get("email", ""),
             "photoURL": u.get("photoURL", ""),
             "role": u.get("role", ""),
+            "className": u.get("className", "") or "",
+            "year": u.get("year"),
+            "semester": u.get("semester"),
+            "department": u.get("department", "") or "",
         },
         "totalMinutes": total,
         "totalLabel": _minutes_to_label(total),

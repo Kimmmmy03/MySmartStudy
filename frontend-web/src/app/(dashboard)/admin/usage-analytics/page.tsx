@@ -71,22 +71,50 @@ export default function UsageAnalyticsPage() {
   const summary = data?.summary;
 
   // ── Search / filter / sort / paginate ──
-  type SortKey = "rank" | "name" | "role" | "total" | "mostUsed" | "lastSeen";
+  type SortKey = "rank" | "name" | "role" | "total" | "mostUsed" | "lastSeen" | "class";
   const [searchInput, setSearchInput] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "student" | "lecturer" | "admin">("all");
+  // Department filter — populated from the data so admins can scope to a
+  // single faculty/dept. "all" disables the filter.
+  const [deptFilter, setDeptFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("total");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const pageSize = 25;
 
+  // Unique non-empty department list, sorted, derived from the loaded users.
+  const departments = useMemo(() => {
+    const set = new Set<string>();
+    for (const u of users) {
+      const d = u.user.department?.trim();
+      if (d) set.add(d);
+    }
+    return Array.from(set).sort();
+  }, [users]);
+
+  // Format class/dept/year-semester into a single chip-friendly label per row.
+  const cohortLabel = (u: TopUserRecord["user"]) => {
+    const parts: string[] = [];
+    if (u.className) parts.push(u.className);
+    if (u.department) parts.push(u.department);
+    if (u.year) parts.push(`Y${u.year}`);
+    if (u.semester) parts.push(`S${u.semester}`);
+    return parts.join(" · ");
+  };
+
   const visibleUsers = useMemo(() => {
     const term = searchInput.trim().toLowerCase();
     let list = users;
     if (roleFilter !== "all") list = list.filter(u => (u.user.role || "").toLowerCase() === roleFilter);
+    if (deptFilter !== "all") list = list.filter(u => (u.user.department || "") === deptFilter);
     if (term) {
+      // Match name, email, OR class/department so admins can search "BIT 2A"
+      // or "computer science" directly from the search box.
       list = list.filter(u =>
         (u.user.displayName || "").toLowerCase().includes(term) ||
-        (u.user.email || "").toLowerCase().includes(term)
+        (u.user.email || "").toLowerCase().includes(term) ||
+        (u.user.className || "").toLowerCase().includes(term) ||
+        (u.user.department || "").toLowerCase().includes(term)
       );
     }
     const sorted = [...list].sort((a, b) => {
@@ -97,6 +125,9 @@ export default function UsageAnalyticsPage() {
           break;
         case "role":
           cmp = (a.user.role || "").localeCompare(b.user.role || "");
+          break;
+        case "class":
+          cmp = cohortLabel(a.user).localeCompare(cohortLabel(b.user));
           break;
         case "total":
           cmp = a.totalMinutes - b.totalMinutes;
@@ -113,9 +144,10 @@ export default function UsageAnalyticsPage() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return sorted;
-  }, [users, searchInput, roleFilter, sortKey, sortDir]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [users, searchInput, roleFilter, deptFilter, sortKey, sortDir]);
 
-  useEffect(() => { setPage(1); }, [searchInput, roleFilter, sortKey, sortDir]);
+  useEffect(() => { setPage(1); }, [searchInput, roleFilter, deptFilter, sortKey, sortDir]);
   const totalPages = Math.max(1, Math.ceil(visibleUsers.length / pageSize));
   const pagedUsers = visibleUsers.slice((page - 1) * pageSize, page * pageSize);
 
@@ -169,13 +201,14 @@ export default function UsageAnalyticsPage() {
       autoTable(doc, {
         startY: 90,
         head: [[
-          "#", "Name", "Email", "Role", "Total Time", "Most Used", "Least Used", "Last Seen",
+          "#", "Name", "Email", "Role", "Class / Dept", "Total Time", "Most Used", "Least Used", "Last Seen",
         ]],
         body: visibleUsers.map((u, i) => [
           i + 1,
           u.user.displayName || "Unknown",
           u.user.email || "",
           u.user.role || "",
+          cohortLabel(u.user) || "—",
           u.totalLabel,
           u.mostUsedFeature ? featureLabel(u.mostUsedFeature) : "—",
           u.leastUsedFeature ? featureLabel(u.leastUsedFeature) : "—",
@@ -342,8 +375,8 @@ export default function UsageAnalyticsPage() {
                 type="text"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
-                placeholder="Search name or email..."
-                className="glass-input pl-8 pr-7 py-1.5 text-xs w-56 rounded-lg"
+                placeholder="Search name, email, class, dept..."
+                className="glass-input pl-8 pr-7 py-1.5 text-xs w-64 rounded-lg"
               />
               {searchInput && (
                 <button
@@ -355,6 +388,21 @@ export default function UsageAnalyticsPage() {
                 </button>
               )}
             </div>
+            {/* Department dropdown — only render once we have at least one
+                department to filter by, so the chip doesn't dangle empty. */}
+            {departments.length > 0 && (
+              <select
+                value={deptFilter}
+                onChange={e => setDeptFilter(e.target.value)}
+                className="glass-input py-1.5 px-2 text-xs rounded-lg max-w-[12rem]"
+                aria-label="Filter by department"
+              >
+                <option value="all">All departments</option>
+                {departments.map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            )}
             {/* Role filter chips */}
             <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5">
               {(["all", "student", "lecturer", "admin"] as const).map(r => (
@@ -398,6 +446,7 @@ export default function UsageAnalyticsPage() {
                     <th className="text-left p-3 pl-4">#</th>
                     <SortHeader label="User" active={sortKey === "name"} dir={sortDir} onClick={() => toggleSort("name")} />
                     <SortHeader label="Role" active={sortKey === "role"} dir={sortDir} onClick={() => toggleSort("role")} />
+                    <SortHeader label="Class / Dept" active={sortKey === "class"} dir={sortDir} onClick={() => toggleSort("class")} />
                     <SortHeader label="Total Time" align="right" active={sortKey === "total"} dir={sortDir} onClick={() => toggleSort("total")} />
                     <SortHeader label="Most Used" active={sortKey === "mostUsed"} dir={sortDir} onClick={() => toggleSort("mostUsed")} />
                     <th className="text-left p-3">Least Used</th>
@@ -429,6 +478,27 @@ export default function UsageAnalyticsPage() {
                         </div>
                       </td>
                       <td className="p-3 capitalize text-dark-300 text-xs">{row.user.role || "—"}</td>
+                      <td className="p-3 text-xs">
+                        {(() => {
+                          const label = cohortLabel(row.user);
+                          if (!label) return <span className="text-dark-500">—</span>;
+                          return (
+                            <div className="flex flex-wrap gap-1">
+                              {row.user.className && (
+                                <span className="px-1.5 py-0.5 rounded bg-accent-blue/10 text-accent-blue">{row.user.className}</span>
+                              )}
+                              {row.user.department && (
+                                <span className="px-1.5 py-0.5 rounded bg-accent-purple/10 text-accent-purple">{row.user.department}</span>
+                              )}
+                              {(row.user.year || row.user.semester) && (
+                                <span className="px-1.5 py-0.5 rounded bg-accent-emerald/10 text-accent-emerald">
+                                  {row.user.year ? `Y${row.user.year}` : ""}{row.user.year && row.user.semester ? "·" : ""}{row.user.semester ? `S${row.user.semester}` : ""}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td className="p-3 text-right font-mono text-white/80">{row.totalLabel}</td>
                       <td className="p-3 text-white/70">{row.mostUsedFeature ? featureLabel(row.mostUsedFeature) : "—"}</td>
                       <td className="p-3 text-white/50">{row.leastUsedFeature ? featureLabel(row.leastUsedFeature) : "—"}</td>

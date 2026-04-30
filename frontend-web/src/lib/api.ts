@@ -1645,7 +1645,17 @@ export const adminApi = {
 // ── Usage Analytics types ──
 export interface TopUserRecord {
   userId: string;
-  user: { displayName: string; email: string; photoURL: string; role: string };
+  user: {
+    displayName: string;
+    email: string;
+    photoURL: string;
+    role: string;
+    /** Academic context — populated for students; empty/null for staff. */
+    className?: string;
+    year?: number | null;
+    semester?: number | null;
+    department?: string;
+  };
   totalMinutes: number;
   totalLabel: string;
   features: Record<string, number>;
@@ -1670,7 +1680,17 @@ export interface TopUsersResponse {
 }
 
 export interface UserAnalyticsResponse {
-  user: { id: string; displayName: string; email: string; photoURL: string; role: string };
+  user: {
+    id: string;
+    displayName: string;
+    email: string;
+    photoURL: string;
+    role: string;
+    className?: string;
+    year?: number | null;
+    semester?: number | null;
+    department?: string;
+  };
   totalMinutes: number;
   totalLabel: string;
   features: Record<string, number>;
