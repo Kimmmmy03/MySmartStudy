@@ -344,10 +344,11 @@ export default function MessagesView() {
         "glass-card overflow-hidden isolate",
         // Desktop: in-flow with original height.
         "md:static md:h-[calc(100vh-12rem)] md:rounded-2xl md:inset-x-auto",
-        // Mobile: pinned to viewport, no rounded sides (native chat feel),
-        // top under sticky navbar, bottom above MobileBottomNav + safe-area.
-        "fixed inset-x-0 z-20 rounded-none border-x-0",
-        "top-[calc(3.5rem+env(safe-area-inset-top,0px))] bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)]"
+        // Mobile: pinned to viewport with a soft inset so the rounded
+        // corners "float" above the dashboard background — modern chat
+        // app feel rather than a fullscreen takeover.
+        "fixed inset-x-2 z-20 rounded-3xl",
+        "top-[calc(3.5rem+env(safe-area-inset-top,0px)+0.25rem)] bottom-[calc(env(safe-area-inset-bottom,0px)+4.75rem)]"
       )}>
         <div className="flex h-full">
           {/* Conversation List */}
@@ -357,23 +358,23 @@ export default function MessagesView() {
             {/* Inbox toolbar — search + sort/filter. Hidden while loading
                 so the empty-state message gets the full panel. */}
             {!loading && conversations.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/5 flex-shrink-0">
+              <div className="flex items-center gap-2 px-3 pt-3 pb-2 flex-shrink-0">
                 <div className="relative flex-1">
-                  <Search className="w-3.5 h-3.5 text-dark-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Search className="w-4 h-4 text-dark-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     value={inboxQuery}
                     onChange={e => setInboxQuery(e.target.value)}
                     placeholder="Search chats..."
-                    className="glass-input w-full pl-8 pr-7 py-1.5 text-xs"
+                    className="glass-input w-full pl-10 pr-8 py-2 text-xs rounded-full"
                   />
                   {inboxQuery && (
                     <button
                       onClick={() => setInboxQuery("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-dark-400 hover:text-white"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-dark-400 hover:text-white"
                       aria-label="Clear search"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
@@ -381,7 +382,7 @@ export default function MessagesView() {
                   <button
                     onClick={() => setShowSortMenu(s => !s)}
                     className={clsx(
-                      "flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] border transition-colors",
+                      "flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] border transition-colors",
                       sortMode === "recent"
                         ? "border-white/10 text-dark-300 hover:bg-white/5"
                         : "border-accent-blue/40 text-accent-blue bg-accent-blue/10"
@@ -441,7 +442,13 @@ export default function MessagesView() {
             ) : (
               visibleConversations.map(conv => (
                 <button key={conv.id} onClick={() => { setActiveConv(conv); setShowProfile(false); setProfileUser(null); }}
-                  className={clsx("w-full text-left px-3 md:px-4 py-2.5 md:py-3 border-b border-white/5 hover:bg-white/5 active:bg-white/10 transition-colors",
+                  className={clsx(
+                    // Mobile: floating rounded chip with side margins.
+                    // Desktop: keeps the full-width row with hairline divider.
+                    "block w-[calc(100%-1rem)] md:w-full text-left transition-colors",
+                    "mx-2 md:mx-0 my-1 md:my-0 rounded-2xl md:rounded-none px-3 md:px-4 py-2.5 md:py-3",
+                    "md:border-b md:border-white/5",
+                    "hover:bg-white/5 active:bg-white/10 active:scale-[0.99] md:active:scale-100",
                     activeConv?.id === conv.id && "bg-white/5"
                   )}>
                   <div className="flex items-center gap-3">
@@ -648,13 +655,13 @@ export default function MessagesView() {
                               setActionsOpenId(msg.id);
                             }
                           }}
-                          className={clsx("max-w-[85%] md:max-w-[70%] rounded-2xl px-3.5 md:px-4 py-2 md:py-2.5 relative select-none md:select-auto",
+                          className={clsx("max-w-[85%] md:max-w-[70%] px-4 py-2.5 relative select-none md:select-auto",
                           isDeleted
                             ? "bg-dark-700/40 border border-white/5 text-dark-400 italic"
                             : isMine
-                              ? "bg-accent-blue text-white rounded-br-md"
-                              : "bg-dark-800/50 border border-white/10 rounded-bl-md"
-                        )} style={isDeleted ? { borderRadius: "16px" } : !isMine ? { borderRadius: "16px 16px 16px 4px" } : { borderRadius: "16px 16px 4px 16px" }}>
+                              ? "bg-accent-blue text-white"
+                              : "bg-dark-800/60 border border-white/10"
+                        )} style={isDeleted ? { borderRadius: "22px" } : !isMine ? { borderRadius: "22px 22px 22px 6px" } : { borderRadius: "22px 22px 6px 22px" }}>
                           {isDeleted ? (
                             <p className="text-sm flex items-center gap-1.5">
                               <Trash2 className="w-3.5 h-3.5" />
@@ -728,20 +735,21 @@ export default function MessagesView() {
                 <div ref={bottomRef} />
               </div>
 
-              {/* Input — pr-20 only on desktop where the floating AI button
+              {/* Input — pill-shaped textarea + circular send button.
+                  pr-20 only on desktop where the floating AI button
                   overlaps; mobile reclaims that space for the textarea. */}
               <div className={clsx(
-                "flex gap-2 p-2.5 md:p-3 border-t border-white/5",
+                "flex items-end gap-2 p-3 border-t border-white/5",
                 isStudent && "md:pr-20"
               )}>
                 <textarea value={text} onChange={e => setText(e.target.value)}
                   placeholder="Type a message..." rows={1}
-                  className="glass-input flex-1 px-3 md:px-4 py-2 md:py-2.5 text-sm resize-none min-w-0"
+                  className="glass-input flex-1 px-4 py-2.5 text-sm resize-none min-w-0 rounded-3xl"
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
                 <button
                   onClick={handleSend}
                   disabled={!text.trim()}
-                  className="btn-gradient p-2.5 rounded-xl relative z-10 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                  className="btn-gradient w-11 h-11 rounded-full relative z-10 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 flex items-center justify-center active:scale-95 transition-transform"
                   aria-label="Send message"
                 >
                   <Send className="w-5 h-5 text-white relative z-10" />
