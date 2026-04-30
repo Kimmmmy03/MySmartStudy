@@ -338,25 +338,16 @@ export default function MessagesView() {
         </button>
       </div>
 
-      {/* Mobile: pin between the sticky navbar (3.5rem from top) and a
-          gap that clears the fixed MobileBottomNav (~5.5rem of UI plus
-          safe-area inset). The +0.75rem on top is breathing room under
-          the page header when it's visible. Using `fixed` sidesteps the
-          fragile rem math we were doing — the chat can't extend past
-          the visible viewport because its top/bottom are anchored
-          directly to the viewport edges.
-          Desktop keeps the original vh-based glass card so the page
-          header still has room above it. */}
+      {/* Mobile: svh + a deliberately generous reserve. Reserves are:
+          navbar 3.5 + p-4 top 1 + page-header (mb-3 + button row) ~3
+          + main pb-24 6 + bottom-nav UI 3 + safe-area inset ~2.5
+          ≈ 19rem when header visible / 16rem when chat is open.
+          Headroom is intentional — better an extra inch of space than
+          a clipped bottom row. Desktop keeps the in-flow vh sizing. */}
       <div className={clsx(
         "glass-card overflow-hidden",
-        "md:static md:h-[calc(100vh-12rem)]",
-        // Mobile: fixed anchors. Top accounts for navbar + page header
-        // when present; bottom clears the bottom nav + safe-area.
-        "fixed left-3 right-3 z-10",
-        activeConv
-          ? "top-[calc(3.5rem+0.75rem)]"
-          : "top-[calc(3.5rem+3.75rem)]",
-        "bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)]"
+        "md:h-[calc(100vh-12rem)]",
+        activeConv ? "h-[calc(100svh-16rem)]" : "h-[calc(100svh-19rem)]"
       )}>
         <div className="flex h-full">
           {/* Conversation List */}
