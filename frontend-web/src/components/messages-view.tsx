@@ -424,7 +424,26 @@ export default function MessagesView() {
             {/* List body */}
             <div className="flex-1 overflow-y-auto">
             {loading ? (
-              <p className="text-dark-400 text-sm text-center py-8">Loading...</p>
+              // Skeleton rows that mimic the real conversation row layout
+              // so the shift on load is minimal. Five rows fills the
+              // typical phone viewport without over-scrolling.
+              <div className="px-2 md:px-0 py-2 space-y-2 md:space-y-0">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 px-3 md:px-4 py-2.5 md:py-3 rounded-2xl md:rounded-none animate-pulse"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-white/10 flex-shrink-0" />
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="h-3 w-28 rounded-full bg-white/10" />
+                        <div className="h-2.5 w-10 rounded-full bg-white/5" />
+                      </div>
+                      <div className="h-2.5 w-3/4 rounded-full bg-white/5" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : conversations.length === 0 ? (
               <div className="text-center py-12">
                 <MessageSquare className="w-10 h-10 text-dark-500 mx-auto mb-3" />

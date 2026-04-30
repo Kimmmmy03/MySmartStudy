@@ -207,7 +207,9 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
               }}
             />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white truncate">{profile?.displayName || "Welcome"}</p>
+              {/* text-dark-100 instead of text-white so it adapts to light
+                  theme via the html.light override in globals.css. */}
+              <p className="text-sm font-semibold text-dark-100 truncate">{profile?.displayName || "Welcome"}</p>
               <span className="inline-flex items-center mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gradient-to-r from-accent-blue/20 to-accent-purple/20 text-accent-blue uppercase tracking-wider">
                 {roleLabel}
               </span>

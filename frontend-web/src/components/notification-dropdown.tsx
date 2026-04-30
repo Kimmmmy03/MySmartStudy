@@ -57,6 +57,17 @@ export default function NotificationDropdown({ kind = "general" }: NotificationD
   const [allNotifications, setAllNotifications] = useState<NotificationDigestItem[]>([]);
   const ref = useRef<HTMLDivElement>(null);
 
+  // Mobile uses a bottom-sheet instead of a corner dropdown so the panel
+  // doesn't get clipped by the screen edge.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   // Fetch a slightly wider window so message + general buckets each have
   // enough rows even when one type dominates the user's feed.
   const fetchNotifications = useCallback(async () => {
@@ -180,14 +191,40 @@ export default function NotificationDropdown({ kind = "general" }: NotificationD
       </button>
 
       <AnimatePresence>
+        {open && isMobile && (
+          // Backdrop for mobile bottom-sheet — taps anywhere outside dismiss.
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            onClick={() => setOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -5, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -5, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-2 w-96 max-h-[28rem] overflow-hidden glass-card z-50 notification-dropdown flex flex-col"
+            initial={isMobile ? { y: "100%" } : { opacity: 0, y: -5, scale: 0.95 }}
+            animate={isMobile ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={isMobile ? { y: "100%" } : { opacity: 0, y: -5, scale: 0.95 }}
+            transition={isMobile ? { type: "spring", damping: 30, stiffness: 320 } : { duration: 0.15 }}
+            className={clsx(
+              "overflow-hidden glass-card notification-dropdown flex flex-col",
+              isMobile
+                // Bottom sheet — anchored to the bottom, full-width, rounded
+                // top, max-height 75vh leaves room for the navbar above.
+                ? "fixed inset-x-0 bottom-0 z-[60] rounded-t-3xl rounded-b-none max-h-[75vh] pb-[env(safe-area-inset-bottom,0px)]"
+                : "absolute right-0 top-full mt-2 w-96 max-h-[28rem] z-50"
+            )}
           >
+            {/* Drag handle (mobile only) for visual affordance */}
+            {isMobile && (
+              <div className="flex justify-center pt-2 pb-1 flex-shrink-0">
+                <div className="w-10 h-1 rounded-full bg-white/20" />
+              </div>
+            )}
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 notif-divider flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -269,10 +306,11 @@ export default function NotificationDropdown({ kind = "general" }: NotificationD
                           </div>
                           <button
                             onClick={(e) => handleDelete(e, n)}
-                            className="p-1 rounded-lg opacity-0 group-hover:opacity-100 text-gray-400 dark:text-dark-500 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0"
+                            className="p-1.5 rounded-lg opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-gray-400 dark:text-dark-500 hover:text-red-400 hover:bg-red-500/10 active:scale-90 transition-all flex-shrink-0"
                             title="Delete notification"
+                            aria-label="Delete notification"
                           >
-                            <X className="w-3.5 h-3.5" />
+                            <X className="w-4 h-4 lg:w-3.5 lg:h-3.5" />
                           </button>
                         </div>
                       </div>

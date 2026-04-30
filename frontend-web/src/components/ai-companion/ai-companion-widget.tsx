@@ -604,19 +604,42 @@ const loadData = useCallback(async () => {
         )}
       </AnimatePresence>
 
-      {/* Panel */}
+      {/* Panel — mobile expands from the bottom-nav FAB with a circular
+          reveal (clip-path), desktop keeps the floating-card scale-in. */}
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-6 right-6 z-50 w-[400px] max-h-[560px] rounded-2xl shadow-2xl shadow-black/20 flex flex-col overflow-hidden"
+            initial={
+              isMobile
+                ? { clipPath: "circle(28px at 50% calc(100% - 6rem))" }
+                : { opacity: 0, y: 20, scale: 0.95 }
+            }
+            animate={
+              isMobile
+                ? { clipPath: "circle(150% at 50% calc(100% - 6rem))" }
+                : { opacity: 1, y: 0, scale: 1 }
+            }
+            exit={
+              isMobile
+                ? { clipPath: "circle(28px at 50% calc(100% - 6rem))" }
+                : { opacity: 0, y: 20, scale: 0.95 }
+            }
+            transition={
+              isMobile
+                ? { duration: 0.45, ease: [0.22, 1, 0.36, 1] }
+                : { type: "spring", damping: 25, stiffness: 300 }
+            }
+            className={
+              isMobile
+                ? "fixed inset-0 z-50 flex flex-col overflow-hidden"
+                : "fixed bottom-6 right-6 z-50 w-[400px] max-h-[560px] rounded-2xl shadow-2xl shadow-black/20 flex flex-col overflow-hidden"
+            }
             style={{
               background: "#ffffff",
-              border: "1px solid #e5e7eb",
+              border: isMobile ? "none" : "1px solid #e5e7eb",
               color: "#1a1a2e",
+              paddingTop: isMobile ? "env(safe-area-inset-top, 0px)" : 0,
+              paddingBottom: isMobile ? "env(safe-area-inset-bottom, 0px)" : 0,
             }}
           >
             {/* Header */}
