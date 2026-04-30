@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import {
   LayoutDashboard, Map, BookOpen, Calendar, CalendarDays, Award, User, BarChart3, Activity,
-  Users, Eye, BadgeCheck, X, Shield, ScrollText, ChevronLeft, ChevronRight, ChevronDown, Newspaper, GraduationCap, MessageCircle, Bell, UserCheck, Compass, BarChart2, Megaphone,
+  Users, Eye, BadgeCheck, X, ScrollText, ChevronLeft, ChevronRight, ChevronDown, Newspaper, GraduationCap, MessageCircle, Bell, UserCheck, Compass, BarChart2, Megaphone, LogOut,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -125,6 +125,14 @@ const adminGroups: NavGroup[] = [
   },
 ];
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:8000";
+
+function resolvePhotoUrl(url?: string): string {
+  if (!url) return "";
+  if (url.startsWith("/")) return `${BACKEND_URL}${url}`;
+  return url;
+}
+
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
@@ -133,15 +141,25 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: SidebarProps) {
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
+  const router = useRouter();
   const pathname = usePathname();
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
   const groups = profile?.role === "admin" ? adminGroups : profile?.role === "lecturer" ? lecturerGroups : studentGroups;
   const roleLabel = profile?.role === "admin" ? "Admin" : profile?.role === "lecturer" ? "Lecturer" : "Student";
 
+  const resolvedPhoto = resolvePhotoUrl(profile?.photoURL);
+  const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.displayName || "U")}&background=1B2A80&color=fff`;
+  const avatarUrl = resolvedPhoto || fallbackAvatar;
+
   const toggleGroup = (id: string) => {
     setCollapsedGroups(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/");
   };
 
   return (
@@ -161,17 +179,46 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
 
       <aside
         className={clsx(
-          "fixed lg:sticky top-[3.5rem] lg:top-16 left-0 h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4rem)] glass border-r border-white/5 z-50 transition-all duration-300",
+          // Desktop: sticky in-flow column. Mobile: fixed drawer with rounded right edge.
+          "fixed lg:sticky top-[3.5rem] lg:top-16 left-0 h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4rem)] z-50 transition-all duration-300",
+          // Drawer styling — glass + rounded right corners on mobile only.
+          "glass border-r border-white/5 lg:rounded-r-none rounded-r-3xl shadow-2xl lg:shadow-none",
           "lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
-          collapsed ? "lg:w-16 w-72" : "w-72 lg:w-64"
+          collapsed ? "lg:w-16 w-[88vw] max-w-[20rem]" : "w-[88vw] max-w-[20rem] lg:w-64"
         )}
       >
-        {/* Mobile header */}
-        <div className="flex items-center justify-between px-5 py-3 lg:hidden border-b border-white/5 mobile-menu-border">
-          <span className="text-xs font-semibold text-dark-300 sidebar-label uppercase tracking-widest">{roleLabel} Menu</span>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
-            <X className="w-5 h-5 text-dark-300 sidebar-icon" />
+        {/* ── Mobile profile header ──
+            Replaces the old plain "Student Menu" label with a richer card:
+            avatar + name + role badge. Tappable to jump to the profile page. */}
+        <div className="lg:hidden flex items-start justify-between gap-2 px-4 pt-4 pb-3 border-b border-white/5 mobile-menu-border">
+          <Link
+            href={profile?.role === "lecturer" ? "/lecturer/profile" : profile?.role === "admin" ? "/admin/dashboard" : "/student/profile"}
+            onClick={onClose}
+            className="flex items-center gap-3 flex-1 min-w-0"
+          >
+            <img
+              src={avatarUrl}
+              alt=""
+              className="w-12 h-12 rounded-full ring-2 ring-ipg-navy/30 flex-shrink-0"
+              onError={(e) => {
+                const img = e.currentTarget;
+                if (img.src !== fallbackAvatar) img.src = fallbackAvatar;
+              }}
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-white truncate">{profile?.displayName || "Welcome"}</p>
+              <span className="inline-flex items-center mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gradient-to-r from-accent-blue/20 to-accent-purple/20 text-accent-blue uppercase tracking-wider">
+                {roleLabel}
+              </span>
+            </div>
+          </Link>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all flex-shrink-0"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5 text-dark-300" />
           </button>
         </div>
 
@@ -193,19 +240,22 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
           </button>
         </div>
 
-        <nav className={clsx("space-y-0.5 overflow-y-auto", collapsed ? "px-2" : "px-3")} style={{ maxHeight: "calc(100% - 8rem)" }}>
+        <nav
+          className={clsx("space-y-1 overflow-y-auto", collapsed ? "px-2" : "px-3")}
+          style={{ maxHeight: "calc(100% - 9rem)" }}
+        >
           {groups.map((group) => {
             const isGroupOpen = !collapsedGroups[group.id];
             const hasActiveLink = group.links.some(l => pathname === l.href || pathname.startsWith(l.href + "/"));
 
             return (
               <div key={group.id}>
-                {/* Group header - only show when sidebar is expanded and not the only group */}
+                {/* Group header */}
                 {!collapsed && groups.length > 1 && (
                   <button
                     onClick={() => toggleGroup(group.id)}
                     className={clsx(
-                      "flex items-center justify-between w-full px-3 py-1.5 mt-1 text-[10px] font-semibold uppercase tracking-widest transition-colors rounded-md",
+                      "flex items-center justify-between w-full px-3 py-1.5 mt-2 text-[10px] font-semibold uppercase tracking-widest transition-colors rounded-md",
                       hasActiveLink ? "text-dark-200" : "text-dark-500 hover:text-dark-300"
                     )}
                   >
@@ -223,24 +273,32 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
                         <Link
                           key={href}
                           href={href}
-                          onClick={onClose}
+                          onClick={() => {
+                            if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+                              try { navigator.vibrate(8); } catch { /* ignore */ }
+                            }
+                            onClose();
+                          }}
                           title={collapsed ? label : undefined}
                           className={clsx(
-                            "relative flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 sidebar-link",
-                            collapsed ? "px-0 py-2.5 justify-center" : "px-3 py-2",
+                            "relative flex items-center gap-3 text-sm font-medium transition-all duration-200 sidebar-link active:scale-[0.98]",
+                            // Bigger touch targets + softer pill on mobile.
+                            collapsed
+                              ? "px-0 py-2.5 justify-center rounded-xl"
+                              : "px-3 py-3 lg:py-2 rounded-2xl lg:rounded-xl",
                             active
-                              ? "text-white bg-ipg-navy/15 sidebar-link-active"
+                              ? "text-white bg-gradient-to-r from-accent-blue/25 to-accent-purple/15 lg:from-ipg-navy/15 lg:to-ipg-navy/15 sidebar-link-active"
                               : "text-dark-200 hover:text-white hover:bg-white/5"
                           )}
                         >
                           {active && (
                             <motion.div
                               layoutId="sidebar-active"
-                              className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-ipg-navy"
+                              className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-accent-blue"
                               transition={{ type: "spring", damping: 25, stiffness: 300 }}
                             />
                           )}
-                          <Icon className={clsx("w-5 h-5 flex-shrink-0 sidebar-icon", active && "text-ipg-royal sidebar-icon-active")} />
+                          <Icon className={clsx("w-5 h-5 flex-shrink-0 sidebar-icon", active && "text-accent-blue sidebar-icon-active")} />
                           {!collapsed && <span className="lg:inline">{label}</span>}
                         </Link>
                       );
@@ -252,12 +310,22 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
           })}
         </nav>
 
-        {/* User info at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/5 mobile-menu-border">
+        {/* Footer — sign out on mobile, profile chip on desktop */}
+        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-white/5 mobile-menu-border space-y-1">
+          {/* Mobile: prominent sign-out button */}
+          <button
+            onClick={handleSignOut}
+            className="lg:hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold text-red-400 hover:bg-red-500/10 active:scale-[0.98] transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
+
+          {/* Desktop: compact profile chip (mobile profile already shown in header) */}
           <Link
             href={profile?.role === "lecturer" ? "/lecturer/profile" : "/student/profile"}
             className={clsx(
-              "flex items-center gap-3 rounded-xl hover:bg-white/5 transition-colors",
+              "hidden lg:flex items-center gap-3 rounded-xl hover:bg-white/5 transition-colors",
               collapsed ? "justify-center px-0 py-2" : "px-3 py-2"
             )}
           >
