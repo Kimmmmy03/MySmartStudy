@@ -1,0 +1,488 @@
+// MySmartStudy — ER Diagram (DBML), landscape-optimized.
+// Paste into https://dbdiagram.io to render.
+//
+// Each table is slimmed to PK + FKs + the essential discriminator columns so
+// every card stays short and the canvas fits in landscape. Per-group header
+// colors keep the clusters visually distinct after auto-layout.
+// Source: backend/app/models.py + backend/app/schemas.py.
+
+
+// ── 1. Identity & Social ────────────────────────────────────────────────────
+
+Table users [headercolor: #3b82f6] {
+  id            varchar [pk]
+  email         varchar [not null, unique]
+  role          varchar [note: 'student | lecturer | admin']
+  display_name  varchar
+  class_name    varchar
+  year          integer
+  semester      integer
+  department    varchar
+  points        integer
+  streak        integer
+  created_at    timestamp
+}
+
+Table follows [headercolor: #3b82f6] {
+  follower_id varchar
+  followed_id varchar
+  created_at  timestamp
+  indexes { (follower_id, followed_id) [pk] }
+}
+
+
+// ── 2. Mind Maps ────────────────────────────────────────────────────────────
+
+Table maps [headercolor: #8b5cf6] {
+  id            varchar [pk]
+  owner_id      varchar [not null]
+  title         varchar
+  visibility    varchar [note: 'private | unlisted | public']
+  share_code    varchar [unique]
+  like_count    integer
+  comment_count integer
+  last_modified timestamp
+}
+
+Table map_collaborators [headercolor: #8b5cf6] {
+  map_id  varchar
+  user_id varchar
+  indexes { (map_id, user_id) [pk] }
+}
+
+Table map_likes [headercolor: #8b5cf6] {
+  map_id     varchar
+  user_id    varchar
+  created_at timestamp
+  indexes { (map_id, user_id) [pk] }
+}
+
+Table map_comments [headercolor: #8b5cf6] {
+  id         varchar [pk]
+  map_id     varchar [not null]
+  author_id  varchar [not null]
+  text       text
+  created_at timestamp
+}
+
+Table map_history [headercolor: #8b5cf6] {
+  id         varchar [pk]
+  map_id     varchar [not null]
+  user_id    varchar [not null]
+  action     varchar
+  created_at timestamp
+}
+
+Table map_views [headercolor: #8b5cf6] {
+  id        varchar [pk]
+  map_id    varchar [not null]
+  viewer_id varchar [not null]
+  viewed_at timestamp
+}
+
+
+// ── 3. Courses ──────────────────────────────────────────────────────────────
+
+Table courses [headercolor: #06b6d4] {
+  id          varchar [pk]
+  lecturer_id varchar [not null]
+  course_name varchar
+  course_code varchar
+  semester    varchar
+  year        integer
+  join_code   varchar [unique]
+  created_at  timestamp
+}
+
+Table course_enrollments [headercolor: #06b6d4] {
+  course_id  varchar
+  student_id varchar
+  indexes { (course_id, student_id) [pk] }
+}
+
+Table course_views [headercolor: #06b6d4] {
+  id        varchar [pk]
+  course_id varchar [not null]
+  user_id   varchar [not null]
+  viewed_at timestamp
+}
+
+
+// ── 4. Assignments & Grading ────────────────────────────────────────────────
+
+Table assignments [headercolor: #f59e0b] {
+  id                  varchar [pk]
+  course_id           varchar [not null]
+  lecturer_id         varchar [not null]
+  title               varchar
+  deadline            varchar
+  assignment_type     varchar [note: 'assignment | tutorial | project | quiz']
+  prerequisite_id     varchar
+  quiz_id             varchar
+  peer_review_enabled boolean
+  created_at          timestamp
+}
+
+Table submissions [headercolor: #f59e0b] {
+  id              varchar [pk]
+  assignment_id   varchar [not null]
+  student_id      varchar [not null]
+  submission_type varchar [note: 'map | link | file']
+  map_id          varchar
+  grade           float
+  submitted_at    timestamp
+}
+
+Table peer_reviews [headercolor: #f59e0b] {
+  id            varchar [pk]
+  submission_id varchar [not null]
+  reviewer_id   varchar [not null]
+  rating        integer
+  created_at    timestamp
+}
+
+Table rubrics [headercolor: #f59e0b] {
+  id            varchar [pk]
+  assignment_id varchar [not null]
+  title         varchar
+  created_at    timestamp
+}
+
+
+// ── 5. Quizzes ──────────────────────────────────────────────────────────────
+
+Table quizzes [headercolor: #ec4899] {
+  id                 varchar [pk]
+  course_id          varchar [not null]
+  lecturer_id        varchar [not null]
+  title              varchar
+  time_limit_minutes integer
+  deadline           varchar
+  created_at         timestamp
+}
+
+Table quiz_questions [headercolor: #ec4899] {
+  id      varchar [pk]
+  quiz_id varchar [not null]
+  type    varchar [note: 'mcq | true_false | short_answer']
+  points  float
+  "order" integer
+}
+
+Table quiz_attempts [headercolor: #ec4899] {
+  id           varchar [pk]
+  quiz_id      varchar [not null]
+  student_id   varchar [not null]
+  score        float
+  percentage   float
+  submitted_at timestamp
+}
+
+
+// ── 6. Resources ────────────────────────────────────────────────────────────
+
+Table course_modules [headercolor: #10b981] {
+  id         varchar [pk]
+  course_id  varchar [not null]
+  title      varchar
+  "order"    integer
+  created_at timestamp
+}
+
+Table module_items [headercolor: #10b981] {
+  id          varchar [pk]
+  module_id   varchar [not null]
+  title       varchar
+  type        varchar [note: 'pdf | video | link | map_template']
+  unlock_date timestamp
+  created_at  timestamp
+}
+
+Table resource_progress [headercolor: #10b981] {
+  user_id     varchar
+  resource_id varchar
+  opened_at   timestamp
+  indexes { (user_id, resource_id) [pk] }
+}
+
+
+// ── 7. Communication (announcements, course chat, forum) ────────────────────
+
+Table announcements [headercolor: #ef4444] {
+  id         varchar [pk]
+  course_id  varchar [not null]
+  sender_id  varchar [not null]
+  title      varchar
+  created_at timestamp
+}
+
+Table discussions [headercolor: #ef4444] {
+  id          varchar [pk]
+  course_id   varchar [not null]
+  sender_id   varchar [not null]
+  parent_id   varchar
+  reply_count integer
+  created_at  timestamp
+}
+
+Table discussion_topics [headercolor: #ef4444] {
+  id         varchar [pk]
+  course_id  varchar [not null]
+  author_id  varchar [not null]
+  title      varchar
+  pinned     boolean
+  created_at timestamp
+}
+
+
+// ── 8. Private Messaging ────────────────────────────────────────────────────
+
+Table conversations [headercolor: #6366f1] {
+  id              varchar [pk]
+  last_message_at timestamp
+  created_at      timestamp
+}
+
+Table conversation_participants [headercolor: #6366f1] {
+  conversation_id varchar
+  user_id         varchar
+  unread_count    integer
+  indexes { (conversation_id, user_id) [pk] }
+}
+
+Table messages [headercolor: #6366f1] {
+  id              varchar [pk]
+  conversation_id varchar [not null]
+  sender_id       varchar [not null]
+  created_at      timestamp
+}
+
+
+// ── 9. Attendance ───────────────────────────────────────────────────────────
+
+Table attendance_sessions [headercolor: #14b8a6] {
+  id         varchar [pk]
+  course_id  varchar [not null]
+  date       varchar
+  qr_token   varchar
+  created_at timestamp
+}
+
+Table attendance_records [headercolor: #14b8a6] {
+  id         varchar [pk]
+  session_id varchar [not null]
+  student_id varchar [not null]
+  status     varchar [note: 'present | absent | late | excused']
+  scanned_at timestamp
+}
+
+
+// ── 10. Course Groups ───────────────────────────────────────────────────────
+
+Table course_groups [headercolor: #84cc16] {
+  id         varchar [pk]
+  course_id  varchar [not null]
+  name       varchar
+  created_at timestamp
+}
+
+Table group_tasks [headercolor: #84cc16] {
+  id         varchar [pk]
+  course_id  varchar [not null]
+  title      varchar
+  due_date   varchar
+  created_at timestamp
+}
+
+
+// ── 11. Engagement & Rewards ────────────────────────────────────────────────
+
+Table badge_definitions [headercolor: #f97316] {
+  id              varchar [pk]
+  course_id       varchar
+  name            varchar
+  condition_type  varchar
+  condition_value integer
+  points_reward   integer
+}
+
+Table user_badges [headercolor: #f97316] {
+  user_id    varchar
+  badge_id   varchar
+  awarded_at timestamp
+  indexes { (user_id, badge_id) [pk] }
+}
+
+Table certificates [headercolor: #f97316] {
+  id                 varchar [pk]
+  student_id         varchar [not null]
+  course_id          varchar [not null]
+  certificate_number varchar [unique]
+  issued_at          timestamp
+}
+
+Table reminders [headercolor: #f97316] {
+  id           varchar [pk]
+  owner_id     varchar [not null]
+  date         varchar
+  title        varchar
+  type         varchar
+  is_completed boolean
+}
+
+Table reflections [headercolor: #f97316] {
+  id         varchar [pk]
+  owner_id   varchar [not null]
+  confidence integer
+  week_label varchar
+  created_at timestamp
+}
+
+Table notifications [headercolor: #f97316] {
+  id         varchar [pk]
+  user_id    varchar [not null]
+  type       varchar
+  read       boolean
+  created_at timestamp
+}
+
+
+// ── 12. Admin & Analytics ───────────────────────────────────────────────────
+
+Table admin_announcements [headercolor: #64748b] {
+  id              varchar [pk]
+  sender_id       varchar
+  subject         varchar
+  audience        varchar [note: 'all | students | lecturers']
+  recipient_count integer
+  created_at      timestamp
+}
+
+Table user_sessions [headercolor: #64748b] {
+  id             varchar [pk]
+  user_id        varchar [not null]
+  date           varchar
+  time_spent_sec integer
+}
+
+Table user_activity_aggregate [headercolor: #64748b] {
+  user_id        varchar [pk]
+  total_time_sec integer
+  total_visits   integer
+  last_active_at timestamp
+}
+
+Table homepage_content [headercolor: #64748b] {
+  id      varchar [pk]
+  type    varchar [note: 'news | poster']
+  title   varchar
+  "order" integer
+  visible boolean
+}
+
+
+// ── References ──────────────────────────────────────────────────────────────
+
+// Social
+Ref: follows.follower_id > users.id
+Ref: follows.followed_id > users.id
+
+// Maps
+Ref: maps.owner_id > users.id
+Ref: map_collaborators.map_id > maps.id
+Ref: map_collaborators.user_id > users.id
+Ref: map_likes.map_id > maps.id
+Ref: map_likes.user_id > users.id
+Ref: map_comments.map_id > maps.id
+Ref: map_comments.author_id > users.id
+Ref: map_history.map_id > maps.id
+Ref: map_history.user_id > users.id
+Ref: map_views.map_id > maps.id
+Ref: map_views.viewer_id > users.id
+
+// Courses
+Ref: courses.lecturer_id > users.id
+Ref: course_enrollments.course_id > courses.id
+Ref: course_enrollments.student_id > users.id
+Ref: course_views.course_id > courses.id
+Ref: course_views.user_id > users.id
+
+// Assignments / grading
+Ref: assignments.course_id > courses.id
+Ref: assignments.lecturer_id > users.id
+Ref: assignments.prerequisite_id > assignments.id
+Ref: assignments.quiz_id > quizzes.id
+Ref: submissions.assignment_id > assignments.id
+Ref: submissions.student_id > users.id
+Ref: submissions.map_id > maps.id
+Ref: peer_reviews.submission_id > submissions.id
+Ref: peer_reviews.reviewer_id > users.id
+Ref: rubrics.assignment_id > assignments.id
+
+// Quizzes
+Ref: quizzes.course_id > courses.id
+Ref: quizzes.lecturer_id > users.id
+Ref: quiz_questions.quiz_id > quizzes.id
+Ref: quiz_attempts.quiz_id > quizzes.id
+Ref: quiz_attempts.student_id > users.id
+
+// Resources
+Ref: course_modules.course_id > courses.id
+Ref: module_items.module_id > course_modules.id
+Ref: resource_progress.user_id > users.id
+Ref: resource_progress.resource_id > module_items.id
+
+// Communication
+Ref: announcements.course_id > courses.id
+Ref: announcements.sender_id > users.id
+Ref: discussions.course_id > courses.id
+Ref: discussions.sender_id > users.id
+Ref: discussions.parent_id > discussions.id
+Ref: discussion_topics.course_id > courses.id
+Ref: discussion_topics.author_id > users.id
+
+// Messaging
+Ref: conversation_participants.conversation_id > conversations.id
+Ref: conversation_participants.user_id > users.id
+Ref: messages.conversation_id > conversations.id
+Ref: messages.sender_id > users.id
+
+// Attendance
+Ref: attendance_sessions.course_id > courses.id
+Ref: attendance_records.session_id > attendance_sessions.id
+Ref: attendance_records.student_id > users.id
+
+// Course groups
+Ref: course_groups.course_id > courses.id
+Ref: group_tasks.course_id > courses.id
+
+// Engagement
+Ref: badge_definitions.course_id > courses.id
+Ref: user_badges.user_id > users.id
+Ref: user_badges.badge_id > badge_definitions.id
+Ref: certificates.student_id > users.id
+Ref: certificates.course_id > courses.id
+Ref: reminders.owner_id > users.id
+Ref: reflections.owner_id > users.id
+Ref: notifications.user_id > users.id
+
+// Admin & analytics
+Ref: admin_announcements.sender_id > users.id
+Ref: user_sessions.user_id > users.id
+Ref: user_activity_aggregate.user_id > users.id
+
+
+// ── Table groups (clustered on canvas) ──────────────────────────────────────
+
+TableGroup "1. Identity & Social"          { users; follows }
+TableGroup "2. Mind Maps"                  { maps; map_collaborators; map_likes; map_comments; map_history; map_views }
+TableGroup "3. Courses"                    { courses; course_enrollments; course_views }
+TableGroup "4. Assignments & Grading"      { assignments; submissions; peer_reviews; rubrics }
+TableGroup "5. Quizzes"                    { quizzes; quiz_questions; quiz_attempts }
+TableGroup "6. Resources"                  { course_modules; module_items; resource_progress }
+TableGroup "7. Communication"              { announcements; discussions; discussion_topics }
+TableGroup "8. Private Messaging"          { conversations; conversation_participants; messages }
+TableGroup "9. Attendance"                 { attendance_sessions; attendance_records }
+TableGroup "10. Course Groups"             { course_groups; group_tasks }
+TableGroup "11. Engagement & Rewards"      { badge_definitions; user_badges; certificates; reminders; reflections; notifications }
+TableGroup "12. Admin & Analytics"         { admin_announcements; user_sessions; user_activity_aggregate; homepage_content }
