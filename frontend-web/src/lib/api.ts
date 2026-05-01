@@ -1640,7 +1640,26 @@ export const adminApi = {
 
   listBroadcasts: (limit = 30) =>
     request<BroadcastAnnouncementOut[]>(`/admin/announcements?limit=${limit}`),
+
+  // Global SMTP gate (master switch + per-type allow-list)
+  getEmailSettings: () =>
+    request<EmailSettingsOut>("/admin/email-settings"),
+
+  updateEmailSettings: (body: { smtp_enabled?: boolean; allowed_types?: string[] }) =>
+    request<EmailSettingsOut>("/admin/email-settings", {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
 };
+
+// ── Email settings types ──
+export interface EmailSettingsOut {
+  smtp_enabled: boolean;
+  allowed_types: string[];
+  all_types: string[];
+  updated_at: string | null;
+  updated_by: string;
+}
 
 // ── Usage Analytics types ──
 export interface TopUserRecord {
