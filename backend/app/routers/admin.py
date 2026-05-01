@@ -772,3 +772,80 @@ def list_broadcast_announcements(
         # No index yet → fall back to unsorted
         docs = db.collection(models.ADMIN_ANNOUNCEMENTS).limit(limit).get()
     return [models.doc_to_dict(d) for d in docs]
+
+
+# ── Email Settings (global SMTP master switch + per-type allow-list) ──
+
+class EmailSettingsUpdate(BaseModel):
+    smtp_enabled: bool | None = None
+    allowed_types: list[str] | None = None
+
+
+@router.get("/email-settings")
+def get_email_settings(user: dict = Depends(require_admin), db=Depends(get_db)):
+    """Return the global SMTP gate config used by create_notification()."""
+    from .notifications import EMAIL_NOTIFICATION_TYPES
+
+    snap = db.collection(models.EMAIL_SETTINGS).document("global").get()
+    if snap.exists:
+        cfg = snap.to_dict() or {}
+        smtp_enabled = bool(cfg.get("smtpEnabled", True))
+        allowed = cfg.get("allowedTypes")
+        if not isinstance(allowed, list):
+            allowed = list(EMAIL_NOTIFICATION_TYPES)
+        updated_at = cfg.get("updatedAt")
+        updated_by = cfg.get("updatedBy", "")
+    else:
+        smtp_enabled = True
+        allowed = list(EMAIL_NOTIFICATION_TYPES)
+        updated_at = None
+        updated_by = ""
+
+    return {
+        "smtp_enabled": smtp_enabled,
+        "allowed_types": allowed,
+        "all_types": list(EMAIL_NOTIFICATION_TYPES),
+        "updated_at": updated_at,
+        "updated_by": updated_by,
+    }
+
+
+@router.patch("/email-settings")
+def update_email_settings(
+    req: EmailSettingsUpdate,
+    user: dict = Depends(require_admin),
+    db=Depends(get_db),
+):
+    """Patch the global SMTP gate. Pass either field — both are optional."""
+    from .notifications import EMAIL_NOTIFICATION_TYPES
+
+    if req.smtp_enabled is None and req.allowed_types is None:
+        raise HTTPException(400, "Provide smtp_enabled and/or allowed_types")
+
+    valid = set(EMAIL_NOTIFICATION_TYPES)
+    updates: dict = {
+        "updatedAt": datetime.now(timezone.utc),
+        "updatedBy": user["id"],
+    }
+    if req.smtp_enabled is not None:
+        updates["smtpEnabled"] = bool(req.smtp_enabled)
+    if req.allowed_types is not None:
+        # Defensive: drop unknown types so a stale client can't poison the doc.
+        clean = [t for t in req.allowed_types if t in valid]
+        updates["allowedTypes"] = clean
+
+    db.collection(models.EMAIL_SETTINGS).document("global").set(updates, merge=True)
+
+    audit_log(
+        db,
+        user_id=user["id"],
+        action="update",
+        resource_type="email_settings",
+        resource_id="global",
+        details=(
+            f"smtp_enabled={updates.get('smtpEnabled', '<unchanged>')}, "
+            f"allowed_types={updates.get('allowedTypes', '<unchanged>')}"
+        ),
+    )
+
+    return get_email_settings(user=user, db=db)

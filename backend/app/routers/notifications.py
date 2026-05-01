@@ -13,6 +13,45 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
 
+# Notification types this app emits via create_notification(). Exposed by the
+# admin email-settings UI so admins can flip individual channels off without
+# disabling SMTP entirely. Keep in sync with the notification_type= kwargs in
+# routers/{assignments,announcements,maps,social}.py.
+EMAIL_NOTIFICATION_TYPES = [
+    "info",
+    "assignment",
+    "announcement",
+    "map_posted",
+    "map_view",
+    "collaboration",
+    "new_follower",
+    "map_like",
+    "map_comment",
+]
+
+
+def _email_allowed(db, notification_type: str) -> bool:
+    """Check the global email-settings singleton.
+
+    Returns False if the admin master SMTP switch is off, or if this specific
+    notification_type has been removed from the allow-list. Defaults to True
+    when the doc is missing so the system stays functional out-of-the-box.
+    """
+    try:
+        snap = db.collection(models.EMAIL_SETTINGS).document("global").get()
+    except Exception:
+        return True
+    if not snap.exists:
+        return True
+    cfg = snap.to_dict() or {}
+    if cfg.get("smtpEnabled") is False:
+        return False
+    allowed = cfg.get("allowedTypes")
+    if isinstance(allowed, list) and notification_type not in allowed:
+        return False
+    return True
+
+
 def create_notification(
     db,
     user_id: str,
@@ -25,9 +64,12 @@ def create_notification(
     """Create an in-app notification for a user and optionally mirror it by email.
 
     The email is fire-and-forget (spawned in a background thread by
-    `send_notification_email`) and respects the user's `emailNotifications`
-    flag — default true if the field isn't set. Set `send_email=False` for
-    noisy channels (e.g. map-view pings) where the in-app notif is enough.
+    `send_notification_email`) and respects:
+      1. the global admin SMTP master switch (emailSettings/global)
+      2. the per-type allow-list on the same doc
+      3. the user's `emailNotifications` flag — default true if unset
+    Set `send_email=False` for noisy channels (e.g. map-view pings) where the
+    in-app notif is enough.
     """
     nid = models.gen_id()
     db.collection(models.NOTIFICATIONS).document(nid).set({
@@ -41,6 +83,9 @@ def create_notification(
     })
 
     if not send_email:
+        return
+
+    if not _email_allowed(db, notification_type):
         return
 
     try:

@@ -41,6 +41,7 @@ GROUP_TASKS = "groupTasks"
 GRADE_SETTINGS = "gradeSettings"
 DISCUSSION_TOPICS = "discussionTopics"
 ADMIN_ANNOUNCEMENTS = "adminAnnouncements"  # admin-broadcast emails (subject, body, audience, recipientCount)
+EMAIL_SETTINGS = "emailSettings"             # singleton "global" doc — admin SMTP master switch + per-type allow-list
 
 # ── AI feature collections ──
 AI_PLAGIARISM_REPORTS = "aiPlagiarismReports"
