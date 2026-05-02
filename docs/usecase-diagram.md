@@ -169,13 +169,12 @@ flowchart LR
     Lecturer --> UC_Reminder & UC_Calendar
     Lecturer --> UC_Notif & UC_AwardBadge
     Lecturer --> UC_CourseGB & UC_ExportGB
-    Lecturer --> UC_AIGrade & UC_AIPlag & UC_CLP
+    Lecturer --> UC_AIGrade & UC_AIPlag & UC_CLP & UC_RAG
 
     %% ─── Admin associations ────────────────────────────────────────────────
     Admin --> UC_Login & UC_Logout & UC_Profile
     Admin --> UC_Homepage & UC_Broadcast & UC_BadgeDef
     Admin --> UC_Analytics & UC_ManageUsers & UC_AdminAnalytics
-    Admin --> UC_RAG
 
     %% ─── AI Service associations (secondary actor — system reaches out) ───
     %% Per UML, secondary actors are drawn with the arrow pointing FROM the use
