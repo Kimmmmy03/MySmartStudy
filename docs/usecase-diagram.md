@@ -195,41 +195,37 @@ flowchart LR
 
     %% ─── «include» relationships (base ALWAYS invokes the included UC) ──
     %% Direction: base ......> included.
+    %% The grade endpoint accepts (grade, feedback) atomically — feedback is
+    %% always part of the grading payload, even if empty.
     UC_Grade -.->|«include»| UC_Feedback
 
     %% ─── «extend» relationships (extension OPTIONALLY adds to base) ──────
-    %% Direction: extension ......> base.
-    %% Grouped by base use case for readability.
+    %% Direction: extension ......> base. An extend means the extension's
+    %% behavior is INSERTED INTO the base flow at an extension point — not
+    %% just "happens after" the base. Grouped by base UC for readability.
 
-    %% Extensions of "Grade Submission"
+    %% Inside "Create Assignment" — the lecturer can attach a rubric here
+    UC_Rubric      -.->|«extend»| UC_CreateAssign
+
+    %% Inside "Grade Submission" — buttons in the grading UI
     UC_AIGrade     -.->|«extend»| UC_Grade
     UC_AIPlag      -.->|«extend»| UC_Grade
-    UC_Rubric      -.->|«extend»| UC_Grade
 
-    %% Extensions of "Submit Assignment"
-    UC_PeerReview  -.->|«extend»| UC_Submit
-    UC_Badge       -.->|«extend»| UC_Submit
-
-    %% Extensions of "Take Quiz"
-    UC_QuizResults -.->|«extend»| UC_TakeQuiz
-
-    %% Extensions of "Edit Map"
+    %% Inside "Edit Map" — buttons / panels in the map editor
     UC_AIBuddy     -.->|«extend»| UC_EditMap
     UC_AISuggest   -.->|«extend»| UC_EditMap
     UC_AIImage     -.->|«extend»| UC_EditMap
 
-    %% Extensions of "Explore Public Maps"
+    %% Inside "Explore Public Maps" — interactions on the feed
     UC_Like        -.->|«extend»| UC_Explore
     UC_CommentMap  -.->|«extend»| UC_Explore
 
-    %% Extensions of "View Calendar"
-    UC_DailyGuide  -.->|«extend»| UC_Calendar
-    UC_StudyPlan   -.->|«extend»| UC_Calendar
-    UC_Timetable   -.->|«extend»| UC_Calendar
-
-    %% Extensions of "Open Resources" / "Add Module Item"
-    UC_StudyMat    -.->|«extend»| UC_ViewRes
-    UC_RAG         -.->|«extend»| UC_AddItem
+    %% Auto-Award Badge fires at the post-action extension point of multiple
+    %% base UCs (per condition_type: assignments_submitted, quizzes_completed,
+    %% maps_created — see backend/app/routers/auto_badges.py).
+    UC_Badge       -.->|«extend»| UC_Submit
+    UC_Badge       -.->|«extend»| UC_TakeQuiz
+    UC_Badge       -.->|«extend»| UC_CreateMap
 ```
 
 ## UML Semantics Used
@@ -246,9 +242,21 @@ Following the conventions on [uml-diagrams.org](https://www.uml-diagrams.org/use
 ## Reading the Relationships
 
 - **Every use case has at least one actor connection** (directly, or transitively via include/extend reaching a use case that does).
-- `Give Feedback` has no direct actor — it is purely included behavior of `Grade Submission` (the only place feedback is captured).
-- `Auto-Award Badge` has no direct actor — it is an extension point that fires conditionally on `Submit Assignment`.
+- `Give Feedback` has no direct actor — it is purely included behavior of `Grade Submission` (the only place feedback is captured; the grade endpoint always carries a feedback field).
+- `Auto-Award Badge` has no direct actor — it is an extension point that fires at the end of multiple base flows: `Submit Assignment`, `Take Quiz`, and `Create Map` (per the `condition_type` enum in `auto_badges.py`).
 - The 12 AI use cases each have a *primary* actor (Student / Lecturer / Admin) who initiates and the AI Service as a *secondary* actor that fulfills.
+
+## Why some "looks-like-extend" relationships are *not* drawn
+
+A common mistake is to use «extend» wherever one flow happens after another. Per UML, «extend» means the extension's behavior is **inserted into** the base flow at a defined extension point — not that it merely follows in time.
+
+| Pair | Why it's *not* «extend» |
+|------|------------------------|
+| `Peer Review` → `Submit Assignment` | Peer review is performed by a *different student* on someone else's submission; it's a separate flow with a precondition, not an insertion |
+| `View Quiz Results` → `Take Quiz` | Sequential follow-up navigated to separately; not inserted into the take-quiz flow |
+| `AI Daily Guide` / `AI Study Plan` / `AI Timetable` → `View Calendar` | Each is its own AI generation flow on its own page; events appearing on the calendar later is data integration, not an extension point |
+| `Generate Study Materials` → `Open Resources` | Standalone AI generation flow; the resulting docs may be saved as resources but generation isn't inserted into the resource-viewer |
+| `RAG Index Course Materials` → `Add Module Item` | RAG is admin-triggered as its own flow; the auto-indexing on upload is system-internal sequencing, not a UML extension point |
 
 ## Modeling Choices
 
