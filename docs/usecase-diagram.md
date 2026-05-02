@@ -159,7 +159,8 @@ flowchart LR
     Lecturer --> UC_Register & UC_Login & UC_Logout & UC_Reset
     Lecturer --> UC_Profile & UC_Avatar
     Lecturer --> UC_CreateCourse & UC_EditCourse & UC_ViewCourses
-    Lecturer --> UC_CreateAssign & UC_Grade & UC_Feedback & UC_Rubric
+    %% NOTE: UC_Feedback intentionally omitted — it's reached via «include» from UC_Grade.
+    Lecturer --> UC_CreateAssign & UC_Grade & UC_Rubric
     Lecturer --> UC_CreateQuiz & UC_QuizAttempts
     Lecturer --> UC_Module & UC_AddItem
     Lecturer --> UC_Announce & UC_Discuss & UC_Topic & UC_DM
@@ -176,68 +177,83 @@ flowchart LR
     Admin --> UC_Analytics & UC_ManageUsers & UC_AdminAnalytics
     Admin --> UC_RAG
 
-    %% ─── AI Service (secondary actor — serves these use cases) ─────────────
-    AI --> UC_Companion
-    AI --> UC_AIBuddy
-    AI --> UC_AISuggest
-    AI --> UC_AIImage
-    AI --> UC_DailyGuide
-    AI --> UC_StudyMat
-    AI --> UC_StudyPlan
-    AI --> UC_Timetable
-    AI --> UC_AIGrade
-    AI --> UC_AIPlag
-    AI --> UC_CLP
-    AI --> UC_Badge
+    %% ─── AI Service associations (secondary actor — system reaches out) ───
+    %% Per UML, secondary actors are drawn with the arrow pointing FROM the use
+    %% case TO the actor (the system uses the actor to fulfill the request).
+    UC_Companion  --> AI
+    UC_AIBuddy    --> AI
+    UC_AISuggest  --> AI
+    UC_AIImage    --> AI
+    UC_DailyGuide --> AI
+    UC_StudyMat   --> AI
+    UC_StudyPlan  --> AI
+    UC_Timetable  --> AI
+    UC_AIGrade    --> AI
+    UC_AIPlag     --> AI
+    UC_CLP        --> AI
+    UC_RAG        --> AI
 
     %% ─── «include» relationships (base ALWAYS invokes the included UC) ──
-    UC_Grade      -.->|«include»| UC_Feedback
-    UC_Announce   -.->|«include»| UC_Notif
-    UC_AwardBadge -.->|«include»| UC_Notif
-    UC_DM         -.->|«include»| UC_Notif
-    UC_CheckIn    -.->|«include»| UC_Session
-    UC_Submit     -.->|«include»| UC_MyGrades
-    UC_Cert       -.->|«include»| UC_CourseGB
+    %% Direction: base ......> included.
+    UC_Grade -.->|«include»| UC_Feedback
 
     %% ─── «extend» relationships (extension OPTIONALLY adds to base) ──────
+    %% Direction: extension ......> base.
+    %% Grouped by base use case for readability.
+
+    %% Extensions of "Grade Submission"
     UC_AIGrade     -.->|«extend»| UC_Grade
     UC_AIPlag      -.->|«extend»| UC_Grade
     UC_Rubric      -.->|«extend»| UC_Grade
+
+    %% Extensions of "Submit Assignment"
     UC_PeerReview  -.->|«extend»| UC_Submit
+    UC_Badge       -.->|«extend»| UC_Submit
+
+    %% Extensions of "Take Quiz"
+    UC_QuizResults -.->|«extend»| UC_TakeQuiz
+
+    %% Extensions of "Edit Map"
     UC_AIBuddy     -.->|«extend»| UC_EditMap
     UC_AISuggest   -.->|«extend»| UC_EditMap
     UC_AIImage     -.->|«extend»| UC_EditMap
-    UC_History     -.->|«extend»| UC_EditMap
-    UC_Collab      -.->|«extend»| UC_EditMap
+
+    %% Extensions of "Explore Public Maps"
     UC_Like        -.->|«extend»| UC_Explore
     UC_CommentMap  -.->|«extend»| UC_Explore
+
+    %% Extensions of "View Calendar"
     UC_DailyGuide  -.->|«extend»| UC_Calendar
     UC_StudyPlan   -.->|«extend»| UC_Calendar
     UC_Timetable   -.->|«extend»| UC_Calendar
-    UC_Reflect     -.->|«extend»| UC_Calendar
+
+    %% Extensions of "Open Resources" / "Add Module Item"
     UC_StudyMat    -.->|«extend»| UC_ViewRes
     UC_RAG         -.->|«extend»| UC_AddItem
-    UC_Companion   -.->|«extend»| UC_ViewCourses
-    UC_Badge       -.->|«extend»| UC_Submit
-    UC_QuizResults -.->|«extend»| UC_TakeQuiz
 ```
 
-## Notes
+## UML Semantics Used
 
-- **Solid arrows** are actor associations ("actor performs use case").
-- **Dotted arrows** are UML relationships between use cases:
-  - `«include»` — the source use case **always** invokes the target as part
-    of its flow. Example: `Grade Submission «include» Give Feedback` because
-    the grade endpoint always carries a feedback field.
-  - `«extend»` — the source use case **optionally** extends the target.
-    Example: `AI Plagiarism Check «extend» Grade Submission` because the
-    lecturer may run the AI check before grading, but it isn't required.
-- **Auth & profile** are drawn explicitly for all three actors so role-specific
-  permission differences (e.g. only Lecturer can create assignments) stay
-  obvious instead of being hidden behind generalization.
-- **AI Service** is a secondary actor — it doesn't initiate flows on its own;
-  Student or Lecturer triggers an AI use case and the service fulfills it.
-- **Excluded:** AI cache collections, CLP draft session details, and internal
-  dev tooling (FCM tokens, audit logs) — plumbing, not user-facing flows.
-- **Real-time features** (collab polling, discussion auto-refresh) are modeled
-  as single use cases; the polling cadence is an implementation detail.
+Following the conventions on [uml-diagrams.org](https://www.uml-diagrams.org/use-case-diagrams.html):
+
+| Element | Meaning | Mermaid syntax |
+|---------|---------|----------------|
+| **Actor → Use Case** (solid arrow) | Primary actor *initiates* the flow | `Student --> UC_X` |
+| **Use Case → Actor** (solid arrow) | Use case communicates with a *secondary* actor that the system relies on | `UC_X --> AI` |
+| **Base → Included** (dotted, `«include»`) | Base use case **always** invokes the included one — reusable shared behavior | `UC_Grade -.->\|«include»\| UC_Feedback` |
+| **Extension → Base** (dotted, `«extend»`) | Extension **optionally** adds behavior to the base at a defined extension point | `UC_AIPlag -.->\|«extend»\| UC_Grade` |
+
+## Reading the Relationships
+
+- **Every use case has at least one actor connection** (directly, or transitively via include/extend reaching a use case that does).
+- `Give Feedback` has no direct actor — it is purely included behavior of `Grade Submission` (the only place feedback is captured).
+- `Auto-Award Badge` has no direct actor — it is an extension point that fires conditionally on `Submit Assignment`.
+- The 12 AI use cases each have a *primary* actor (Student / Lecturer / Admin) who initiates and the AI Service as a *secondary* actor that fulfills.
+
+## Modeling Choices
+
+- **Auth & profile are drawn explicitly for all three actors** rather than using actor generalization. This keeps role-specific differences (e.g. only Admin can register accounts via the broadcast page) visible at a glance.
+- **Notification creation is not modeled as «include»** even though e.g. posting an announcement does insert a notification record. That insertion is a system-internal side effect, not a sub-flow the announcer "performs". `View Notifications` is a separate use case the recipient performs later.
+- **`Auto-Award Badge` does not point to AI Service** — auto-award uses deterministic rules in `auto_badges.py`, not a model call.
+- **Excluded:** AI cache collections, CLP draft session details, FCM tokens, audit logs — plumbing, not user-facing flows.
+- **Real-time features** (collab polling, discussion auto-refresh) are modeled as single use cases; the polling cadence is an implementation detail.
