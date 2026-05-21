@@ -1,55 +1,57 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { adminApi, type EmailSettingsOut } from "@/lib/api";
+import { adminApi, type AiSettingsOut } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Mail, MailX, Check, AlertTriangle, Loader2, Save,
-  Megaphone, Bell, Users, BookOpen, Eye, MessageSquare,
-  Heart, UserPlus, Sparkles,
+  Sparkles, ZapOff, Check, AlertTriangle, Loader2, Save,
+  MessageCircle, Brain, BookOpen, CalendarDays, GraduationCap,
+  ShieldAlert, FileDown, Image as ImageIcon, Bot,
 } from "lucide-react";
 import clsx from "clsx";
 
-// Friendly metadata for each notification type emitted by the backend.
-// Keep in sync with EMAIL_NOTIFICATION_TYPES in backend/app/routers/notifications.py.
-type TypeMeta = {
+// Friendly metadata for each AI feature key.
+// Keep in sync with AI_FEATURES in backend/app/ai_service.py.
+type FeatureMeta = {
   key: string;
   label: string;
   description: string;
-  icon: typeof Bell;
-  group: "Course" | "Mind Maps" | "Social" | "Other";
+  icon: typeof Bot;
+  group: "Student" | "Lecturer" | "Shared";
 };
 
-const TYPE_META: TypeMeta[] = [
-  { key: "assignment",   label: "Assignments",       description: "Sent when a lecturer creates a new assignment in a course you're enrolled in.", icon: BookOpen,       group: "Course" },
-  { key: "announcement", label: "Announcements",     description: "Sent when a lecturer posts a course announcement.",                              icon: Megaphone,      group: "Course" },
-  { key: "collaboration", label: "Map Collaboration", description: "Sent when someone invites you to collaborate on a mind map.",                   icon: Users,          group: "Mind Maps" },
-  { key: "map_posted",   label: "New Public Map",    description: "Sent to followers when someone you follow publishes a new public map.",          icon: Sparkles,       group: "Mind Maps" },
-  { key: "map_view",     label: "Map Views",         description: "Sent when a lecturer views one of your maps. Noisy — opt-in only.",              icon: Eye,            group: "Mind Maps" },
-  { key: "map_like",     label: "Map Likes",         description: "Sent when someone likes one of your public maps.",                               icon: Heart,          group: "Mind Maps" },
-  { key: "map_comment",  label: "Map Comments",      description: "Sent when someone comments on one of your public maps.",                         icon: MessageSquare,  group: "Mind Maps" },
-  { key: "new_follower", label: "New Follower",      description: "Sent when another user follows your profile.",                                   icon: UserPlus,       group: "Social" },
-  { key: "info",         label: "General",           description: "Catch-all for system notifications that don't fit a specific category.",         icon: Bell,           group: "Other" },
+const FEATURE_META: FeatureMeta[] = [
+  { key: "companion",       label: "Study Companion",     description: "SmartBuddy chat — answers questions, offers encouragement, summarises material.",           icon: MessageCircle,  group: "Student" },
+  { key: "mindmap_buddy",   label: "Mind Map Buddy",      description: "AI helper inside the mind-map editor — suggests nodes, explains concepts, expands branches.", icon: Brain,          group: "Student" },
+  { key: "study_materials", label: "Study Materials",     description: "Generates summaries, flashcards and practice questions from notes or slides.",              icon: BookOpen,       group: "Student" },
+  { key: "study_plan",      label: "Study Plan",          description: "Builds personalised study plans from grades, deadlines and the exam schedule.",              icon: CalendarDays,   group: "Student" },
+  { key: "grading",         label: "AI Grading",          description: "Suggests rubric-based grades for student submissions.",                                       icon: GraduationCap,  group: "Lecturer" },
+  { key: "plagiarism",      label: "Plagiarism Check",    description: "Estimates likelihood that a submission is AI-generated or plagiarised.",                      icon: ShieldAlert,    group: "Lecturer" },
+  { key: "import",          label: "Course Import",       description: "Parses scraped course pages into structured modules + resources.",                            icon: FileDown,       group: "Lecturer" },
+  { key: "images",          label: "AI Images",           description: "Generates cover art / illustrations using Gemini image models.",                              icon: ImageIcon,      group: "Shared" },
 ];
 
-const GROUPS: TypeMeta["group"][] = ["Course", "Mind Maps", "Social", "Other"];
+const GROUPS: FeatureMeta["group"][] = ["Student", "Lecturer", "Shared"];
 
-export default function AdminEmailSettingsPage() {
-  const [settings, setSettings] = useState<EmailSettingsOut | null>(null);
+export default function AdminAiSettingsPage() {
+  const [settings, setSettings] = useState<AiSettingsOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
-  const [smtpEnabled, setSmtpEnabled] = useState(true);
-  const [allowedTypes, setAllowedTypes] = useState<Set<string>>(new Set());
+  const [aiEnabled, setAiEnabled] = useState(true);
+  // The backend stores a *deny list*. We mirror that shape on the client so
+  // the per-feature checkbox state maps directly: checked = enabled, unchecked
+  // = disabled.
+  const [disabledFeatures, setDisabledFeatures] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    adminApi.getEmailSettings()
+    adminApi.getAiSettings()
       .then(s => {
         setSettings(s);
-        setSmtpEnabled(s.smtp_enabled);
-        setAllowedTypes(new Set(s.allowed_types));
+        setAiEnabled(s.ai_enabled);
+        setDisabledFeatures(new Set(s.disabled_features));
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load"))
       .finally(() => setLoading(false));
@@ -57,15 +59,15 @@ export default function AdminEmailSettingsPage() {
 
   const dirty = useMemo(() => {
     if (!settings) return false;
-    if (settings.smtp_enabled !== smtpEnabled) return true;
-    const a = new Set(settings.allowed_types);
-    if (a.size !== allowedTypes.size) return true;
-    for (const t of allowedTypes) if (!a.has(t)) return true;
+    if (settings.ai_enabled !== aiEnabled) return true;
+    const a = new Set(settings.disabled_features);
+    if (a.size !== disabledFeatures.size) return true;
+    for (const t of disabledFeatures) if (!a.has(t)) return true;
     return false;
-  }, [settings, smtpEnabled, allowedTypes]);
+  }, [settings, aiEnabled, disabledFeatures]);
 
-  const toggleType = (key: string) => {
-    setAllowedTypes(prev => {
+  const toggleFeature = (key: string) => {
+    setDisabledFeatures(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -73,22 +75,22 @@ export default function AdminEmailSettingsPage() {
     });
   };
 
-  const setAll = (on: boolean) => {
+  const setAll = (enable: boolean) => {
     if (!settings) return;
-    setAllowedTypes(on ? new Set(settings.all_types) : new Set());
+    setDisabledFeatures(enable ? new Set() : new Set(settings.all_features));
   };
 
   const save = async () => {
     setSaving(true);
     setError("");
     try {
-      const updated = await adminApi.updateEmailSettings({
-        smtp_enabled: smtpEnabled,
-        allowed_types: Array.from(allowedTypes),
+      const updated = await adminApi.updateAiSettings({
+        ai_enabled: aiEnabled,
+        disabled_features: Array.from(disabledFeatures),
       });
       setSettings(updated);
-      setSmtpEnabled(updated.smtp_enabled);
-      setAllowedTypes(new Set(updated.allowed_types));
+      setAiEnabled(updated.ai_enabled);
+      setDisabledFeatures(new Set(updated.disabled_features));
       setSavedAt(Date.now());
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Save failed");
@@ -97,28 +99,27 @@ export default function AdminEmailSettingsPage() {
     }
   };
 
-  const visibleTypes = useMemo(
-    () => (settings ? settings.all_types : TYPE_META.map(t => t.key)),
+  const visibleFeatures = useMemo(
+    () => (settings ? settings.all_features : FEATURE_META.map(f => f.key)),
     [settings],
   );
 
   const grouped = useMemo(() => {
-    const meta = new Map(TYPE_META.map(m => [m.key, m]));
-    const buckets: Record<TypeMeta["group"], TypeMeta[]> = {
-      Course: [], "Mind Maps": [], Social: [], Other: [],
+    const meta = new Map(FEATURE_META.map(m => [m.key, m]));
+    const buckets: Record<FeatureMeta["group"], FeatureMeta[]> = {
+      Student: [], Lecturer: [], Shared: [],
     };
-    for (const k of visibleTypes) {
+    for (const k of visibleFeatures) {
       const m = meta.get(k);
       if (m) buckets[m.group].push(m);
-      else buckets.Other.push({
-        key: k, label: k, description: "Custom notification type.",
-        icon: Bell, group: "Other",
+      else buckets.Shared.push({
+        key: k, label: k, description: "Custom AI feature.",
+        icon: Bot, group: "Shared",
       });
     }
     return buckets;
-  }, [visibleTypes]);
+  }, [visibleFeatures]);
 
-  // Auto-clear "saved" badge after 2.5s
   useEffect(() => {
     if (!savedAt) return;
     const t = setTimeout(() => setSavedAt(null), 2500);
@@ -128,7 +129,7 @@ export default function AdminEmailSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20 text-dark-300 text-sm">
-        <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Loading email settings…
+        <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Loading AI settings…
       </div>
     );
   }
@@ -139,13 +140,14 @@ export default function AdminEmailSettingsPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Mail className="w-6 h-6 text-accent-amber" />
-            <h1 className="text-2xl font-bold text-white">Email Notifications</h1>
+            <Sparkles className="w-6 h-6 text-accent-purple" />
+            <h1 className="text-2xl font-bold text-white">AI Features</h1>
           </div>
           <p className="text-dark-300 mt-1 text-sm">
-            Master switch for transactional SMTP emails sent by{" "}
-            <code className="text-accent-amber">create_notification()</code>. Per-user
-            preferences and admin broadcasts are unaffected.
+            Master switch for every Gemini-powered feature. When off, all AI
+            endpoints return <code className="text-accent-purple">503</code> and
+            no calls are made to Google&rsquo;s API — useful for cost cutoffs,
+            outages or compliance freezes.
           </p>
         </div>
         <AnimatePresence>
@@ -176,62 +178,74 @@ export default function AdminEmailSettingsPage() {
             <div
               className={clsx(
                 "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors",
-                smtpEnabled ? "bg-emerald-400/15" : "bg-red-500/15",
+                aiEnabled ? "bg-emerald-400/15" : "bg-red-500/15",
               )}
             >
-              {smtpEnabled
-                ? <Mail  className="w-6 h-6 text-emerald-300" />
-                : <MailX className="w-6 h-6 text-red-300" />}
+              {aiEnabled
+                ? <Sparkles className="w-6 h-6 text-emerald-300" />
+                : <ZapOff   className="w-6 h-6 text-red-300" />}
             </div>
             <div>
               <p className="text-base font-semibold text-white">
-                SMTP {smtpEnabled ? "Enabled" : "Disabled"}
+                AI {aiEnabled ? "Enabled" : "Disabled"}
               </p>
               <p className="text-xs text-dark-300 mt-1 max-w-lg">
-                When off, no transactional emails are sent. The in-app notifications
-                continue to work normally.
+                Gates the central <code className="text-accent-purple">ai_service</code>{" "}
+                module. Affects companion chat, study materials, grading, plagiarism,
+                study plans, course import, RAG retrieval, knowledge graph, GAG and
+                image generation. Non-AI features are unaffected.
               </p>
             </div>
           </div>
 
-          {/* Toggle */}
           <button
             type="button"
             role="switch"
-            aria-checked={smtpEnabled}
-            onClick={() => setSmtpEnabled(v => !v)}
+            aria-checked={aiEnabled}
+            onClick={() => setAiEnabled(v => !v)}
             className={clsx(
               "relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-              smtpEnabled ? "bg-emerald-500/80" : "bg-dark-700",
+              aiEnabled ? "bg-emerald-500/80" : "bg-dark-700",
             )}
           >
             <span
               className={clsx(
                 "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition",
-                smtpEnabled ? "translate-x-5" : "translate-x-0",
+                aiEnabled ? "translate-x-5" : "translate-x-0",
               )}
             />
           </button>
         </div>
+
+        {!aiEnabled && (
+          <div className="mt-4 flex items-start gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-200">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>
+              Master switch is OFF. The per-feature toggles below are kept for
+              reference but ignored — no Gemini calls will be made until the
+              master switch is turned back on.
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Type allow-list */}
-      <div className={clsx("glass-card p-6 transition-opacity", !smtpEnabled && "opacity-50")}>
+      {/* Per-feature kill list */}
+      <div className={clsx("glass-card p-6 transition-opacity", !aiEnabled && "opacity-50")}>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-sm font-semibold text-dark-200 uppercase tracking-wider">
-              Notification Types
+              Per-Feature Toggles
             </h2>
             <p className="text-xs text-dark-400 mt-1">
-              Pick which kinds of notifications generate an email. Unchecked types
-              still appear in-app.
+              Disable individual features without killing the master switch.
+              Unchecked = disabled (returns 503 for that feature only).
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <button
               type="button"
               onClick={() => setAll(true)}
-              className="px-2.5 py-1 rounded-md text-accent-amber hover:bg-white/5 transition-colors"
+              className="px-2.5 py-1 rounded-md text-accent-purple hover:bg-white/5 transition-colors"
             >
               Enable all
             </button>
@@ -255,41 +269,41 @@ export default function AdminEmailSettingsPage() {
                   {g}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {items.map(t => {
-                    const Icon = t.icon;
-                    const checked = allowedTypes.has(t.key);
+                  {items.map(f => {
+                    const Icon = f.icon;
+                    const enabledForFeature = !disabledFeatures.has(f.key);
                     return (
                       <button
-                        key={t.key}
+                        key={f.key}
                         type="button"
-                        onClick={() => toggleType(t.key)}
-                        disabled={!smtpEnabled}
+                        onClick={() => toggleFeature(f.key)}
+                        disabled={!aiEnabled}
                         className={clsx(
                           "flex items-start gap-3 p-3 rounded-xl border text-left transition-colors",
-                          checked
-                            ? "border-accent-amber/40 bg-accent-amber/5"
+                          enabledForFeature
+                            ? "border-accent-purple/40 bg-accent-purple/5"
                             : "border-white/5 bg-white/[0.02] hover:bg-white/5",
-                          !smtpEnabled && "cursor-not-allowed",
+                          !aiEnabled && "cursor-not-allowed",
                         )}
                       >
                         <div
                           className={clsx(
                             "w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors",
-                            checked ? "bg-accent-amber border-accent-amber" : "border-white/20",
+                            enabledForFeature ? "bg-accent-purple border-accent-purple" : "border-white/20",
                           )}
                         >
-                          {checked && <Check className="w-3.5 h-3.5 text-dark-900" />}
+                          {enabledForFeature && <Check className="w-3.5 h-3.5 text-dark-900" />}
                         </div>
                         <Icon className="w-4 h-4 mt-1 text-dark-200 flex-shrink-0" />
                         <div className="min-w-0 flex-1">
                           {/*
                             text-dark-100 (not text-white) — globals.css has a
                             greedy `html.light [class*="bg-accent"] .text-white`
-                            !important rule that matches `bg-accent-amber/5` on
+                            !important rule that matches `bg-accent-purple/5` on
                             this button and forces white-on-white in light mode.
                           */}
-                          <p className="text-sm font-medium text-dark-100">{t.label}</p>
-                          <p className="text-xs text-dark-400 mt-0.5">{t.description}</p>
+                          <p className="text-sm font-medium text-dark-100">{f.label}</p>
+                          <p className="text-xs text-dark-400 mt-0.5">{f.description}</p>
                         </div>
                       </button>
                     );

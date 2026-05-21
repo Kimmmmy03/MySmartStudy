@@ -487,6 +487,86 @@ def set_user_token_limit(
     return {"ok": True, "uid": uid, "dailyTokenLimit": req.limit}
 
 
+# ── AI Master Switch (global on/off + per-feature kill list) ───────────────
+
+class AISettingsUpdate(BaseModel):
+    ai_enabled: bool | None = None
+    disabled_features: list[str] | None = None
+
+
+def _read_ai_settings(db) -> dict:
+    """Read aiConfig/global and return the gate-relevant fields."""
+    from ..ai_service import AI_FEATURES
+
+    snap = db.collection(models.AI_CONFIG).document("global").get()
+    if snap.exists:
+        cfg = snap.to_dict() or {}
+        ai_enabled = bool(cfg.get("aiEnabled", True))
+        raw = cfg.get("disabledFeatures")
+        disabled = [f for f in raw if isinstance(f, str)] if isinstance(raw, list) else []
+        updated_at = cfg.get("aiSettingsUpdatedAt") or cfg.get("updatedAt")
+        updated_by = cfg.get("aiSettingsUpdatedBy") or cfg.get("updatedBy", "")
+    else:
+        ai_enabled = True
+        disabled = []
+        updated_at = None
+        updated_by = ""
+    return {
+        "ai_enabled": ai_enabled,
+        "disabled_features": disabled,
+        "all_features": list(AI_FEATURES),
+        "updated_at": updated_at,
+        "updated_by": updated_by,
+    }
+
+
+@router.get("/ai-settings")
+def get_ai_settings(user: dict = Depends(require_admin), db=Depends(get_db)):
+    """Return the global AI master switch + per-feature kill list."""
+    return _read_ai_settings(db)
+
+
+@router.patch("/ai-settings")
+def update_ai_settings(
+    req: AISettingsUpdate,
+    user: dict = Depends(require_admin),
+    db=Depends(get_db),
+):
+    """Patch the global AI gate. Pass either field — both are optional."""
+    from ..ai_service import AI_FEATURES, invalidate_ai_gate_cache
+
+    if req.ai_enabled is None and req.disabled_features is None:
+        raise HTTPException(400, "Provide ai_enabled and/or disabled_features")
+
+    valid = set(AI_FEATURES)
+    updates: dict = {
+        "aiSettingsUpdatedAt": datetime.now(timezone.utc).isoformat(),
+        "aiSettingsUpdatedBy": user["id"],
+    }
+    if req.ai_enabled is not None:
+        updates["aiEnabled"] = bool(req.ai_enabled)
+    if req.disabled_features is not None:
+        # Defensive: drop unknown feature keys so a stale client can't poison the doc.
+        clean = [f for f in req.disabled_features if f in valid]
+        updates["disabledFeatures"] = clean
+
+    db.collection(models.AI_CONFIG).document("global").set(updates, merge=True)
+    invalidate_ai_gate_cache()
+
+    audit_log(
+        db,
+        user_id=user["id"],
+        action="update",
+        resource_type="ai_settings",
+        resource_id="global",
+        details=(
+            f"ai_enabled={updates.get('aiEnabled', '<unchanged>')}, "
+            f"disabled_features={updates.get('disabledFeatures', '<unchanged>')}"
+        ),
+    )
+    return _read_ai_settings(db)
+
+
 # ── Usage Analytics (time spent + feature usage) ───────────────────────────
 
 def _minutes_to_label(m: int) -> str:

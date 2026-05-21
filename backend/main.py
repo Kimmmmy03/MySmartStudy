@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.firestore import db as _firestore_db  # noqa: F401 — ensures Firebase init on startup
+from app.auth import get_current_user
 from app.routers import auth, users, maps, courses, assignments, discussions, announcements, resources, reminders, badges, analytics, admin, activity, stats, notifications, participation, quizzes, gradebook, messaging, peer_review, progress, attendance, rubrics, certificates, groups, group_tasks, discussion_topics, completion, social
 from app.routers import ai_plagiarism, ai_grading, ai_companion, ai_study_materials, ai_study_plan, ai_import, ai_images, ai_mindmap_buddy, rag_admin
 from app.routers import site_import, clp
@@ -96,6 +97,18 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 @app.get("/")
 def root():
     return {"message": "MySmartStudy API is running", "docs": "/docs"}
+
+
+@app.get("/api/ai/status")
+def ai_status(user: dict = Depends(get_current_user)):
+    """Authenticated read of the AI gate so frontends can hide AI buttons.
+
+    Returns the same view of aiConfig/global that the backend will enforce on
+    the next Gemini call.
+    """
+    from app.ai_service import _load_ai_gate
+    enabled, disabled = _load_ai_gate()
+    return {"enabled": enabled, "disabled_features": sorted(disabled)}
 
 
 @app.get("/api/homepage/content")

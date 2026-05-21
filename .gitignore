@@ -118,3 +118,7 @@ CLAUDE.md
 nexus-graph-viewer.html
 icon-preview.html
 
+
+# draw.io auto-backup files
+*.drawio.bkp
+.$*.bkp

@@ -37,6 +37,84 @@ _tracking_feature: ContextVar[str] = ContextVar("tracking_feature", default="")
 # case per user, with ~20-40 AI interactions headroom.
 DEFAULT_DAILY_TOKEN_LIMIT = 50_000
 
+# ── Admin master switch + per-feature kill list (aiConfig/global) ──
+# Feature keys correspond to the values passed to set_tracking_context() by AI
+# routers. RAG / KG / GAG / site-importer paths bypass tracking and are gated
+# by the master switch only (via _get_client).
+AI_FEATURES: tuple[str, ...] = (
+    "companion",
+    "mindmap_buddy",
+    "study_materials",
+    "study_plan",
+    "grading",
+    "plagiarism",
+    "import",
+    "images",
+)
+
+# Cache the gate doc for a few seconds so we don't hit Firestore on every
+# Gemini call. Admins toggling the switch will see the change within _GATE_TTL
+# seconds across all workers.
+_GATE_TTL = 30.0
+_gate_cache: dict = {"loaded_at": 0.0, "enabled": True, "disabled_features": frozenset()}
+
+
+def _load_ai_gate() -> tuple[bool, frozenset[str]]:
+    """Return ``(master_enabled, disabled_features)`` from aiConfig/global.
+
+    Defaults to enabled with no features disabled when the doc is missing or
+    Firestore is unreachable — fail-open so a Firestore outage doesn't kill AI.
+    """
+    import time
+    now = time.monotonic()
+    if now - _gate_cache["loaded_at"] < _GATE_TTL:
+        return _gate_cache["enabled"], _gate_cache["disabled_features"]
+    enabled = True
+    disabled: frozenset[str] = frozenset()
+    try:
+        from .firestore import db
+        from . import models as _m
+        doc = db.collection(_m.AI_CONFIG).document("global").get()
+        if doc.exists:
+            d = doc.to_dict() or {}
+            if "aiEnabled" in d:
+                enabled = bool(d.get("aiEnabled"))
+            raw = d.get("disabledFeatures")
+            if isinstance(raw, list):
+                disabled = frozenset(str(x) for x in raw if isinstance(x, str))
+    except Exception as e:
+        logger.debug("AI gate lookup failed, defaulting to enabled: %s", e)
+    _gate_cache["enabled"] = enabled
+    _gate_cache["disabled_features"] = disabled
+    _gate_cache["loaded_at"] = now
+    return enabled, disabled
+
+
+def invalidate_ai_gate_cache() -> None:
+    """Force the next AI call to re-read the gate doc. Called by the admin PATCH."""
+    _gate_cache["loaded_at"] = 0.0
+
+
+def _enforce_ai_gate(feature: str = "") -> None:
+    """Raise HTTPException(503) when AI is disabled by the admin.
+
+    ``feature`` is the per-feature key; pass "" for paths that don't have one
+    (RAG retrieval, embeddings, etc.) — those are gated by the master switch only.
+    """
+    enabled, disabled = _load_ai_gate()
+    if not enabled:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=503,
+            detail="AI features are currently disabled by the administrator.",
+        )
+    if feature and feature in disabled:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=503,
+            detail=f"The '{feature}' AI feature is currently disabled by the administrator.",
+        )
+
 
 def _today_key() -> str:
     from datetime import datetime, timezone
@@ -80,11 +158,16 @@ def _get_tokens_used_today(user_id: str) -> int:
 def set_tracking_context(user_id: str, feature: str) -> None:
     """Call at the start of any AI endpoint to tag subsequent Gemini calls for usage tracking.
 
-    Also enforces the daily per-user token quota: raises HTTPException(429)
-    when the user has already exceeded their limit for today.
+    Enforces, in order:
+      1. Admin master switch / per-feature kill list (HTTPException 503).
+      2. Daily per-user token quota (HTTPException 429).
     """
     _tracking_user.set(user_id)
     _tracking_feature.set(feature)
+
+    # Master switch + per-feature gate run before quota so a disabled feature
+    # never even consumes the user's daily budget.
+    _enforce_ai_gate(feature)
 
     # Enforce daily quota — skip if no user_id (unauthenticated background jobs)
     if not user_id:
@@ -177,6 +260,10 @@ def configure_gemini():
 
 
 def _get_client() -> genai.Client:
+    # Belt-and-braces gate — covers paths that bypass set_tracking_context
+    # (RAG retrieval, knowledge graph, site importer, CLP). The per-feature
+    # check is skipped here because these paths don't have a feature key.
+    _enforce_ai_gate()
     if _client is None:
         configure_gemini()
     return _client  # type: ignore

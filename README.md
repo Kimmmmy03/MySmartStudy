@@ -1926,6 +1926,49 @@ The Flutter mobile app connects to the backend via `ApiService._base`:
 
 ---
 
+## Documentation & Diagrams
+
+Supporting material for understanding, presenting, and extending the project.
+
+### Architecture diagrams — `diagrams/`
+
+Eight technical draw.io diagrams (`.drawio`, open at <https://app.diagrams.net> or with the VS Code Draw.io extension):
+
+| File | Diagram |
+|------|---------|
+| `1_use_case_diagram.drawio` | Use case diagram — Student / Lecturer / Admin actors |
+| `2_uml_class_diagram.drawio` | UML class / entity diagram (Firestore document model) |
+| `3_system_architecture.drawio` | Layered system architecture |
+| `4_rag_diagram.drawio` | RAG pipeline — ingestion + retrieval (multi-step, HyDE, rerank) |
+| `5_rag_graph_diagram.drawio` | Knowledge graph build + BFS query + plagiarism similarity graph |
+| `6_gag_diagram.drawio` | GAG — structured-output generation flow |
+| `7_multi_agent_diagram.drawio` | Multi-agent fan-out / fan-in orchestration |
+| `8_ai_features_interaction.drawio` | How every AI feature shares the gate, RAG, KG, GAG and multi-agent layers |
+
+### Simplified diagrams — `diagrams_simple/`
+
+Six plain-English versions of the AI diagrams for non-technical audiences (supervisors, viva panel). Same colour palette, real-world analogies, larger fonts.
+
+### AI patterns walkthrough — `TUTORIAL_BUILD_AI_PATTERNS.md`
+
+A code walkthrough of the four AI patterns (RAG, Graph-RAG, GAG, Multi-Agent) with verbatim snippets from `backend/app/`, the tools used for each, links to official documentation, and a viva Q&A section.
+
+### Framework integration playgrounds
+
+Standalone, runnable re-implementations of the AI patterns using industry-standard libraries — kept separate from the shipped backend so the originals are untouched:
+
+| Folder / file | Contents |
+|---------------|----------|
+| `langchain_integration/` | LangChain demos — `01_rag_layered.py` (RAG), `02_graph_rag.py` (Graph-RAG), `03_gag_structured.py` (GAG) |
+| `crewai_integration/` | CrewAI demo — `04_companion_crew.py` (multi-agent companion crew) |
+| `GUIDE_LANGCHAIN_CREWAI.md` | Beginner step-by-step guide — install, run, and view runs on LangSmith |
+
+### FYP documents — `docs/`
+
+SRS, STP, and Survey Analysis Report PDFs (with extracted `.txt` copies).
+
+---
+
 ## License
 
 This project is developed for educational purposes at **Universiti Kuala Lumpur Malaysian Institute of Information Technology (UniKL MIIT)** as a Final Year Project, with **IPG Kampus Perempuan Melayu Melaka** as the client and target deployment institution.

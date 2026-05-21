@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import {
   LayoutDashboard, Map, BookOpen, Calendar, CalendarDays, Award, User, BarChart3, Activity,
-  Users, Eye, BadgeCheck, X, ScrollText, ChevronLeft, ChevronRight, ChevronDown, Newspaper, GraduationCap, MessageCircle, Bell, UserCheck, Compass, BarChart2, Megaphone, Mail, LogOut,
+  Users, Eye, BadgeCheck, X, ScrollText, ChevronLeft, ChevronRight, ChevronDown, Newspaper, GraduationCap, MessageCircle, Bell, UserCheck, Compass, BarChart2, Megaphone, Mail, Sparkles, LogOut,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -117,6 +117,7 @@ const adminGroups: NavGroup[] = [
       { href: "/admin/users", label: "User Management", icon: Users },
       { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
       { href: "/admin/email-settings", label: "Email Settings", icon: Mail },
+      { href: "/admin/ai-settings", label: "AI Settings", icon: Sparkles },
       { href: "/admin/homepage-editor", label: "Homepage Editor", icon: Newspaper },
       { href: "/admin/manage-badges", label: "Manage Badges", icon: BadgeCheck },
       { href: "/admin/audit-logs", label: "Audit Logs", icon: ScrollText },

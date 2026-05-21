@@ -1,0 +1,235 @@
+<mxfile host="app.diagrams.net" agent="MySmartStudy" version="22.1.16">
+  <diagram id="ragGraph" name="RAG Knowledge Graph">
+    <mxGraphModel dx="2400" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="MySmartStudy — Knowledge Graph (per-course concept graph + plagiarism similarity graph)" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="1800" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- =============== ① BUILD =============== -->
+        <mxCell id="bg_build" value="①  Build —  build_course_graph(course_id)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8;align=left;spacingLeft=18" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1240" height="680" as="geometry" />
+        </mxCell>
+
+        <!-- Row 1: state → chunks → batch -->
+        <mxCell id="b_state" value="Read ragIndexState&#10;WHERE courseId == cid&#10;&#10;list of indexed (docId, docType, title)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="270" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="b_chunks" value="Pull first chunk from Chroma&#10;collection.get(ids=[doc_id_chunk_0])&#10;&#10;text truncated to 1500 chars / doc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="400" y="130" width="290" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="b_batch" value="Batch documents (5 per call)&#10;Trim content_text to 6000 chars" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="740" y="130" width="290" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Row 2: prompt → merge → persist -->
+        <mxCell id="b_prompt" value="Gemini concept extraction&#10;generate_json — temp 0.2&#10;&#10;Asks for:&#10; concepts[] : { id, label,&#10;   type ∈ concept | fact |&#10;   definition | example | process,&#10;   sources : docId[] }&#10; relationships[] : { source, target,&#10;   relation ∈ requires | part_of |&#10;   related_to | leads_to |&#10;   contrasts | example_of }&#10;&#10;Target 10-20 concepts per batch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="80" y="290" width="290" height="320" as="geometry" />
+        </mxCell>
+
+        <mxCell id="b_merge" value="Merge across batches&#10;&#10;same id → union sources,&#10;weight += 1&#10;new id → insert&#10;drop rel if src/tgt missing&#10;dedupe edges by (src, tgt, rel)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="420" y="290" width="280" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="b_persist" value="Firestore&#10;knowledgeGraphs/{courseId}&#10;&#10;{ courseId, nodes : map,&#10;  edges : array,&#10;  nodeCount, edgeCount,&#10;  lastUpdatedAt }" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=14;spacingTop=12;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="740" y="290" width="290" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- Build flow arrows -->
+        <mxCell id="bi1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="b_state" target="b_chunks"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="bi2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="b_chunks" target="b_batch"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="bi3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="b_batch" target="b_prompt">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="225" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bi4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#2C5282;strokeWidth=2" edge="1" parent="1" source="b_prompt" target="b_merge"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="bi5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="b_merge" target="b_persist"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Sample subgraph (below) -->
+        <mxCell id="prev_title" value="Sample subgraph after build:" style="text;html=1;align=left;fontStyle=1;fontSize=11;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="80" y="630" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n_db" value="Relational&#10;Database" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;fontSize=10;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="80" y="660" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="n_er" value="ER Model" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;fontSize=10;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="230" y="660" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="n_eer" value="EER Model" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;fontSize=10;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="380" y="660" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="n_norm" value="Normalisation" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;fontSize=10;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="530" y="660" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="n_3nf" value="3NF" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;fontSize=10;fontStyle=1;fontColor=#3F2A6B" vertex="1" parent="1">
+          <mxGeometry x="700" y="660" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="n_pk" value="Primary Key" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#5A6478;fontSize=10;fontStyle=1;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="850" y="660" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ne1" value="part_of" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;fontSize=9;strokeColor=#4A5568;fontColor=#3D4A5C" edge="1" parent="1" source="n_db" target="n_er"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ne2" value="leads_to" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;fontSize=9;strokeColor=#4A5568;fontColor=#3D4A5C" edge="1" parent="1" source="n_er" target="n_eer"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ne3" value="requires" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;fontSize=9;strokeColor=#4A5568;fontColor=#3D4A5C" edge="1" parent="1" source="n_eer" target="n_norm"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ne4" value="example_of" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;endArrow=open;fontSize=9;strokeColor=#4A5568;fontColor=#3D4A5C" edge="1" parent="1" source="n_3nf" target="n_norm"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ne5" value="part_of" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;endArrow=open;fontSize=9;strokeColor=#4A5568;fontColor=#3D4A5C" edge="1" parent="1" source="n_pk" target="n_er">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="980" y="730" />
+              <mxPoint x="200" y="730" />
+              <mxPoint x="200" y="690" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- =============== ② QUERY =============== -->
+        <mxCell id="bg_query" value="②  Concept Subgraph Query —  query_related_concepts(course_id, concepts, depth=2)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8;align=left;spacingLeft=18" vertex="1" parent="1">
+          <mxGeometry x="1300" y="80" width="1260" height="680" as="geometry" />
+        </mxCell>
+
+        <mxCell id="q_in" value="Caller (ai_mindmap_buddy)&#10;passes concept labels[]&#10;e.g. [&quot;ER&quot;, &quot;Normalisation&quot;]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1340" y="130" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="q_load" value="Load Firestore&#10;knowledgeGraphs/{cid}&#10;&#10;If absent → empty subgraph" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="1620" y="130" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="q_adj" value="Build adjacency list&#10;&#10;Directed + reverse edges&#10;keyed by nodeId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="1900" y="130" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="q_match" value="Case-insensitive label match&#10;&#10;start_ids = { n.id |&#10; cl ⊂ n.label or n.label ⊂ cl }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="1340" y="280" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="q_bfs" value="BFS up to depth N&#10;&#10;queue = [(sid, 0) for sid in start_ids]&#10;while queue:&#10;    node, d = popleft()&#10;    result_nodes[node] = all_nodes[node]&#10;    if d ≥ depth: continue&#10;    for edge in adjacency[node]:&#10;        result_edges += edge&#10;        if target not visited:&#10;            queue.append((target, d+1))" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="1620" y="280" width="340" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="q_dedupe" value="Dedupe edges&#10;by (source, target)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=center;verticalAlign=middle;fontSize=11;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="2000" y="540" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="q_out" value="Return subgraph&#10;&#10;{ nodes : { id → {label, type,&#10;             sources, weight} },&#10;  edges : [{source, target, relation}] }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2D3748" vertex="1" parent="1">
+          <mxGeometry x="2230" y="280" width="290" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qe1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="q_in" target="q_load"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="qe2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#2C5282;strokeWidth=2" edge="1" parent="1" source="q_load" target="q_adj"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="qe3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#5A6478;strokeWidth=2" edge="1" parent="1" source="q_load" target="q_match">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1740" y="260" />
+              <mxPoint x="1460" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qe4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.3;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="q_match" target="q_bfs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="qe5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="q_bfs" target="q_dedupe"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="qe6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.7;endArrow=classic;strokeColor=#3D4A5C;strokeWidth=2" edge="1" parent="1" source="q_dedupe" target="q_out"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- demo subgraph -->
+        <mxCell id="q_demo_title" value="Subgraph delivered to GAG step:" style="text;html=1;align=left;fontStyle=1;fontSize=11;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="1340" y="540" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="d_er" value="ER Model" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;fontSize=10;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1350" y="570" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d_eer" value="EER Model" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;fontSize=10;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1480" y="570" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d_norm" value="Normalisation" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;fontSize=10;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1610" y="570" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d_pk" value="Primary Key" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#5A6478;fontSize=10;fontStyle=1;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="1350" y="630" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d_3nf" value="3NF" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;fontSize=10;fontStyle=1;fontColor=#3F2A6B" vertex="1" parent="1">
+          <mxGeometry x="1610" y="630" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="dde1" value="leads_to" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;fontSize=9;strokeColor=#4A5568;fontColor=#3D4A5C" edge="1" parent="1" source="d_er" target="d_eer"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="dde2" value="requires" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;fontSize=9;strokeColor=#4A5568;fontColor=#3D4A5C" edge="1" parent="1" source="d_eer" target="d_norm"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="dde3" value="part_of" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;endArrow=open;fontSize=9;strokeColor=#4A5568;fontColor=#3D4A5C" edge="1" parent="1" source="d_pk" target="d_er"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="dde4" value="example_of" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;endArrow=open;fontSize=9;strokeColor=#4A5568;fontColor=#3D4A5C" edge="1" parent="1" source="d_3nf" target="d_norm"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="q_consumer" value="Consumed by&#10;&#10;gag_service.generate_graph_suggestions(... concept_subgraph)&#10;to ground node ideas in the course's concept graph.&#10;Pairs with format_context(rag_chunks): text snippets for evidence,&#10;graph for relationships.&#10;The graph compensates for RAG's flat top-K behaviour by exposing&#10;structural relations (part_of, leads_to, contrasts, requires)." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=11;fontColor=#3D4A5C;align=left;spacingLeft=10;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="1780" y="620" width="740" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- =============== ③ PLAGIARISM =============== -->
+        <mxCell id="bg_plag" value="③  Plagiarism Similarity Graph —  build_similarity_graph(assignment_id) + detect_clusters()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8;align=left;spacingLeft=18" vertex="1" parent="1">
+          <mxGeometry x="40" y="800" width="2520" height="540" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p_fetch" value="Fetch submissions for assignment_id&#10;&#10;Extract content per submission&#10;• map → maps.{mapId}.nodesText&#10;• file → PyPDF2.read(filePath)&#10;• other → comments / externalLink&#10;Drop if &lt; 20 chars" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="80" y="850" width="300" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="p_embed" value="rag_service.embed_texts()&#10;&#10;Truncate to 3000 chars each&#10;Gemini gemini-embedding-001 (768d)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="420" y="850" width="280" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="p_pair" value="Pairwise cosine similarity&#10;&#10;for i in N:&#10;  for j in i+1..N:&#10;    sim = dot / ||a||·||b||&#10;    if sim ≥ EDGE_THRESHOLD (0.3):&#10;        edges += (i, j, sim)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="740" y="850" width="280" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="p_cluster" value="detect_clusters(graph, ≥ 0.7)&#10;&#10;Adjacency on edges ≥ 0.7&#10;Connected components via BFS&#10;Keep components of size ≥ 2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="1060" y="850" width="280" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="p_gag" value="gag_service.&#10;generate_plagiarism_network_report()&#10;&#10;Gemini SMART_MODEL classifies each&#10;cluster (severity, intentional vs coincidental)&#10;and writes a narrative summary." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1380" y="850" width="320" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="p_persist" value="aiPlagiarismReports +&#10;assignment-level network_graph&#10;rendered to lecturer UI" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=14;spacingTop=12;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="1740" y="850" width="280" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pe1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="p_fetch" target="p_embed"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="pe2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="p_embed" target="p_pair"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="pe3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#5A6478;strokeWidth=2" edge="1" parent="1" source="p_pair" target="p_cluster"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="pe4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="p_cluster" target="p_gag"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="pe5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="p_gag" target="p_persist"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- example similarity viz -->
+        <mxCell id="p_eg_title" value="Example output graph (3 clusters):" style="text;html=1;align=left;fontStyle=1;fontSize=12;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="80" y="1040" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s1" value="S1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;fontSize=11;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="100" y="1080" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" value="S2" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;fontSize=11;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="220" y="1080" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="S3" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;fontSize=11;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="160" y="1180" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="se1" value="0.91" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=none;fontSize=10;strokeColor=#6B46C1;strokeWidth=2;fontColor=#4C2F87" edge="1" parent="1" source="s1" target="s2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="se2" value="0.84" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=none;fontSize=10;strokeColor=#6B46C1;strokeWidth=2;fontColor=#4C2F87" edge="1" parent="1" source="s2" target="s3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="se3" value="0.79" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=none;fontSize=10;strokeColor=#6B46C1;strokeWidth=2;fontColor=#4C2F87" edge="1" parent="1" source="s1" target="s3"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="s4" value="S4" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;fontSize=11;fontStyle=1;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="400" y="1110" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s5" value="S5" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;fontSize=11;fontStyle=1;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="520" y="1110" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="se4" value="0.72" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=none;fontSize=10;strokeColor=#5A6478;strokeWidth=2;fontColor=#3D4A5C" edge="1" parent="1" source="s4" target="s5"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="s6" value="S6" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;fontSize=11;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="680" y="1110" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s7" value="S7" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;fontSize=11;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="800" y="1110" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="se5" value="0.31 (not clustered)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=none;fontSize=9;strokeColor=#A0AEC0;dashed=1;strokeWidth=2;fontColor=#5A6478" edge="1" parent="1" source="s6" target="s7"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="bot_legend" value="Edge weight legend&#10;&#10;Purple ≥ 0.7  → flagged cluster (lecturer reviews)&#10;Gray 0.5 – 0.7 → review&#10;Light dashed   → kept but ignored by clustering (0.3 ≤ sim &lt; 0.5)&#10;Filtered &lt; 0.3 → not stored" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECEFF5;strokeColor=#5A6478;fontSize=11;fontColor=#3D4A5C;align=left;spacingLeft=10;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="940" y="1040" width="500" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="env_note" value="env vars&#10;&#10;PLAGIARISM_EDGE_THRESHOLD (default 0.3)&#10;Cluster cut-off in detect_clusters defaults to 0.7&#10;Edge is undirected (sim is symmetric)" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=10;fontColor=#3D4A5C;align=left;spacingLeft=10;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="1480" y="1040" width="540" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="srccap" value="Sources — knowledge_graph_service.py:&#10;build_course_graph, query_related_concepts,&#10;build_similarity_graph, detect_clusters.&#10;Storage — Firestore knowledgeGraphs (keyed by courseId), aiPlagiarismReports.&#10;Triggered — rag_admin endpoints or after RAG re-indexing." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECEFF5;strokeColor=#4A6E8C;fontSize=10;fontColor=#2E4A66;align=left;spacingLeft=10;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="2060" y="1040" width="480" height="170" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,225 @@
+<mxfile host="app.diagrams.net" agent="MySmartStudy" version="22.1.16">
+  <diagram id="sysArch" name="System Architecture">
+    <mxGraphModel dx="2400" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="MySmartStudy — System Architecture" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=22;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="800" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Strictly tiered.  Each box in a tier connects to its directly-below counterpart.  Cross-cuts use vertical &quot;buses&quot; in the gaps between tiers." style="text;html=1;align=center;whiteSpace=wrap;fontSize=12;fontStyle=2;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="400" y="60" width="1800" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== TIER 1: CLIENT ===================== -->
+        <mxCell id="tier_client" value="Client Tier" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="40" y="110" width="2520" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cli_web" value="Next.js 16 Web App&#10;(frontend-web)&#10;&#10;App Router · TypeScript&#10;Tailwind v4 · React Flow&#10;Polling 4-10s realtime" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="100" y="150" width="300" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="cli_mobile" value="Flutter Mobile App&#10;(frontend-mobile)&#10;&#10;Android / iOS&#10;Same REST API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="440" y="150" width="280" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="cli_admin" value="Admin Console&#10;(Next.js /admin/*)&#10;&#10;Master switch UI&#10;User / role mgmt&#10;Audit log viewer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2D3748" vertex="1" parent="1">
+          <mxGeometry x="760" y="150" width="280" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="cli_lib" value="Client Libraries&#10;&#10;src/lib/api.ts — fetch&#10;src/lib/firebase.ts&#10;src/lib/export-map.ts&#10;src/contexts/AuthProvider" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#3F2A6B" vertex="1" parent="1">
+          <mxGeometry x="1080" y="150" width="320" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="cli_user" value="End Users&#10;Students · Lecturers · Admin" style="shape=actor;html=1;align=center;verticalAlign=top;fillColor=#DCE7F3;strokeColor=#2C5282;fontSize=11;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="1480" y="155" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="cli_note" value="Web browser / mobile device — HTTPS only.&#10;Authenticated with Firebase ID token sent as Bearer." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#4A6E8C;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="1700" y="160" width="800" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== TIER 2: APP / ROUTERS ===================== -->
+        <mxCell id="tier_api" value="Application Tier — FastAPI (Uvicorn) — backend/main.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="40" y="340" width="2520" height="460" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api_auth" value="Auth Layer&#10;&#10;Firebase Admin SDK&#10;verify_id_token&#10;get_current_user&#10;require_lecturer&#10;require_admin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2D3748" vertex="1" parent="1">
+          <mxGeometry x="100" y="380" width="240" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api_routers" value="REST Routers — 50+ endpoints" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFEAF6;strokeColor=#553C9A;align=left;verticalAlign=top;fontSize=12;spacingLeft=10;spacingTop=6;fontStyle=1;fontColor=#3F2A6B" vertex="1" parent="1">
+          <mxGeometry x="380" y="380" width="840" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="rt_core" value="Core domain&#10;&#10;/api/auth · /api/users&#10;/api/maps · /api/courses&#10;/api/assignments · /submissions&#10;/api/quizzes · /api/gradebook&#10;/api/attendance · /rubrics&#10;/api/certificates" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;align=left;verticalAlign=top;fontSize=10;spacingLeft=8;spacingTop=4;fontColor=#3F2A6B" vertex="1" parent="1">
+          <mxGeometry x="400" y="415" width="260" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="rt_social" value="Social / collab&#10;&#10;/api/discussions · /messaging&#10;/api/announcements&#10;/api/peer-reviews · /badges&#10;/api/social (follows)&#10;/api/reminders · /progress&#10;/api/groups · /group-tasks&#10;/api/analytics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;align=left;verticalAlign=top;fontSize=10;spacingLeft=8;spacingTop=4;fontColor=#3F2A6B" vertex="1" parent="1">
+          <mxGeometry x="680" y="415" width="260" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="rt_admin" value="Admin / system&#10;&#10;/api/admin/audit-logs&#10;/api/admin/ai/master-switch&#10;/api/admin/ai/disabled-features&#10;/api/ai/status (public read)&#10;/api/rag-admin/*&#10;/api/site-import&#10;/api/clp/*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=left;verticalAlign=top;fontSize=10;spacingLeft=8;spacingTop=4;fontColor=#2D3748" vertex="1" parent="1">
+          <mxGeometry x="960" y="415" width="240" height="230" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api_ai" value="AI Routers — /api/ai/*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0E9F8;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=12;spacingLeft=10;spacingTop=6;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1260" y="380" width="560" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="ai_1" value="Student-facing AI&#10;&#10;companion — chat (SSE)&#10;mindmap-buddy — suggest&#10;study-plan — daily + exam&#10;study-materials — sum / flash" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=10;spacingLeft=8;spacingTop=4;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1280" y="415" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ai_2" value="Lecturer-facing AI&#10;&#10;grading — recommend&#10;plagiarism — single + network&#10;import — Google Sites&#10;images — node image gen" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=10;spacingLeft=8;spacingTop=4;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1560" y="415" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ai_gate" value="Gate (set_tracking_context)&#10;1) Master switch (503)&#10;2) Per-feature kill list (503)&#10;3) Daily token quota (429)&#10;4) Logs usage to Firestore" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=left;verticalAlign=top;fontSize=10;spacingLeft=8;spacingTop=4;fontStyle=1;fontColor=#2D3748" vertex="1" parent="1">
+          <mxGeometry x="1280" y="545" width="520" height="115" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api_sched" value="Background Scheduler&#10;APScheduler — scheduler.py&#10;&#10;Auto-badge awarding&#10;RAG re-indexing job&#10;KG rebuild on change" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2D3748" vertex="1" parent="1">
+          <mxGeometry x="1860" y="380" width="300" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api_services" value="Service Modules — backend/app/*.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;align=left;verticalAlign=top;fontSize=12;spacingLeft=10;spacingTop=6;fontStyle=1;fontColor=#3F2A6B" vertex="1" parent="1">
+          <mxGeometry x="100" y="700" width="2400" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_ai" value="ai_service.py&#10;Gemini wrapper" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="120" y="735" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_rag" value="rag_service.py&#10;Chunk · Embed · Rerank" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="340" y="735" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_ragmulti" value="rag_multistep.py&#10;Decompose · HyDE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="560" y="735" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_kg" value="knowledge_graph_service.py&#10;BFS · Similarity" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="780" y="735" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_gag" value="gag_service.py&#10;Structured artifacts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1040" y="735" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_multi" value="multi_agent.py&#10;fan_out / fan_in" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1280" y="735" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_sim" value="similarity.py&#10;Pairwise cosine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="1500" y="735" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_audit" value="audit.py&#10;auditLogs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#2D3748" vertex="1" parent="1">
+          <mxGeometry x="1700" y="735" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_email" value="email_service.py&#10;SMTP master switch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#2D3748" vertex="1" parent="1">
+          <mxGeometry x="1880" y="735" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_clp" value="clp/*&#10;Syllabus pipeline" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="2080" y="735" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== TIER 3: DATA & EXTERNAL ===================== -->
+        <mxCell id="tier_data" value="Data &amp; External Services Tier" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="40" y="850" width="2520" height="340" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db_firestore" value="Firebase Cloud Firestore&#10;&#10;Operational + AI metadata:&#10;users, courses, assignments,&#10;submissions, quizzes, modules,&#10;announcements, discussions,&#10;messages, reminders, badges,&#10;peerReviews, attendance, rubrics&#10;&#10;AI: aiChatHistory, learningProfiles,&#10;aiPlagiarismReports, aiGradeRecs,&#10;aiStudyPlans, ragIndexState,&#10;knowledgeGraphs, aiConfig,&#10;aiDailyUsage, auditLogs&#10;+ AI result caches" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=10;spacingLeft=14;spacingTop=12;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="100" y="890" width="340" height="290" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db_chroma" value="ChromaDB&#10;persistent vector store&#10;&#10;backend/vector_store/&#10;Per-course collection&#10;HNSW · cosine&#10;768-dim Gemini embeddings&#10;Metadata: doc_id, doc_type,&#10;title, course_id, chunk_index" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=10;spacingLeft=14;spacingTop=12;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="460" y="890" width="280" height="290" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db_sqlite" value="SQLite&#10;(local dev / legacy)&#10;&#10;mysmartstudy.db&#10;SQLAlchemy ORM&#10;Local only — prod&#10;uses Firestore" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#ECEFF5;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=10;spacingLeft=14;spacingTop=12;fontStyle=2;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="760" y="890" width="200" height="290" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db_files" value="File Storage&#10;&#10;Local: backend/uploads/&#10;• avatars&#10;• PDF submissions&#10;• Generated images&#10;&#10;Production: Firebase Storage" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#4A6E8C;tabWidth=80;tabHeight=18;align=left;verticalAlign=top;fontSize=10;spacingLeft=14;spacingTop=26;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="980" y="890" width="240" height="290" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext_gemini" value="Google Gemini API&#10;(google-genai SDK)&#10;&#10;Models:&#10;• SMART = gemini-2.5-flash&#10;• FAST = gemini-2.5-flash-lite&#10;• gemini-embedding-001 (768d)&#10;• Imagen-3 for images" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=10;spacingLeft=20;spacingTop=14;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1250" y="890" width="320" height="290" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext_reranker" value="Cross-Encoder Reranker&#10;&#10;BAAI/bge-reranker-v2-m3&#10;multilingual · 80MB · CPU&#10;Lazy singleton&#10;1-hour cooldown on fail" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="1590" y="890" width="240" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext_firebase" value="Firebase Authentication&#10;&#10;ID token verification&#10;User accounts (email + Google)&#10;Service account creds" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=10;spacingLeft=20;spacingTop=14;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="1850" y="890" width="240" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext_canva" value="Canva MCP Server (optional)&#10;&#10;Import / edit Canva designs&#10;from mind maps" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=10;spacingLeft=20;spacingTop=14;fontStyle=2;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="2110" y="890" width="240" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext_sites" value="Google Sites (scraped HTML)&#10;Source for AI Course Import" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=10;spacingLeft=20;spacingTop=14;fontStyle=2;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="1850" y="1080" width="500" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== TIER 4: INFRA ===================== -->
+        <mxCell id="tier_infra" value="Dev / Infra" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="40" y="1240" width="2520" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="infra_docker" value="Docker / Compose&#10;Dockerfile (backend)&#10;dev.sh · start-all.sh" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#5A6478;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="100" y="1280" width="280" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="infra_deploy" value="Deploy Pipeline&#10;redeploy.sh + AI_REDEPLOY.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#5A6478;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="400" y="1280" width="280" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="infra_tests" value="Tests&#10;backend/tests/&#10;unit + integration + AI mocks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#5A6478;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="700" y="1280" width="280" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="infra_nexus" value="GitNexus index&#10;3 577 symbols / 7 641 rels&#10;.gitnexus/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#5A6478;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="1000" y="1280" width="280" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="infra_env" value="Env config&#10;GEMINI_API_KEY, AI_SMART_MODEL, AI_FAST_MODEL,&#10;GEMINI_EMBED_MODEL, GEMINI_EMBED_DIM,&#10;RAG_RERANKER_MODEL, RAG_MULTISTEP_ENABLED,&#10;RAG_HYDE_ENABLED, RAG_FETCH_RATIO,&#10;SECRET_KEY, DATABASE_URL, CORS_ORIGINS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#5A6478;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="1300" y="1280" width="600" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="infra_logs" value="Observability&#10;Python logging&#10;Firestore auditLogs · aiUsageSummary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#5A6478;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="1920" y="1280" width="580" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== ARROWS WITH EXPLICIT WAYPOINTS ===================== -->
+        <!-- Clients → Routers (straight down through tier gap) -->
+        <mxCell id="a_web_api" value="HTTPS · JWT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.05;entryY=0;endArrow=classic;strokeColor=#2C5282;strokeWidth=2;fontSize=10;fontColor=#1F3A68" edge="1" parent="1" source="cli_web" target="api_routers"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="250" y="310" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_mob_api" value="REST" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.15;entryY=0;endArrow=classic;strokeColor=#2C5282;strokeWidth=2;fontSize=10;fontColor=#1F3A68" edge="1" parent="1" source="cli_mobile" target="api_routers"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="580" y="310" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_adm_api" value="admin endpoints" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#3D4A5C;strokeWidth=2;fontSize=10;fontColor=#2D3748" edge="1" parent="1" source="cli_admin" target="rt_admin"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="900" y="320" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_lib_api" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#553C9A;strokeWidth=2" edge="1" parent="1" source="cli_lib" target="api_ai"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1240" y="320" /><mxPoint x="1540" y="320" /></Array></mxGeometry></mxCell>
+
+        <!-- AI router groups → services -->
+        <mxCell id="a_ai1_svc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="ai_1" target="svc_ai"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1410" y="685" /><mxPoint x="220" y="685" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_ai2_gag" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="ai_2" target="svc_gag"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1680" y="685" /><mxPoint x="1150" y="685" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_gate_multi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="ai_gate" target="svc_multi"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1540" y="690" /><mxPoint x="1380" y="690" /></Array></mxGeometry></mxCell>
+
+        <!-- Auth → Firebase  (route via right-margin bus at x=2540) -->
+        <mxCell id="a_auth_fb" value="verify token" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#2C5282;strokeWidth=2;fontSize=10;fontColor=#1F3A68" edge="1" parent="1" source="api_auth" target="ext_firebase"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="70" y="465" /><mxPoint x="70" y="820" /><mxPoint x="1970" y="820" /></Array></mxGeometry></mxCell>
+
+        <!-- Services → External (straight down) -->
+        <mxCell id="a_aisvc_gem" value="generate / embed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2;fontSize=10;fontColor=#4C2F87" edge="1" parent="1" source="svc_ai" target="ext_gemini"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="220" y="820" /><mxPoint x="1410" y="820" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_rag_chroma" value="upsert / query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2;fontSize=10;fontColor=#2E4A66" edge="1" parent="1" source="svc_rag" target="db_chroma"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="440" y="830" /><mxPoint x="600" y="830" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_rag_rerank" value="rerank pairs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2;fontSize=10;fontColor=#2E4A66" edge="1" parent="1" source="svc_ragmulti" target="ext_reranker"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="660" y="830" /><mxPoint x="1710" y="830" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_kg_fs" value="persist KG" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2;fontSize=10;fontColor=#2E4A66" edge="1" parent="1" source="svc_kg" target="db_firestore"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="900" y="840" /><mxPoint x="270" y="840" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_gag_gem" value="JSON gen" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2;fontSize=10;fontColor=#4C2F87" edge="1" parent="1" source="svc_gag" target="ext_gemini"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1150" y="830" /><mxPoint x="1410" y="830" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_multi_fs" value="reads" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2;fontSize=10;fontColor=#2E4A66" edge="1" parent="1" source="svc_multi" target="db_firestore"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1380" y="840" /><mxPoint x="270" y="840" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_audit_fs" value="audit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#3D4A5C;strokeWidth=2;fontSize=10;fontColor=#2D3748" edge="1" parent="1" source="svc_audit" target="db_firestore"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1780" y="850" /><mxPoint x="270" y="850" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_email_fb" value="SMTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;dashed=1;strokeColor=#2C5282;strokeWidth=2;fontSize=10;fontColor=#1F3A68" edge="1" parent="1" source="svc_email" target="ext_firebase"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1970" y="830" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_clp_gem" value="parse PDF" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2;fontSize=10;fontColor=#4C2F87" edge="1" parent="1" source="svc_clp" target="ext_gemini"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="2170" y="820" /><mxPoint x="1410" y="820" /></Array></mxGeometry></mxCell>
+
+        <!-- Core routers → Files (storage) -->
+        <mxCell id="a_core_files" value="PDFs / images" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2;fontSize=10;fontColor=#2E4A66" edge="1" parent="1" source="rt_core" target="db_files"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="530" y="860" /><mxPoint x="1100" y="860" /></Array></mxGeometry></mxCell>
+
+        <!-- Social → Firestore -->
+        <mxCell id="a_social_fs" value="read / write" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2;fontSize=10;fontColor=#2E4A66" edge="1" parent="1" source="rt_social" target="db_firestore"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="810" y="870" /><mxPoint x="270" y="870" /></Array></mxGeometry></mxCell>
+
+        <!-- Scheduler → Firestore -->
+        <mxCell id="a_sched_fs" value="cron writes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=1;entryX=1;entryY=0;endArrow=classic;dashed=1;strokeColor=#3D4A5C;strokeWidth=2;fontSize=10;fontColor=#2D3748" edge="1" parent="1" source="api_sched" target="db_firestore"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="60" y="820" /><mxPoint x="60" y="880" /></Array></mxGeometry></mxCell>
+
+        <!-- Sites → CLP (right-side outside) -->
+        <mxCell id="a_sites_clp" value="HTML scrape" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=1;endArrow=classic;dashed=1;strokeColor=#2C5282;strokeWidth=2;fontSize=10;fontColor=#1F3A68" edge="1" parent="1" source="ext_sites" target="svc_clp"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="2170" y="1130" /><mxPoint x="2170" y="820" /></Array></mxGeometry></mxCell>
+
+        <!-- Canva -->
+        <mxCell id="a_aisvc_canva" value="MCP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;dashed=1;strokeColor=#2C5282;strokeWidth=2;fontSize=10;fontColor=#1F3A68" edge="1" parent="1" source="svc_ai" target="ext_canva"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="220" y="830" /><mxPoint x="2230" y="830" /></Array></mxGeometry></mxCell>
+
+        <mxCell id="note_async" value="All Gemini calls are awaited via asyncio.to_thread (SDK is blocking).&#10;Multi-step RAG and multi-agent dispatch use asyncio.gather for max parallelism with timeout isolation." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=10;fontColor=#3D4A5C;align=left;spacingLeft=8;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="1860" y="565" width="300" height="115" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

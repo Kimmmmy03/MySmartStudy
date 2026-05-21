@@ -1,0 +1,174 @@
+<mxfile host="app.diagrams.net" agent="MySmartStudy" version="22.1.16">
+  <diagram id="sysSimple" name="System Architecture (Simple)">
+    <mxGraphModel dx="1900" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="How MySmartStudy is Built — The Big Picture" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=26;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="1200" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Three layers — the people, the &quot;brain&quot; that does the work, and where information is stored.  Every arrow goes around boxes, never through them." style="text;html=1;align=center;whiteSpace=wrap;fontSize=14;fontStyle=2;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="200" y="64" width="1600" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ======================== LAYER 1: PEOPLE ======================== -->
+        <mxCell id="layer1" value="① The people who use it" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=16;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="1920" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ppl_student" value="Students" style="shape=actor;html=1;align=center;verticalAlign=top;fillColor=#DCE7F3;strokeColor=#2C5282;fontSize=16;fontStyle=1;fontColor=#1F3A68;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="200" y="160" width="120" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="ppl_lecturer" value="Lecturers" style="shape=actor;html=1;align=center;verticalAlign=top;fillColor=#E0DAEF;strokeColor=#553C9A;fontSize=16;fontStyle=1;fontColor=#3F2A6B;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="450" y="160" width="120" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="ppl_admin" value="Admin" style="shape=actor;html=1;align=center;verticalAlign=top;fillColor=#D0D6E2;strokeColor=#3D4A5C;fontSize=16;fontStyle=1;fontColor=#2D3748;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="700" y="160" width="120" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev_web" value="Web Browser&#10;(laptop / desktop)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2C5282;strokeWidth=2;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="1000" y="170" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dev_mobile" value="Mobile App&#10;(phone / tablet)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2C5282;strokeWidth=2;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="1000" y="260" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="role_note" value="Everyone logs in with email and password.&#10;&#10;Students do work,&#10;Lecturers teach &amp; grade,&#10;Admin manages settings." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#2E4A66;spacingLeft=14;spacingTop=12" vertex="1" parent="1">
+          <mxGeometry x="1290" y="160" width="630" height="170" as="geometry" />
+        </mxCell>
+
+        <!-- People → devices (orthogonal, no crossings) -->
+        <mxCell id="ar_p1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.4;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#2C5282;strokeWidth=2" edge="1" parent="1" source="ppl_student" target="dev_web">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="920" y="224" />
+              <mxPoint x="920" y="210" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ar_p2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#553C9A;strokeWidth=2" edge="1" parent="1" source="ppl_lecturer" target="dev_mobile">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="920" y="240" />
+              <mxPoint x="920" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ar_p3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.7;endArrow=classic;strokeColor=#3D4A5C;strokeWidth=2" edge="1" parent="1" source="ppl_admin" target="dev_web">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="920" y="240" />
+              <mxPoint x="920" y="226" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ======================== LAYER 2: BRAIN (single row, 6 boxes) ======================== -->
+        <mxCell id="layer2" value="② The MySmartStudy &quot;brain&quot; — runs in the cloud" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=16;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="1920" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="brain_app" value="The App&#10;&#10;Handles every&#10;button click —&#10;login, courses,&#10;mind maps,&#10;assignments,&#10;announcements" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#1F3A68;spacingLeft=12;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="80" y="430" width="290" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="brain_security" value="Login &amp; Safety&#10;&#10;Makes sure you&#10;are who you&#10;say you are." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3D4A5C;spacingLeft=12;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="400" y="430" width="290" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="brain_ai" value="The AI Helper&#10;&#10;Answers questions,&#10;grades tutorials,&#10;plans your day,&#10;suggests mind-map&#10;ideas, checks for&#10;plagiarism, makes&#10;summaries." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#4C2F87;spacingLeft=12;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="720" y="430" width="290" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="brain_gate" value="Admin Switch&#10;&#10;Admin can turn&#10;the AI on/off&#10;or limit daily&#10;usage." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#2D3748;spacingLeft=12;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="1040" y="430" width="290" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="brain_audit" value="Audit Trail&#10;&#10;Records important&#10;actions so admins&#10;can review later." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#2D3748;spacingLeft=12;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="1360" y="430" width="290" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="brain_notify" value="Notifications&#10;&amp; Email&#10;&#10;Announcements,&#10;reminders, password&#10;resets." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3D4A5C;spacingLeft=12;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="1680" y="430" width="240" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- Devices → App  (clean down arrow into App box) -->
+        <mxCell id="a_web_app" value="every tap &amp; click" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;endArrow=classic;strokeWidth=2;strokeColor=#2C5282;fontSize=12;fontColor=#1F3A68" edge="1" parent="1" source="dev_web" target="brain_app">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="225" y="210" />
+              <mxPoint x="225" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a_mob_app" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=0.7;entryY=0;endArrow=classic;strokeWidth=2;strokeColor=#2C5282" edge="1" parent="1" source="dev_mobile" target="brain_app">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="283" y="290" />
+              <mxPoint x="283" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- App → AI Helper  (App talks to AI when asked) -->
+        <mxCell id="a_app_ai" value="when AI is asked" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.4;entryX=0;entryY=0.4;endArrow=classic;strokeWidth=2;strokeColor=#6B46C1;fontSize=12;fontColor=#4C2F87" edge="1" parent="1" source="brain_app" target="brain_ai"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- AI Helper → Admin Switch -->
+        <mxCell id="a_ai_gate" value="checks switch first" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.4;entryX=0;entryY=0.4;endArrow=classic;strokeWidth=2;strokeColor=#3D4A5C;fontSize=12;fontColor=#2D3748" edge="1" parent="1" source="brain_ai" target="brain_gate"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- App → Login & Safety (adjacent) -->
+        <mxCell id="a_app_sec" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.75;entryX=0;entryY=0.75;endArrow=classic;strokeWidth=2;strokeColor=#5A6478" edge="1" parent="1" source="brain_app" target="brain_security"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ======================== LAYER 3: STORES (6-column row, one per brain box) ======================== -->
+        <mxCell id="layer3" value="③ Where information is kept — outside the app" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=16;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="40" y="700" width="1920" height="380" as="geometry" />
+        </mxCell>
+
+        <!-- Aligned directly below each brain box for straight-down arrows -->
+        <mxCell id="db_main" value="Main Database&#10;&#10;Everything everyone&#10;does — users, courses,&#10;assignments, quizzes,&#10;chat, grades, badges." style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#CFD8E3;strokeColor=#4A6E8C;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#2E4A66;spacingLeft=18;spacingTop=14" vertex="1" parent="1">
+          <mxGeometry x="80" y="750" width="290" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db_auth" value="Firebase Login&#10;(by Google)&#10;&#10;Handles signing in&#10;and password resets." style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#1F3A68;spacingLeft=22;spacingTop=14" vertex="1" parent="1">
+          <mxGeometry x="400" y="750" width="290" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db_ai_brain" value="AI Memory&#10;&#10;The AI's notebook of&#10;everything it has read&#10;from your course&#10;materials — so it&#10;can answer with real&#10;sources." style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#CFD8E3;strokeColor=#4A6E8C;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#2E4A66;spacingLeft=18;spacingTop=14" vertex="1" parent="1">
+          <mxGeometry x="720" y="750" width="290" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db_gemini" value="Google AI Engine&#10;(&quot;the smart engine&quot;)&#10;&#10;The actual AI service&#10;that reads, writes,&#10;reasons and generates&#10;answers." style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#4C2F87;spacingLeft=22;spacingTop=14" vertex="1" parent="1">
+          <mxGeometry x="1040" y="750" width="290" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db_files" value="File Storage&#10;&#10;PDFs, submitted&#10;assignments,&#10;profile photos,&#10;AI-generated images." style="shape=folder;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#4A6E8C;strokeWidth=2;tabWidth=110;tabHeight=22;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#2E4A66;spacingLeft=14;spacingTop=34" vertex="1" parent="1">
+          <mxGeometry x="1360" y="750" width="290" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db_smtp" value="Email Provider&#10;&#10;Delivers email&#10;messages." style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#1F3A68;spacingLeft=22;spacingTop=14" vertex="1" parent="1">
+          <mxGeometry x="1680" y="750" width="240" height="260" as="geometry" />
+        </mxCell>
+
+        <!-- STRAIGHT-DOWN arrows: each brain box → store directly below it (no crossings) -->
+        <mxCell id="a_app_db" value="reads / saves data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeWidth=2;strokeColor=#4A6E8C;fontSize=12;fontColor=#2E4A66" edge="1" parent="1" source="brain_app" target="db_main"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="a_sec_auth" value="verify login" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeWidth=2;strokeColor=#2C5282;fontSize=12;fontColor=#1F3A68" edge="1" parent="1" source="brain_security" target="db_auth"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="a_ai_mem" value="look things up" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeWidth=2;strokeColor=#4A6E8C;fontSize=12;fontColor=#2E4A66" edge="1" parent="1" source="brain_ai" target="db_ai_brain"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="a_gate_gem" value="asks the smart engine" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeWidth=2;strokeColor=#6B46C1;fontSize=12;fontColor=#4C2F87" edge="1" parent="1" source="brain_gate" target="db_gemini"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="a_audit_files" value="records actions" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeWidth=2;strokeColor=#3D4A5C;fontSize=12;fontColor=#2D3748" edge="1" parent="1" source="brain_audit" target="db_files"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="a_notif_smtp" value="send email" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeWidth=2;strokeColor=#2C5282;fontSize=12;fontColor=#1F3A68" edge="1" parent="1" source="brain_notify" target="db_smtp"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Reading guide -->
+        <mxCell id="guide" value="Reading guide&#10;&#10;Top row     — the people and the devices they use&#10;Middle row  — the &quot;brain&quot; that does the work (lives on the internet, you don't see it)&#10;Bottom row  — where every piece of information is kept&#10;&#10;Each arrow goes around any container and never passes through another box.&#10;Each box in the middle row connects to one store directly below it.&#10;&#10;What's not shown — there's also a small background process that runs on a schedule (every few hours) to give the AI fresh material to read; it writes back into the Main Database." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=13;fontColor=#3D4A5C;align=left;spacingLeft=14;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="1100" width="1920" height="180" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

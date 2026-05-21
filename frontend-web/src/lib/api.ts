@@ -1650,6 +1650,16 @@ export const adminApi = {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
+
+  // Global AI gate (master switch + per-feature kill list)
+  getAiSettings: () =>
+    request<AiSettingsOut>("/admin/ai-settings"),
+
+  updateAiSettings: (body: { ai_enabled?: boolean; disabled_features?: string[] }) =>
+    request<AiSettingsOut>("/admin/ai-settings", {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
 };
 
 // ── Email settings types ──
@@ -1660,6 +1670,24 @@ export interface EmailSettingsOut {
   updated_at: string | null;
   updated_by: string;
 }
+
+// ── AI settings types ──
+export interface AiSettingsOut {
+  ai_enabled: boolean;
+  disabled_features: string[];
+  all_features: string[];
+  updated_at: string | null;
+  updated_by: string;
+}
+
+export interface AiStatusOut {
+  enabled: boolean;
+  disabled_features: string[];
+}
+
+export const aiApi = {
+  getStatus: () => request<AiStatusOut>("/ai/status"),
+};
 
 // ── Usage Analytics types ──
 export interface TopUserRecord {
