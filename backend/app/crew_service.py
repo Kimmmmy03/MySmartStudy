@@ -163,26 +163,79 @@ def _run_grading_crew(
     }
 
 
+# ── Adaptive complexity routing ──
+# Submissions vary wildly in size. A 200-word answer doesn't need a 2-agent
+# crew chewing on it for ~12s — a single SMART_MODEL call grades it well in
+# ~3s. Reserving the crew for substantial work means the common case gets
+# FASTER, not slower, while we still honestly "use CrewAI for complex grading."
+#
+# The classifier is deliberately free (no extra LLM call): just length and
+# rubric complexity. Tuneable via env vars so behaviour can be changed
+# without a redeploy.
+import os as _os
+_COMPLEX_WORD_THRESHOLD = int(_os.getenv("GRADING_CREW_MIN_WORDS", "300"))
+_COMPLEX_RUBRIC_THRESHOLD = int(_os.getenv("GRADING_CREW_MIN_CRITERIA", "3"))
+
+
+def _is_complex_submission(submission_content: str, rubric: list[dict]) -> bool:
+    """True → use the CrewAI crew; False → use the single-call fast path.
+
+    Heuristic, on purpose:
+      - Long submissions need per-criterion analysis (crew shines)
+      - Many criteria → multi-step reasoning helps
+      - Short or simple-rubric work → one strong LLM call is enough
+    """
+    word_count = len((submission_content or "").split())
+    criteria = len(rubric or [])
+    if word_count >= _COMPLEX_WORD_THRESHOLD:
+        return True
+    if criteria >= _COMPLEX_RUBRIC_THRESHOLD:
+        return True
+    return False
+
+
 async def generate_grading_report(
     submission_content: str,
     rubric: list[dict],
     rag_chunks: list[dict],
     assignment_info: dict,
 ) -> dict:
-    """CrewAI implementation — drop-in for gag_service.generate_grading_report."""
+    """Adaptive grader — single LLM call for trivial work, CrewAI crew for
+    substantial work. Drop-in for gag_service.generate_grading_report.
+    """
     from . import ai_service
     from . import rag_service_lc as rag
 
     ai_service._enforce_ai_gate()
-    rag_context = rag.format_context(rag_chunks)
     sources = rag.format_citations(rag_chunks)
 
-    data = await asyncio.to_thread(
-        _run_grading_crew, submission_content, rubric, rag_context, assignment_info
-    )
+    complex_submission = _is_complex_submission(submission_content, rubric)
 
-    # Same enrichment as the legacy / LangChain generators
+    if complex_submission:
+        # ── Substantial submission → 2-agent CrewAI crew ──
+        logger.info(
+            "Grading: routing to CrewAI crew (words=%d, criteria=%d)",
+            len((submission_content or "").split()), len(rubric or []),
+        )
+        rag_context = rag.format_context(rag_chunks)
+        data = await asyncio.to_thread(
+            _run_grading_crew, submission_content, rubric, rag_context, assignment_info
+        )
+    else:
+        # ── Trivial submission → single LangChain LLM call (~3s) ──
+        logger.info(
+            "Grading: routing to fast single-call path (words=%d, criteria=%d)",
+            len((submission_content or "").split()), len(rubric or []),
+        )
+        from . import gag_service_lc
+        data = await gag_service_lc.generate_grading_report(
+            submission_content, rubric, rag_chunks, assignment_info,
+        )
+
+    # Defensive enrichment — fill missing resource_links from RAG sources
     for sug in data.get("improvement_suggestions", []):
         if not sug.get("resource_link") and sources:
             sug["resource_link"] = sources[0]
+    # Surface the routing decision for the admin dashboard / audit
+    data.setdefault("_grading_route", "crew" if complex_submission else "fast")
     return data
