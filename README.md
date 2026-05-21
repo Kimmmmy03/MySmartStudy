@@ -393,12 +393,13 @@ MySmartStudy/
       l10n/
         app_strings.dart        # Bilingual strings (English/Bahasa Melayu)
 
-  start-backend.sh             # Start backend server only
-  start-frontend-web.sh        # Start web frontend only
-  start-frontend-mobile.sh     # Start Flutter mobile app only
-  start-dev.sh                 # Start all servers together
-  start-dev-mobile.sh          # Start all + USB device
-  start-dev-mobile-wireless.sh # Start all + wireless device
+  scripts/
+    start-backend.sh           # Start backend server only
+    start-frontend-web.sh      # Start web frontend only
+    start-frontend-mobile.sh   # Start Flutter mobile app only
+    start-all.sh               # Start all servers together
+    dev.sh                     # Dev orchestrator (foreground logs)
+    redeploy.sh                # Cloud Run redeploy (backend + web)
 ```
 
 ---
@@ -755,30 +756,27 @@ When a user taps a course, `SubjectDetailScreen` shows a grid of tool cards:
 
 ```bash
 # Terminal 1 — Backend
-bash start-backend.sh
+bash scripts/start-backend.sh
 # API at http://localhost:8000 | Swagger docs at http://localhost:8000/docs
 
 # Terminal 2 — Web Frontend
-bash start-frontend-web.sh
+bash scripts/start-frontend-web.sh
 # Runs at http://localhost:3000
 
 # Terminal 3 — Mobile App
-bash start-frontend-mobile.sh                    # auto-detect device
-bash start-frontend-mobile.sh emulator-5554      # Android emulator
-bash start-frontend-mobile.sh PJ7LNNUW9PMV6DPN  # USB device
+bash scripts/start-frontend-mobile.sh                    # auto-detect device
+bash scripts/start-frontend-mobile.sh emulator-5554      # Android emulator
+bash scripts/start-frontend-mobile.sh PJ7LNNUW9PMV6DPN  # USB device
 ```
 
 ### Option 2: Start All Together
 
 ```bash
 # All servers (backend + web + mobile emulator)
-bash start-dev.sh
+bash scripts/start-all.sh
 
-# All servers with USB device
-bash start-dev-mobile.sh
-
-# All servers with wireless device
-bash start-dev-mobile-wireless.sh
+# Dev orchestrator with live foreground logs
+bash scripts/dev.sh
 ```
 
 ### Option 3: Manual Start
@@ -1886,14 +1884,16 @@ All backend routers are located in `backend/app/routers/`. `auto_badges.py` is h
 
 ## Development Scripts
 
+All dev / deploy scripts live in `scripts/` and resolve the project root automatically — run them from anywhere.
+
 | Script | Description | Usage |
 |--------|-------------|-------|
-| `start-backend.sh` | Start FastAPI backend only | `bash start-backend.sh` |
-| `start-frontend-web.sh` | Start Next.js web frontend only | `bash start-frontend-web.sh` |
-| `start-frontend-mobile.sh` | Start Flutter mobile app only | `bash start-frontend-mobile.sh [device_id]` |
-| `start-dev.sh` | Start all servers (backend + web + mobile emulator) | `bash start-dev.sh` |
-| `start-dev-mobile.sh` | Start all servers + USB device | `bash start-dev-mobile.sh` |
-| `start-dev-mobile-wireless.sh` | Start all servers + wireless device | `bash start-dev-mobile-wireless.sh` |
+| `scripts/start-backend.sh` | Start FastAPI backend only | `bash scripts/start-backend.sh` |
+| `scripts/start-frontend-web.sh` | Start Next.js web frontend only | `bash scripts/start-frontend-web.sh` |
+| `scripts/start-frontend-mobile.sh` | Start Flutter mobile app only | `bash scripts/start-frontend-mobile.sh [device_id]` |
+| `scripts/start-all.sh` | Start all servers (backend + web + mobile emulator) | `bash scripts/start-all.sh` |
+| `scripts/dev.sh` | Dev orchestrator with live foreground logs | `bash scripts/dev.sh` |
+| `scripts/redeploy.sh` | Redeploy backend + web to Cloud Run | `bash scripts/redeploy.sh both` |
 
 ### Environment Variables
 
@@ -1932,40 +1932,33 @@ Supporting material for understanding, presenting, and extending the project.
 
 ### Architecture diagrams — `diagrams/`
 
-Eight technical draw.io diagrams (`.drawio`, open at <https://app.diagrams.net> or with the VS Code Draw.io extension):
+Eight technical draw.io diagrams (`.drawio`, open at <https://app.diagrams.net> or with the VS Code Draw.io extension). Each AI-pattern diagram shows both the **legacy** hand-rolled path and the **framework** path (LangChain + CrewAI), with the `AI_BACKEND` env-var dispatch.
 
 | File | Diagram |
 |------|---------|
 | `1_use_case_diagram.drawio` | Use case diagram — Student / Lecturer / Admin actors |
 | `2_uml_class_diagram.drawio` | UML class / entity diagram (Firestore document model) |
 | `3_system_architecture.drawio` | Layered system architecture |
-| `4_rag_diagram.drawio` | RAG pipeline — ingestion + retrieval (multi-step, HyDE, rerank) |
-| `5_rag_graph_diagram.drawio` | Knowledge graph build + BFS query + plagiarism similarity graph |
-| `6_gag_diagram.drawio` | GAG — structured-output generation flow |
-| `7_multi_agent_diagram.drawio` | Multi-agent fan-out / fan-in orchestration |
-| `8_ai_features_interaction.drawio` | How every AI feature shares the gate, RAG, KG, GAG and multi-agent layers |
+| `4_rag_diagram.drawio` | RAG pipeline — legacy multi-step + HyDE + rerank, and the LangChain `MultiQueryRetriever` + `CrossEncoderReranker` equivalent |
+| `5_rag_graph_diagram.drawio` | Knowledge graph build + BFS query + plagiarism similarity graph (legacy + LangChain `LLMGraphTransformer`) |
+| `6_gag_diagram.drawio` | GAG — `generate_json` (legacy) and LangChain `with_structured_output` (framework) |
+| `7_multi_agent_diagram.drawio` | Multi-agent fan-out / fan-in — async (legacy + companion path), CrewAI 2-agent crew (framework grading) |
+| `8_ai_features_interaction.drawio` | How every AI feature routes through `AI_BACKEND`, then the gate, RAG, KG, GAG and multi-agent layers |
 
 ### Simplified diagrams — `diagrams_simple/`
 
 Six plain-English versions of the AI diagrams for non-technical audiences (supervisors, viva panel). Same colour palette, real-world analogies, larger fonts.
 
-### AI patterns walkthrough — `TUTORIAL_BUILD_AI_PATTERNS.md`
+### Framework feature flag
 
-A code walkthrough of the four AI patterns (RAG, Graph-RAG, GAG, Multi-Agent) with verbatim snippets from `backend/app/`, the tools used for each, links to official documentation, and a viva Q&A section.
+The backend supports two AI implementations selected by the `AI_BACKEND` environment variable:
 
-### Framework integration playgrounds
+| `AI_BACKEND` | What runs |
+|---|---|
+| `legacy` | Hand-rolled services (`rag_service.py`, `gag_service.py`, `knowledge_graph_service.py`, `multi_agent.py`) |
+| `framework` | LangChain for RAG, Graph-RAG and structured GAG; CrewAI for AI Grading; async fan-out kept for the chat path |
 
-Standalone, runnable re-implementations of the AI patterns using industry-standard libraries — kept separate from the shipped backend so the originals are untouched:
-
-| Folder / file | Contents |
-|---------------|----------|
-| `langchain_integration/` | LangChain demos — `01_rag_layered.py` (RAG), `02_graph_rag.py` (Graph-RAG), `03_gag_structured.py` (GAG) |
-| `crewai_integration/` | CrewAI demo — `04_companion_crew.py` (multi-agent companion crew) |
-| `GUIDE_LANGCHAIN_CREWAI.md` | Beginner step-by-step guide — install, run, and view runs on LangSmith |
-
-### FYP documents — `docs/`
-
-SRS, STP, and Survey Analysis Report PDFs (with extracted `.txt` copies).
+Switching is a 10-second env-var update on Cloud Run — no rebuild required.
 
 ---
 

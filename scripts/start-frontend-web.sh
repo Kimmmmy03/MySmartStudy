@@ -2,7 +2,7 @@
 # MySmartStudy — Start Web Frontend (Next.js)
 # Usage: bash start-frontend-web.sh
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 trap 'echo ""; echo "[done] Web frontend stopped."; kill $PID 2>/dev/null; exit 0' INT TERM
 

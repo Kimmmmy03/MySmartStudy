@@ -2,7 +2,7 @@
 # MySmartStudy — Start Backend (FastAPI)
 # Usage: bash start-backend.sh
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 trap 'echo ""; echo "[done] Backend stopped."; kill $PID 2>/dev/null; exit 0' INT TERM
 

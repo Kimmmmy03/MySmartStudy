@@ -2,7 +2,7 @@
 # MySmartStudy — Interactive Dev Manager
 # Usage: bash dev.sh [device_id]
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEVICE="${1:-emulator-5554}"
 
 BACKEND_PID=""

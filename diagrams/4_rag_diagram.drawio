@@ -1,167 +1,114 @@
 <mxfile host="app.diagrams.net" agent="MySmartStudy" version="22.1.16">
-  <diagram id="rag" name="RAG Pipeline">
-    <mxGraphModel dx="2400" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1800" math="0" shadow="0">
+  <diagram id="rag" name="RAG (Legacy vs Framework)">
+    <mxGraphModel dx="2400" dy="1400" grid="1" gridSize="10" page="1" pageScale="1" pageWidth="2600" pageHeight="1700" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
 
-        <mxCell id="title" value="MySmartStudy — RAG Pipeline (Multi-Step Retrieval · HyDE · Cross-Encoder Rerank)" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="500" y="20" width="1600" height="36" as="geometry" />
+        <mxCell id="title" value="RAG Pipeline — Legacy hand-rolled vs LangChain framework (selected by AI_BACKEND)" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="400" y="10" width="1800" height="36" as="geometry" />
         </mxCell>
 
-        <!-- ===== PHASE A: INGESTION ===== -->
-        <mxCell id="phaseA" value="A.  INGESTION  (offline · triggered on content change)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8;align=left;spacingLeft=18" vertex="1" parent="1">
-          <mxGeometry x="40" y="80" width="2520" height="510" as="geometry" />
+        <!-- ENTRY -->
+        <mxCell id="caller" value="Router calls&#10;rag_multistep.retrieve_multistep(query, course_ids, top_k)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="900" y="80" width="800" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="A_src" value="Content sources&#10;&#10;Module Items (PDFs)&#10;Announcements&#10;Discussions (10 / batch)&#10;Mind Maps (nodesText)&#10;Quiz questions + options&#10;Assignments" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="80" y="140" width="260" height="180" as="geometry" />
+        <mxCell id="gate" value="ai_service.set_tracking_context()&#10;→ master switch · per-feature kill list · daily token quota" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;strokeWidth=2;align=center;verticalAlign=middle;fontSize=11;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="900" y="160" width="800" height="48" as="geometry" />
         </mxCell>
 
-        <mxCell id="A_extract" value="Text extraction&#10;&#10;1) pdfplumber (layout)&#10;2) PyPDF2 fallback&#10;3) Gemini Vision OCR&#10;     (Jawi / scanned)&#10;&#10;HEAD-probe content-type&#10;before remote download" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="380" y="140" width="260" height="180" as="geometry" />
+        <mxCell id="dispatch" value="if framework_enabled():&#10;    return rag_service_lc.retrieve_multistep(...)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFEDB3;strokeColor=#C99A06;strokeWidth=2;fontSize=12;fontStyle=1;fontColor=#5C4400" vertex="1" parent="1">
+          <mxGeometry x="1100" y="230" width="400" height="120" as="geometry" />
         </mxCell>
 
-        <mxCell id="A_hash" value="sha256(text)&#10;== indexed hash ?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;fontSize=11;fontStyle=1;fontColor=#3D4A5C" vertex="1" parent="1">
-          <mxGeometry x="680" y="180" width="200" height="100" as="geometry" />
+        <!-- legacy and framework labels for branches -->
+        <mxCell id="lbl_legacy" value="AI_BACKEND=legacy" style="text;html=1;align=center;fontStyle=1;fontSize=12;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="600" y="280" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_framework" value="AI_BACKEND=framework" style="text;html=1;align=center;fontStyle=1;fontSize=12;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1760" y="280" width="240" height="20" as="geometry" />
         </mxCell>
 
-        <mxCell id="A_skip" value="Skip — already indexed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#5A6478;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#3D4A5C" vertex="1" parent="1">
-          <mxGeometry x="680" y="450" width="200" height="40" as="geometry" />
+        <!-- LEFT PANEL — LEGACY -->
+        <mxCell id="legacy_panel" value="Legacy path  ·  backend/app/rag_multistep.py + rag_service.py  ·  pure asyncio, no framework" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;dashed=1;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3D4A5C;spacingTop=8;align=left;spacingLeft=14" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="1200" height="1100" as="geometry" />
         </mxCell>
 
-        <mxCell id="A_chunk" value="chunk_text()&#10;&#10;chunk_size = 500 tokens&#10;     ≈ 650 words&#10;overlap = 50 tokens&#10;drop &lt; 30 chars" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="920" y="140" width="220" height="180" as="geometry" />
+        <mxCell id="L_decompose" value="1.  decompose_query()&#10;FAST_MODEL splits compound queries (≥ 6 words)&#10;into ≤ 3 atomic sub-questions via generate_text" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="80" y="430" width="540" height="100" as="geometry" />
         </mxCell>
 
-        <mxCell id="A_embed" value="embed_texts()&#10;&#10;Gemini gemini-embedding-001&#10;output_dim = 768 (env)&#10;Batched ≤ 100 / call&#10;Zero-vector on err" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="1180" y="140" width="240" height="180" as="geometry" />
+        <mxCell id="L_hyde" value="2.  HyDE if sub_q has &lt; MIN_HYDE_TOKENS&#10;FAST_MODEL writes a hypothetical answer, embed THAT&#10;via embed_texts (Gemini gemini-embedding-001, 768d)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="650" y="430" width="540" height="100" as="geometry" />
         </mxCell>
 
-        <mxCell id="A_upsert" value="Upsert into Chroma collection course_{id}&#10;&#10;1) collection.get(where=doc_id) — delete old chunks&#10;2) collection.upsert(ids, docs, embeds, metas)&#10;&#10;Per-chunk metadata:&#10;  doc_id, doc_type, title, course_id,&#10;  chunk_index, total_chunks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="1460" y="140" width="380" height="180" as="geometry" />
+        <mxCell id="L_overfetch" value="3.  Per-sub-query over-fetch&#10;chromadb collection.query(n_results = top_k × RAG_FETCH_RATIO)&#10;per course_id; merge + dedupe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="80" y="560" width="1110" height="100" as="geometry" />
         </mxCell>
 
-        <mxCell id="A_chroma" value="ChromaDB (persistent)&#10;&#10;backend/vector_store/&#10;course_{id}: HNSW · cosine&#10;768-dim embeddings" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=14;spacingTop=12;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="1900" y="140" width="280" height="180" as="geometry" />
+        <mxCell id="L_rerank" value="4.  Cross-encoder rerank vs ORIGINAL query&#10;_rerank() loads sentence_transformers.CrossEncoder&#10;BAAI/bge-reranker-v2-m3 lazily; on load failure → embedding-score fallback" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="80" y="690" width="1110" height="110" as="geometry" />
         </mxCell>
 
-        <mxCell id="A_state" value="Firestore ragIndexState&#10;{course_id}|{doc_id}&#10;&#10;contentHash, lastIndexedAt,&#10;chunkCount, docType, title" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=10;spacingLeft=14;spacingTop=12;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="1460" y="370" width="380" height="140" as="geometry" />
+        <mxCell id="L_out" value="Returns:  list[{text, doc_id, doc_type, title, course_id, score}]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#2D3748" vertex="1" parent="1">
+          <mxGeometry x="80" y="830" width="1110" height="48" as="geometry" />
         </mxCell>
 
-        <!-- Phase A arrows (clean adjacent + waypointed for hash skip) -->
-        <mxCell id="ae1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#2C5282;strokeWidth=2" edge="1" parent="1" source="A_src" target="A_extract"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ae2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#2C5282;strokeWidth=2" edge="1" parent="1" source="A_extract" target="A_hash"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ae3" value="match" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#5A6478;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="A_hash" target="A_skip"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ae4" value="differ — re-index" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#2C5282;strokeWidth=2;fontSize=10;fontColor=#1F3A68" edge="1" parent="1" source="A_hash" target="A_chunk"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ae5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="A_chunk" target="A_embed"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ae6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="A_embed" target="A_upsert"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ae7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="A_upsert" target="A_chroma"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ae8" value="record state" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;dashed=1;strokeColor=#4A6E8C;fontSize=10;fontColor=#2E4A66" edge="1" parent="1" source="A_upsert" target="A_state"><mxGeometry relative="1" as="geometry" /></mxCell>
-
-        <!-- ===== PHASE B: RETRIEVAL ===== -->
-        <mxCell id="phaseB" value="B.  RETRIEVAL  (per AI request — async)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8;align=left;spacingLeft=18" vertex="1" parent="1">
-          <mxGeometry x="40" y="620" width="2520" height="600" as="geometry" />
+        <mxCell id="L_notes" value="Notes&#10;• Embeddings + Chroma upserts live in rag_service.index_document()&#10;• _enforce_ai_gate() called at the top of each retrieval&#10;• Pure Python — no framework, no extra LLM round trips" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=11;fontColor=#3D4A5C;align=left;spacingLeft=12;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="80" y="920" width="1110" height="120" as="geometry" />
         </mxCell>
 
-        <mxCell id="B_query" value="User query&#10;&#10;e.g. &quot;compare ER and EER models&quot;&#10;or &quot;gradient descent?&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="80" y="680" width="240" height="120" as="geometry" />
+        <!-- RIGHT PANEL — FRAMEWORK -->
+        <mxCell id="framework_panel" value="Framework path  ·  backend/app/rag_service_lc.py  ·  LangChain 1.x" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F0F8;strokeColor=#6B46C1;strokeWidth=2;dashed=1;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#4C2F87;spacingTop=8;align=left;spacingLeft=14" vertex="1" parent="1">
+          <mxGeometry x="1320" y="380" width="1200" height="1100" as="geometry" />
         </mxCell>
 
-        <mxCell id="B_decompose" value="decompose_query()&#10;FAST_MODEL · flash-lite&#10;&#10;Skip if disabled or&#10;query has &lt; 6 words&#10;&#10;Output ≤ MAX_SUB_QUESTIONS&#10;atomic sub-questions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="360" y="680" width="240" height="170" as="geometry" />
+        <mxCell id="F_load" value="1.  Chroma vectorstore  (langchain_chroma.Chroma)&#10;Reads the SAME per-course collection the legacy index built —&#10;LegacyCompatibleEmbeddings adapter produces vector-identical queries" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1360" y="430" width="1120" height="100" as="geometry" />
         </mxCell>
 
-        <mxCell id="B_hyde" value="sub_q &lt; 3 tokens ?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;fontSize=11;fontStyle=1;fontColor=#3D4A5C" vertex="1" parent="1">
-          <mxGeometry x="640" y="710" width="180" height="100" as="geometry" />
+        <mxCell id="F_multi" value="2.  MultiQueryRetriever  (when query ≥ 6 words)&#10;langchain_classic.retrievers.multi_query.MultiQueryRetriever.from_llm(FAST_MODEL)&#10;— LLM-driven decomposition; one retrieval per generated phrasing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1360" y="560" width="1120" height="100" as="geometry" />
         </mxCell>
 
-        <mxCell id="B_hyde_gen" value="HyDE branch&#10;&#10;Generate hypothetical answer&#10;(FAST_MODEL) → embed it" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="860" y="660" width="240" height="100" as="geometry" />
+        <mxCell id="F_hyde" value="3.  HyDE for short queries  (len(query) &lt; HYDE_MIN_TOKENS)&#10;FAST_MODEL writes a hypothetical 2-3 sentence answer; the&#10;retriever searches with that text instead of the raw query" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1360" y="690" width="1120" height="100" as="geometry" />
         </mxCell>
 
-        <mxCell id="B_embed" value="Direct embedding&#10;gemini-embedding-001 (768d)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="860" y="780" width="240" height="60" as="geometry" />
+        <mxCell id="F_rerank" value="4.  ContextualCompressionRetriever&#10;wraps the base retriever with CrossEncoderReranker (top_n = top_k)&#10;model: BAAI/bge-reranker-v2-m3 via HuggingFaceCrossEncoder (cached singleton)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="1360" y="820" width="1120" height="100" as="geometry" />
         </mxCell>
 
-        <mxCell id="B_retrieve" value="rag_service.retrieve  (per course_id)&#10;&#10;fetch_k = top_k × RAG_FETCH_RATIO (4)&#10;collection.query(embeddings, n=fetch_k,&#10;  where=doc_type filter optional)&#10;score = 1 − distance" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="1140" y="680" width="380" height="170" as="geometry" />
+        <mxCell id="F_out" value="Returns:  SAME list[{text, doc_id, doc_type, title, course_id, score}]&#10;UsageCallback streams token counts into ai_service._log_token_usage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#2D3748" vertex="1" parent="1">
+          <mxGeometry x="1360" y="950" width="1120" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="B_merge" value="Merge + dedupe across sub-questions&#10;Pool size = N(subQ) × fetch_k" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="1140" y="880" width="380" height="80" as="geometry" />
+        <mxCell id="F_notes" value="Notes&#10;• Indexing is NOT reimplemented — rag_service.index_document still owns Chroma writes;&#10;  the framework path only READS via the embedding adapter.&#10;• _enforce_ai_gate() is called in rag_service_lc.retrieve() — gate stays honoured.&#10;• Token usage is captured through the LangChain UsageCallback (langchain_core.callbacks.BaseCallbackHandler)." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=11;fontColor=#3D4A5C;align=left;spacingLeft=12;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="1360" y="1040" width="1120" height="180" as="geometry" />
         </mxCell>
 
-        <mxCell id="B_rerank" value="Cross-Encoder Rerank vs ORIGINAL query&#10;&#10;BAAI/bge-reranker-v2-m3 (multilingual)&#10;CPU singleton · 1 h cooldown on fail&#10;Sort desc · take top_k" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="1560" y="680" width="380" height="170" as="geometry" />
-        </mxCell>
+        <!-- ARROWS -->
+        <mxCell id="a_caller_gate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="caller" target="gate"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a_gate_disp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#5A6478;strokeWidth=2" edge="1" parent="1" source="gate" target="dispatch"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a_disp_legacy" value="false" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#2C5282;strokeWidth=2;fontSize=11;fontColor=#1F3A68" edge="1" parent="1" source="dispatch" target="L_decompose"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="340" y="290" /><mxPoint x="340" y="410" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_disp_fw" value="true" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2;fontSize=11;fontColor=#4C2F87" edge="1" parent="1" source="dispatch" target="F_load"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1900" y="290" /><mxPoint x="1900" y="410" /></Array></mxGeometry></mxCell>
 
-        <mxCell id="B_topk" value="Top-K chunks  (default 3-5)&#10;&#10;{ text, doc_id, doc_type, title,&#10;  course_id, score, rerank_score }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="1560" y="880" width="380" height="100" as="geometry" />
-        </mxCell>
+        <!-- legacy vertical chain -->
+        <mxCell id="aL1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#2C5282;strokeWidth=2" edge="1" parent="1" source="L_decompose" target="L_hyde"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="aL2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#2C5282;strokeWidth=2" edge="1" parent="1" source="L_hyde" target="L_overfetch"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="aL3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="L_overfetch" target="L_rerank"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="aL4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#3D4A5C;strokeWidth=2" edge="1" parent="1" source="L_rerank" target="L_out"><mxGeometry relative="1" as="geometry" /></mxCell>
 
-        <mxCell id="B_context" value="format_context() + format_citations()&#10;[Source N: title (doc_type)] · sources[]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="1140" y="1010" width="380" height="80" as="geometry" />
-        </mxCell>
+        <!-- framework vertical chain -->
+        <mxCell id="aF1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="F_load" target="F_multi"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="aF2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="F_multi" target="F_hyde"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="aF3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="F_hyde" target="F_rerank"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="aF4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#3D4A5C;strokeWidth=2" edge="1" parent="1" source="F_rerank" target="F_out"><mxGeometry relative="1" as="geometry" /></mxCell>
 
-        <mxCell id="B_llm" value="Gemini SMART_MODEL  (gemini-2.5-flash)&#10;Cite [Source N] · temp 0.3 – 0.7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="1560" y="1010" width="380" height="80" as="geometry" />
-        </mxCell>
-
-        <mxCell id="B_out" value="Grounded answer + sources[]&#10;→ router → client" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2D3748" vertex="1" parent="1">
-          <mxGeometry x="1990" y="680" width="240" height="100" as="geometry" />
-        </mxCell>
-
-        <!-- Phase B arrows with explicit waypoints -->
-        <mxCell id="be1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="B_query" target="B_decompose"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="be2" value="for each sub_q" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2;fontSize=10;fontColor=#4C2F87" edge="1" parent="1" source="B_decompose" target="B_hyde"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="be3" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.3;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2;fontSize=10;fontColor=#4C2F87" edge="1" parent="1" source="B_hyde" target="B_hyde_gen"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="be4" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.7;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#5A6478;strokeWidth=2;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="B_hyde" target="B_embed"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="be5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.3;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="B_hyde_gen" target="B_retrieve"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="be6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.7;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="B_embed" target="B_retrieve"><mxGeometry relative="1" as="geometry" /></mxCell>
-
-        <!-- B_retrieve → A_chroma  (route via top bus at y=550-600) -->
-        <mxCell id="be7" value="query Chroma course_{id}" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;endArrow=classic;dashed=1;strokeColor=#4A6E8C;strokeWidth=2;fontSize=10;fontColor=#2E4A66" edge="1" parent="1" source="B_retrieve" target="A_chroma">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1330" y="600" />
-              <mxPoint x="2040" y="600" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="be8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="B_retrieve" target="B_merge"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="be9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="B_merge" target="B_rerank"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="be10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="B_rerank" target="B_topk"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="be11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;endArrow=classic;strokeColor=#2C5282;strokeWidth=2" edge="1" parent="1" source="B_topk" target="B_context"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="be12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="B_context" target="B_llm"><mxGeometry relative="1" as="geometry" /></mxCell>
-
-        <!-- B_llm → B_out:  route via right margin bus at x=2280 -->
-        <mxCell id="be13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0.5;entryY=1;endArrow=classic;strokeColor=#3D4A5C;strokeWidth=2" edge="1" parent="1" source="B_llm" target="B_out">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="2110" y="1050" />
-              <mxPoint x="2110" y="780" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <!-- ===== NOTES (placed below diagram so they never intersect arrows) ===== -->
-        <mxCell id="note_consumers" value="Pipeline consumers&#10;&#10;ai_companion.chat / stream — top_k = 3&#10;ai_study_plan.daily_guide / exam_plan&#10;ai_mindmap_buddy.suggest_all / recommend&#10;ai_grading.recommend — top_k = 3 per courseId&#10;ai_plagiarism.analyze — uses similarity, not RAG" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=10;fontColor=#3D4A5C;align=left;spacingLeft=10;spacingTop=6" vertex="1" parent="1">
-          <mxGeometry x="80" y="1240" width="420" height="170" as="geometry" />
-        </mxCell>
-
-        <mxCell id="note_env" value="Tunable env vars&#10;&#10;RAG_MULTISTEP_ENABLED = 1&#10;RAG_HYDE_ENABLED = 1&#10;RAG_HYDE_MIN_TOKENS = 3&#10;RAG_MAX_SUB_QUESTIONS = 3&#10;RAG_FETCH_RATIO = 4&#10;RAG_RERANKER_MODEL = BAAI/...&#10;GEMINI_EMBED_MODEL · GEMINI_EMBED_DIM = 768" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECEFF5;strokeColor=#4A6E8C;fontSize=10;fontColor=#2E4A66;align=left;spacingLeft=10;spacingTop=6" vertex="1" parent="1">
-          <mxGeometry x="520" y="1240" width="420" height="170" as="geometry" />
-        </mxCell>
-
-        <mxCell id="note_fail" value="Fail-open behaviour&#10;&#10;Reranker missing → embedding scores only&#10;Embed batch error → zero vectors (logged)&#10;Decompose error → use original query&#10;HyDE error → fall back to raw embedding&#10;Per-course retrieve error → skip that course&#10;Empty index → returns [] (no exception)" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=10;fontColor=#3D4A5C;align=left;spacingLeft=10;spacingTop=6" vertex="1" parent="1">
-          <mxGeometry x="960" y="1240" width="420" height="170" as="geometry" />
-        </mxCell>
-
-        <mxCell id="legend" value="Legend&#10;&#10;Blue — ingest / data flow                Violet — AI / Gemini step&#10;Slate — vector / data infra                Decision diamond — branch&#10;Cylinder — persistent store               Solid arrow — main path&#10;Dashed arrow — optional / async write&#10;All edges use orthogonal routing — they pass through&#10;&quot;buses&quot; in the gaps between phases, never through a box." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;align=left;verticalAlign=top;fontSize=11;fontStyle=1;fontColor=#3D4A5C;spacingLeft=14;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="1400" y="1240" width="1140" height="170" as="geometry" />
+        <!-- footer -->
+        <mxCell id="footer" value="Both paths preserve identical return shape so routers do not change.  Switch with: gcloud run services update mysmartstudy-api --update-env-vars AI_BACKEND=framework" style="text;html=1;align=center;fontSize=11;fontStyle=2;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="40" y="1510" width="2480" height="24" as="geometry" />
         </mxCell>
 
       </root>

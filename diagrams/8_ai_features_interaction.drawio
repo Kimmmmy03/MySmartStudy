@@ -1,240 +1,139 @@
 <mxfile host="app.diagrams.net" agent="MySmartStudy" version="22.1.16">
-  <diagram id="aiInteraction" name="AI Features Interaction">
-    <mxGraphModel dx="2600" dy="1500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="2000" math="0" shadow="0">
+  <diagram id="aifeats" name="AI Features Interaction">
+    <mxGraphModel dx="2400" dy="1300" grid="1" gridSize="10" page="1" pageScale="1" pageWidth="2800" pageHeight="1700" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
 
-        <mxCell id="title" value="MySmartStudy — How all AI features talk to each other  (Routers ↔ Services ↔ Data)" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="700" y="20" width="1700" height="36" as="geometry" />
+        <mxCell id="title" value="AI Features × Patterns × Backends  ·  How AI_BACKEND={legacy | framework} reroutes every feature" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="100" y="10" width="2600" height="36" as="geometry" />
         </mxCell>
 
-        <!-- ============== ROW 1: AI ROUTERS ============== -->
-        <mxCell id="row_routers" value="AI Feature Routers — backend/app/routers/ai_*.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8" vertex="1" parent="1">
-          <mxGeometry x="40" y="80" width="2920" height="260" as="geometry" />
+        <!-- ROW 1: USER REQUEST -->
+        <mxCell id="req" value="POST /api/ai/* — any AI router endpoint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1100" y="80" width="600" height="50" as="geometry" />
         </mxCell>
 
-        <mxCell id="r_companion" value="ai_companion&#10;&#10;/api/ai/companion/&#10;  chat / chat-stream&#10;  history&#10;  learning-profile&#10;  assess-style&#10;&#10;Audience: Student" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="60" y="120" width="270" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="r_buddy" value="ai_mindmap_buddy&#10;&#10;/api/ai/mindmap-buddy/&#10;  analyze / suggest-all&#10;  recommend / chat&#10;  memory&#10;&#10;Audience: Student" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="350" y="120" width="270" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="r_studyplan" value="ai_study_plan&#10;&#10;/api/ai/study-plan/&#10;  daily-guide&#10;  exam-plan&#10;  upload-timetable&#10;  saved-timetables&#10;&#10;Audience: Student" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="640" y="120" width="270" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="r_materials" value="ai_study_materials&#10;&#10;/api/ai/study-materials/&#10;  generate (sum|flash|quiz)&#10;  generate-from-topic&#10;  attempt-quiz&#10;&#10;Audience: Student" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="930" y="120" width="270" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="r_images" value="ai_images&#10;&#10;/api/ai/images/&#10;  generate (node image)&#10;  elaborate&#10;  quota (2 / day)&#10;&#10;Audience: Student" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="1220" y="120" width="270" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="r_grading" value="ai_grading&#10;&#10;/api/ai/grading/&#10;  recommend/{submission_id}&#10;  apply-recommendation&#10;&#10;Audience: Lecturer&#10;(tutorial-type only)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="1510" y="120" width="270" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="r_plag" value="ai_plagiarism&#10;&#10;/api/ai/plagiarism/&#10;  analyze/{submission_id}&#10;  analyze-network/{aid}&#10;  reports&#10;&#10;Audience: Lecturer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="1800" y="120" width="270" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="r_import" value="ai_import + site_import&#10;&#10;/api/ai/import/&#10;  google-sites (preview)&#10;  apply (commit modules)&#10;&#10;Audience: Lecturer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="2090" y="120" width="270" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="r_clp" value="clp (CLP)&#10;&#10;/api/clp/&#10;  upload (syllabus PDF)&#10;  extraction-result&#10;  approve / reject&#10;&#10;Audience: Lecturer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="2380" y="120" width="270" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="r_admin" value="admin / rag_admin&#10;&#10;/api/admin/ai/&#10;  master-switch&#10;  disabled-features&#10;/api/rag-admin/&#10;  reindex/{cid}&#10;  build-kg/{cid}&#10;&#10;public /api/ai/status" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2D3748" vertex="1" parent="1">
-          <mxGeometry x="2670" y="120" width="270" height="210" as="geometry" />
+        <!-- ROW 2: GATE -->
+        <mxCell id="gate" value="ai_service.set_tracking_context(user_id, feature)  →  master switch · per-feature kill list · daily token quota" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;strokeWidth=2;align=center;verticalAlign=middle;fontSize=11;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="700" y="155" width="1400" height="48" as="geometry" />
         </mxCell>
 
-        <!-- ============== ROW 2: GATEKEEPER (full-width bar) ============== -->
-        <mxCell id="gate_box" value="GATEKEEPER  —  ai_service.set_tracking_context(user_id, feature)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;strokeWidth=3;align=center;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#3D4A5C;spacingTop=6" vertex="1" parent="1">
-          <mxGeometry x="40" y="380" width="2920" height="44" as="geometry" />
-        </mxCell>
-        <mxCell id="gate_body" value="1)  _enforce_ai_gate(feature)  →  Firestore aiConfig/global  →  if not aiEnabled  →  503    ·    if feature in disabledFeatures  →  503&#10;2)  daily quota check  →  aiUserSettings  →  aiConfig.dailyTokenLimit  →  DEFAULT 50 000     ·    if today's used ≥ limit  →  429&#10;3)  set context-vars (_tracking_user, _tracking_feature) — subsequent Gemini calls increment aiUsageSummary + aiDailyUsage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5A6478;align=left;verticalAlign=middle;fontSize=11;spacingLeft=14;spacingTop=4;fontColor=#3D4A5C" vertex="1" parent="1">
-          <mxGeometry x="40" y="430" width="2920" height="80" as="geometry" />
+        <!-- ROW 3: DISPATCH -->
+        <mxCell id="dispatch" value="In every public AI service function:&#10;if framework_enabled():  return *_lc.* (...)   else: run legacy" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFEDB3;strokeColor=#C99A06;strokeWidth=2;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#5C4400" vertex="1" parent="1">
+          <mxGeometry x="1100" y="225" width="600" height="80" as="geometry" />
         </mxCell>
 
-        <!-- Routers → gate (straight down, each enters at a different x) -->
-        <mxCell id="rg1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.066;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="r_companion" target="gate_box"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="rg2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.166;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="r_buddy" target="gate_box"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="rg3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.266;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="r_studyplan" target="gate_box"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="rg4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.366;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="r_materials" target="gate_box"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="rg5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.466;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="r_images" target="gate_box"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="rg6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.566;entryY=0;endArrow=classic;strokeColor=#553C9A;strokeWidth=2" edge="1" parent="1" source="r_grading" target="gate_box"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="rg7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.666;entryY=0;endArrow=classic;strokeColor=#553C9A;strokeWidth=2" edge="1" parent="1" source="r_plag" target="gate_box"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="rg8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.766;entryY=0;endArrow=classic;strokeColor=#553C9A;strokeWidth=2" edge="1" parent="1" source="r_import" target="gate_box"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="rg9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.866;entryY=0;endArrow=classic;strokeColor=#553C9A;strokeWidth=2" edge="1" parent="1" source="r_clp" target="gate_box"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="rg10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.966;entryY=0;endArrow=classic;strokeColor=#3D4A5C;strokeWidth=2" edge="1" parent="1" source="r_admin" target="gate_box"><mxGeometry relative="1" as="geometry" /></mxCell>
-
-        <!-- ============== ROW 3: SHARED PRIMITIVES ============== -->
-        <mxCell id="row_prim" value="Shared AI primitives — every router pulls from this layer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8" vertex="1" parent="1">
-          <mxGeometry x="40" y="540" width="2920" height="290" as="geometry" />
+        <!-- LEGACY PANEL -->
+        <mxCell id="L_panel" value="AI_BACKEND=legacy  ·  hand-rolled" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;dashed=1;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3D4A5C;spacingTop=8;align=left;spacingLeft=14" vertex="1" parent="1">
+          <mxGeometry x="40" y="340" width="1260" height="1280" as="geometry" />
         </mxCell>
 
-        <mxCell id="p_multi" value="multi_agent.fan_out()&#10;&#10;Parallel data gathering&#10;asyncio.gather + 30 s timeout&#10;Failure-isolated agents" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="80" y="580" width="320" height="170" as="geometry" />
+        <mxCell id="L_h_feat" value="Feature" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=center;fontStyle=1;fontSize=12;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="280" height="36" as="geometry" />
         </mxCell>
-        <mxCell id="p_rag" value="rag_service + rag_multistep&#10;&#10;Chunk · Embed · Retrieve&#10;Decompose · HyDE · Rerank&#10;ChromaDB per-course" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="430" y="580" width="320" height="170" as="geometry" />
-        </mxCell>
-        <mxCell id="p_kg" value="knowledge_graph_service&#10;&#10;Concept graphs (Firestore)&#10;BFS subgraph queries&#10;Similarity graph (cosine)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="780" y="580" width="320" height="170" as="geometry" />
-        </mxCell>
-        <mxCell id="p_gag" value="gag_service&#10;&#10;Structured-artifact generators&#10;(study_plan, grading,&#10; mindmap-graph, plagiarism)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="1130" y="580" width="320" height="170" as="geometry" />
-        </mxCell>
-        <mxCell id="p_ai" value="ai_service&#10;&#10;Gemini wrapper&#10;generate_text · generate_json&#10;chat_completion · embed&#10;SAFETY · token logging" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="1480" y="580" width="320" height="170" as="geometry" />
-        </mxCell>
-        <mxCell id="p_cache" value="Result caches (Firestore)&#10;&#10;aiDailyGuideCache · aiMapAnalysisCache&#10;aiNodeRecsCache · aiSuggestAllCache&#10;aiExamPlanCache · aiTimetableCache&#10;aiImportCache · aiImageCache&#10;aiCompanionQuestionCache&#10;aiImageQuotas (2 / day)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=6;fontStyle=1;fontColor=#3D4A5C" vertex="1" parent="1">
-          <mxGeometry x="1830" y="580" width="370" height="170" as="geometry" />
-        </mxCell>
-        <mxCell id="p_sim" value="similarity.py&#10;&#10;Pairwise cosine&#10;Connected-components clustering" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="2230" y="580" width="320" height="170" as="geometry" />
-        </mxCell>
-        <mxCell id="p_audit" value="audit.audit_log&#10;&#10;Append to auditLogs:&#10;ai_grade.apply, plagiarism.flag,&#10;admin.master_switch_toggle, …" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2D3748" vertex="1" parent="1">
-          <mxGeometry x="2580" y="580" width="320" height="170" as="geometry" />
+        <mxCell id="L_h_imp" value="Implementation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=center;fontStyle=1;fontSize=12;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="380" y="380" width="940" height="36" as="geometry" />
         </mxCell>
 
-        <!-- gate → primitives (each enters one box; lines spread along width via different exit X on the gate bar) -->
-        <mxCell id="gp1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.08;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#5A6478;strokeWidth=2" edge="1" parent="1" source="gate_body" target="p_multi"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="gp2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.2;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#5A6478;strokeWidth=2" edge="1" parent="1" source="gate_body" target="p_rag"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="gp3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.32;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#5A6478;strokeWidth=2" edge="1" parent="1" source="gate_body" target="p_kg"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="gp4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.44;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#5A6478;strokeWidth=2" edge="1" parent="1" source="gate_body" target="p_gag"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="gp5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.56;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#5A6478;strokeWidth=2" edge="1" parent="1" source="gate_body" target="p_ai"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="gp6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.68;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#5A6478;strokeWidth=2;dashed=1" edge="1" parent="1" source="gate_body" target="p_cache"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="gp7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.82;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#5A6478;strokeWidth=2" edge="1" parent="1" source="gate_body" target="p_sim"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="gp8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.94;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#3D4A5C;strokeWidth=2" edge="1" parent="1" source="gate_body" target="p_audit"><mxGeometry relative="1" as="geometry" /></mxCell>
-
-        <!-- ============== DEPENDENCY NOTE BAR ============== -->
-        <mxCell id="row_dep" value="Internal dependencies between primitives" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8;align=left;spacingLeft=18" vertex="1" parent="1">
-          <mxGeometry x="40" y="850" width="2920" height="120" as="geometry" />
+        <!-- legacy rows -->
+        <mxCell id="L_chat_f" value="Companion chat" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2C5282;align=center;fontSize=11;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="80" y="430" width="280" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="dep_text" value="rag_multistep → rag_service (retrieve, embed_texts, _rerank)            rag_service.embed_texts → ai_service._get_client (Gemini embeddings)&#10;knowledge_graph_service → rag_service (chunks + embed_texts) and ai_service.generate_json (concept extraction)&#10;gag_service → rag_service.format_context / format_citations  +  ai_service.generate_json&#10;ALL Gemini calls in ai_service write to aiUsageSummary (lifetime) and aiDailyUsage (quota) via _log_token_usage().&#10;The AI gate (_enforce_ai_gate) is checked again inside _get_client() — belt-and-braces for paths that bypass set_tracking_context (KG, site-importer, CLP)." style="text;html=1;align=left;verticalAlign=top;fontSize=11;spacingLeft=18;spacingTop=8;fontColor=#3D4A5C" vertex="1" parent="1">
-          <mxGeometry x="40" y="880" width="2920" height="90" as="geometry" />
+        <mxCell id="L_chat_i" value="multi_agent.fan_out (6 Firestore _ctx_*) → rag_multistep.retrieve_multistep → ai_service.chat_completion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2C5282;align=left;verticalAlign=middle;fontSize=10;spacingLeft=10;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="380" y="430" width="940" height="60" as="geometry" />
         </mxCell>
 
-        <!-- ============== ROW 4: DATA STORES ============== -->
-        <mxCell id="row_data" value="Backing data stores" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8;align=left;spacingLeft=18" vertex="1" parent="1">
-          <mxGeometry x="40" y="990" width="2920" height="320" as="geometry" />
+        <mxCell id="L_rag_f" value="RAG retrieval" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2C5282;align=center;fontSize=11;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="80" y="510" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="L_rag_i" value="rag_service.retrieve() — decompose → HyDE → chroma.query × course_ids → _rerank (BGE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2C5282;align=left;verticalAlign=middle;fontSize=10;spacingLeft=10;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="380" y="510" width="940" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="d_firestore" value="Firebase Firestore&#10;&#10;Operational + AI metadata&#10;users, courses, assignments,&#10;submissions, quizzes, modules,&#10;announcements, discussions,&#10;messages, reminders, badges,&#10;peerReviews, attendance, rubrics&#10;&#10;AI: aiChatHistory, learningProfiles,&#10;aiPlagiarismReports, aiGradeRecs,&#10;aiStudyPlans, aiMindmapBuddyMemory,&#10;ragIndexState, knowledgeGraphs,&#10;aiConfig, aiDailyUsage, auditLogs&#10;+ all AI result caches" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=10;spacingLeft=16;spacingTop=12;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="80" y="1030" width="380" height="260" as="geometry" />
+        <mxCell id="L_kg_f" value="Knowledge graph" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2C5282;align=center;fontSize=11;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="80" y="590" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="L_kg_i" value="knowledge_graph_service.build_course_graph — generate_json prompt asks for {concepts[], relationships[]}, persists to Firestore" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2C5282;align=left;verticalAlign=middle;fontSize=10;spacingLeft=10;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="380" y="590" width="940" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="d_chroma" value="ChromaDB&#10;persistent vector store&#10;&#10;backend/vector_store/&#10;course_{cid} collection&#10;HNSW · cosine · 768-dim" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=10;spacingLeft=16;spacingTop=12;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="490" y="1030" width="320" height="260" as="geometry" />
+        <mxCell id="L_gag_f" value="GAG (study plan, mind-map, plagiarism)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2C5282;align=center;fontSize=11;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="80" y="670" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="L_gag_i" value="gag_service.generate_*  →  ai_service.generate_json  (JSON-by-example prompt + fence strip + retry)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2C5282;align=left;verticalAlign=middle;fontSize=10;spacingLeft=10;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="380" y="670" width="940" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="d_files" value="File storage&#10;&#10;backend/uploads/&#10;PDF submissions · Avatars&#10;Generated images · CLP PDFs" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#4A6E8C;tabWidth=80;tabHeight=18;align=left;verticalAlign=top;fontSize=10;spacingLeft=16;spacingTop=26;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="840" y="1030" width="280" height="260" as="geometry" />
+        <mxCell id="L_grade_f" value="AI Grading" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2C5282;align=center;fontSize=11;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="80" y="750" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="L_grade_i" value="gag_service.generate_grading_report — single LLM call producing the grading JSON, then defensive enrichment of resource_links from RAG sources" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2C5282;align=left;verticalAlign=middle;fontSize=10;spacingLeft=10;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="380" y="750" width="940" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="d_gemini" value="Google Gemini API&#10;&#10;SMART = gemini-2.5-flash&#10;FAST  = gemini-2.5-flash-lite&#10;EMBED = gemini-embedding-001&#10;IMAGE = Imagen-3 (via SDK)&#10;&#10;Wrapped by ai_service.&#10;Tokens accounted per feature." style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=top;fontSize=10;spacingLeft=24;spacingTop=14;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="1150" y="1030" width="340" height="260" as="geometry" />
+        <!-- FRAMEWORK PANEL -->
+        <mxCell id="F_panel" value="AI_BACKEND=framework  ·  LangChain + CrewAI" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F0F8;strokeColor=#6B46C1;strokeWidth=2;dashed=1;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#4C2F87;spacingTop=8;align=left;spacingLeft=14" vertex="1" parent="1">
+          <mxGeometry x="1340" y="340" width="1420" height="1280" as="geometry" />
         </mxCell>
 
-        <mxCell id="d_reranker" value="Cross-Encoder Reranker&#10;BAAI/bge-reranker-v2-m3&#10;(local · CPU · 80MB)&#10;Lazy singleton" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=8;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="1520" y="1030" width="280" height="120" as="geometry" />
+        <mxCell id="F_h_feat" value="Feature" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=center;fontStyle=1;fontSize=12;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1380" y="380" width="280" height="36" as="geometry" />
         </mxCell>
-        <mxCell id="d_firebase" value="Firebase Auth&#10;ID token verify per request" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=10;spacingLeft=24;spacingTop=14;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="1520" y="1170" width="280" height="120" as="geometry" />
-        </mxCell>
-
-        <!-- Primitives → stores via vertical bus at y=800 -->
-        <mxCell id="ps1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="p_rag" target="d_chroma"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="590" y="780" /><mxPoint x="650" y="780" /></Array></mxGeometry></mxCell>
-        <mxCell id="ps2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="p_rag" target="d_gemini"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="654" y="790" /><mxPoint x="1320" y="790" /></Array></mxGeometry></mxCell>
-        <mxCell id="ps3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.85;exitY=1;entryX=0.5;entryY=0;endArrow=classic;dashed=1;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="p_rag" target="d_reranker"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="702" y="800" /><mxPoint x="1660" y="800" /></Array></mxGeometry></mxCell>
-        <mxCell id="ps4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.3;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="p_kg" target="d_firestore"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="876" y="810" /><mxPoint x="270" y="810" /></Array></mxGeometry></mxCell>
-        <mxCell id="ps5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="p_kg" target="d_gemini"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1004" y="820" /><mxPoint x="1320" y="820" /></Array></mxGeometry></mxCell>
-        <mxCell id="ps6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="p_ai" target="d_gemini"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1640" y="830" /><mxPoint x="1320" y="830" /></Array></mxGeometry></mxCell>
-        <mxCell id="ps7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.3;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="p_gag" target="d_gemini"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1226" y="840" /><mxPoint x="1320" y="840" /></Array></mxGeometry></mxCell>
-        <mxCell id="ps8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="p_multi" target="d_firestore"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="240" y="820" /><mxPoint x="270" y="820" /></Array></mxGeometry></mxCell>
-        <mxCell id="ps9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.3;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#4A6E8C;strokeWidth=2" edge="1" parent="1" source="p_cache" target="d_firestore"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1941" y="830" /><mxPoint x="270" y="830" /></Array></mxGeometry></mxCell>
-        <mxCell id="ps10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.3;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#3D4A5C;strokeWidth=2" edge="1" parent="1" source="p_audit" target="d_firestore"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="2676" y="840" /><mxPoint x="270" y="840" /></Array></mxGeometry></mxCell>
-
-        <!-- ============== ROW 5: ADMIN LOOP ============== -->
-        <mxCell id="ctrl_box" value="Admin control loop — Gate · Quotas · Audit" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8;align=left;spacingLeft=18" vertex="1" parent="1">
-          <mxGeometry x="40" y="1330" width="2920" height="280" as="geometry" />
-        </mxCell>
-        <mxCell id="adm_who" value="👤  Admin" style="shape=actor;html=1;align=center;verticalAlign=top;fillColor=#D0D6E2;strokeColor=#3D4A5C;fontSize=14;fontStyle=1;fontColor=#2D3748;spacingTop=4" vertex="1" parent="1">
-          <mxGeometry x="100" y="1390" width="100" height="140" as="geometry" />
+        <mxCell id="F_h_imp" value="Framework implementation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=center;fontStyle=1;fontSize=12;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1680" y="380" width="1040" height="36" as="geometry" />
         </mxCell>
 
-        <mxCell id="adm_panel_ui" value="Admin Settings page&#10;&#10;Master switch · kill list · token limit&#10;(global + per-user override)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=left;verticalAlign=top;fontSize=12;spacingLeft=14;spacingTop=12;fontStyle=1;fontColor=#2D3748" vertex="1" parent="1">
-          <mxGeometry x="240" y="1380" width="500" height="170" as="geometry" />
+        <mxCell id="F_chat_f" value="Companion chat" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B46C1;align=center;fontSize=11;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1380" y="430" width="280" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="adm_patch" value="PATCH /api/admin/ai/master-switch&#10;PATCH /api/admin/ai/disabled-features&#10;PATCH /api/admin/ai/token-limit&#10;&#10;writes aiConfig/global +&#10;invalidate_ai_gate_cache()&#10;(30s TTL · propagates &lt; 30s)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontColor=#3D4A5C" vertex="1" parent="1">
-          <mxGeometry x="780" y="1380" width="500" height="170" as="geometry" />
-        </mxCell>
-        <mxCell id="adm_status" value="Public GET /api/ai/status&#10;{ enabled, disabled_features }&#10;&#10;Frontend hides AI buttons before&#10;the user hits a 503." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="1320" y="1380" width="450" height="170" as="geometry" />
-        </mxCell>
-        <mxCell id="adm_dash" value="Spend dashboard&#10;&#10;Reads aiUsageSummary (lifetime) and&#10;aiDailyUsage (per-day).&#10;Shows per-feature spend, top users,&#10;quota breaches." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;fontColor=#2D3748" vertex="1" parent="1">
-          <mxGeometry x="1810" y="1380" width="450" height="170" as="geometry" />
-        </mxCell>
-        <mxCell id="adm_loop_note" value="Control loop&#10;Admin observes spend → flips switch&#10;→ aiConfig updated → next gate call = 503&#10;→ frontend hides AI affordances in &lt; 30 s." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=11;fontColor=#3D4A5C;align=left;spacingLeft=12;spacingTop=8" vertex="1" parent="1">
-          <mxGeometry x="2300" y="1380" width="620" height="170" as="geometry" />
+        <mxCell id="F_chat_i" value="Same as legacy — async fan-out kept on purpose (Firestore I/O, not reasoning). Planning-intent detector delegates to study-plan GAG when matched." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B46C1;align=left;verticalAlign=middle;fontSize=10;spacingLeft=10;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1680" y="430" width="1040" height="60" as="geometry" />
         </mxCell>
 
-        <!-- Admin chain (horizontal) -->
-        <mxCell id="aa1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#3D4A5C;strokeWidth=2" edge="1" parent="1" source="adm_who" target="adm_panel_ui"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="aa2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#3D4A5C;strokeWidth=2" edge="1" parent="1" source="adm_panel_ui" target="adm_patch"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="aa3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#2C5282;strokeWidth=2" edge="1" parent="1" source="adm_patch" target="adm_status"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="aa4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;strokeColor=#3D4A5C;strokeWidth=2" edge="1" parent="1" source="adm_status" target="adm_dash"><mxGeometry relative="1" as="geometry" /></mxCell>
-
-        <!-- adm_patch → gate (route up far left margin via x=20) -->
-        <mxCell id="aa_gate" value="updates the gate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=0.005;entryY=1;endArrow=classic;dashed=1;strokeColor=#3D4A5C;strokeWidth=2;fontSize=11;fontColor=#2D3748" edge="1" parent="1" source="adm_patch" target="gate_box">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="20" y="1465" />
-              <mxPoint x="20" y="424" />
-            </Array>
-          </mxGeometry>
+        <mxCell id="F_rag_f" value="RAG retrieval" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B46C1;align=center;fontSize=11;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1380" y="510" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F_rag_i" value="rag_service_lc.retrieve — Chroma + MultiQueryRetriever (FAST_MODEL) + ContextualCompressionRetriever wrapping CrossEncoderReranker (BGE) — HyDE for terse queries" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B46C1;align=left;verticalAlign=middle;fontSize=10;spacingLeft=10;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1680" y="510" width="1040" height="60" as="geometry" />
         </mxCell>
 
-        <!-- adm_dash reads from db_firestore  -->
-        <mxCell id="aa_dash_db" value="reads usage" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0;entryX=1;entryY=1;endArrow=classic;dashed=1;strokeColor=#4A6E8C;strokeWidth=2;fontSize=11;fontColor=#2E4A66" edge="1" parent="1" source="adm_dash" target="d_firestore">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1810" y="1340" />
-              <mxPoint x="1810" y="1320" />
-              <mxPoint x="460" y="1320" />
-            </Array>
-          </mxGeometry>
+        <mxCell id="F_kg_f" value="Knowledge graph" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B46C1;align=center;fontSize=11;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1380" y="590" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F_kg_i" value="knowledge_graph_service_lc.build_course_graph — langchain_experimental.LLMGraphTransformer with allowed_nodes / allowed_relationships, output mapped to Firestore shape" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B46C1;align=left;verticalAlign=middle;fontSize=10;spacingLeft=10;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1680" y="590" width="1040" height="60" as="geometry" />
         </mxCell>
 
-        <!-- ============== LEGEND ============== -->
-        <mxCell id="legend" value="Legend" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;align=center;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#3D4A5C;spacingTop=6" vertex="1" parent="1">
-          <mxGeometry x="40" y="1630" width="2920" height="220" as="geometry" />
+        <mxCell id="F_gag_f" value="GAG (study plan, mind-map, plagiarism)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B46C1;align=center;fontSize=11;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1380" y="670" width="280" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="lg_p" value="Violet — Student-facing AI / Gemini-powered" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;fontSize=10;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="60" y="1668" width="320" height="36" as="geometry" />
+        <mxCell id="F_gag_i" value="gag_service_lc.generate_* — llm.with_structured_output(PydanticSchema).with_config({callbacks: [UsageCallback()]}) — schema enforced by LangChain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B46C1;align=left;verticalAlign=middle;fontSize=10;spacingLeft=10;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1680" y="670" width="1040" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="lg_l" value="Plum — Lecturer-facing AI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;fontSize=10;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="400" y="1668" width="320" height="36" as="geometry" />
+
+        <mxCell id="F_grade_f" value="AI Grading (adaptive)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B46C1;align=center;fontSize=11;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1380" y="750" width="280" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="lg_a" value="Slate gray — Admin / governance" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;fontSize=10;fontColor=#2D3748" vertex="1" parent="1">
-          <mxGeometry x="740" y="1668" width="320" height="36" as="geometry" />
+        <mxCell id="F_grade_i" value="crew_service._is_complex_submission:&#10;  · short / few criteria  → gag_service_lc.generate_grading_report (single LLM call, ~3s)&#10;  · long / many criteria → CrewAI Crew(Analyst on FAST, Grader on SMART; output_pydantic=_GradingReport)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B46C1;align=left;verticalAlign=middle;fontSize=10;spacingLeft=10;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1680" y="750" width="1040" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="lg_b" value="Blue — Student-side / primitives" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;fontSize=10;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="1080" y="1668" width="320" height="36" as="geometry" />
+
+        <!-- SHARED PLUMBING -->
+        <mxCell id="shared" value="Shared on BOTH paths (defined in ai_service.py + ai_framework.py)&#10;• Firestore collections: aiUsageSummary, aiDailyUsage, AI_CONFIG (master switch + kill list + per-user/global token caps)&#10;• Per-course ChromaDB collection 'course_{cid}' on disk in /vector_store&#10;• Reranker: BAAI/bge-reranker-v2-m3 (sentence_transformers locally / HuggingFaceCrossEncoder in framework)&#10;• Embedding: Gemini gemini-embedding-001 @ 768-d  ·  LegacyCompatibleEmbeddings adapter makes legacy + framework vectors interoperable&#10;• Token accounting:  _log_token_usage(total_tokens) is called the same way in both paths (UsageCallback for LangChain, manual for legacy)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#4A6E8C;strokeWidth=2;align=left;verticalAlign=top;fontSize=11;spacingLeft=14;spacingTop=10;fontStyle=1;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="40" y="860" width="2720" height="170" as="geometry" />
         </mxCell>
-        <mxCell id="lg_s" value="Cool slate — RAG / KG infra" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;fontSize=10;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="1420" y="1668" width="320" height="36" as="geometry" />
+
+        <!-- SWITCHING -->
+        <mxCell id="switch" value="How to flip the production backend  (no Docker rebuild)&#10;gcloud run services update mysmartstudy-api --region asia-southeast1 --update-env-vars AI_BACKEND=framework&#10;…and to roll back: same command with AI_BACKEND=legacy.  ~10 seconds either way." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;fontColor=#5C4400;align=left;spacingLeft=14;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="1060" width="2720" height="140" as="geometry" />
         </mxCell>
-        <mxCell id="lg_n" value="Neutral — gatekeeper / shared concern" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;fontSize=10;fontColor=#3D4A5C" vertex="1" parent="1">
-          <mxGeometry x="1760" y="1668" width="320" height="36" as="geometry" />
-        </mxCell>
-        <mxCell id="lg_cyl" value="Persistent store (cylinder)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#CFD8E3;strokeColor=#4A6E8C;fontSize=10;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="2100" y="1666" width="320" height="44" as="geometry" />
-        </mxCell>
-        <mxCell id="lg_cloud" value="External service (cloud)" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;fontSize=10;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="2440" y="1666" width="320" height="44" as="geometry" />
-        </mxCell>
-        <mxCell id="lg_arrows" value="Solid arrow = synchronous request-time call   ·   Dashed arrow = optional / cache / background propagation   ·   Arrow colour matches the source layer.&#10;Every edge uses orthogonal routing.  Cross-row edges are routed through &quot;buses&quot; in the gaps between rows so they never cross a box.&#10;The admin → gate dashed line is routed up the far-left margin (x=20) to clear all primitive and data-store boxes." style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;spacingTop=4;fontColor=#3D4A5C" vertex="1" parent="1">
-          <mxGeometry x="40" y="1720" width="2920" height="120" as="geometry" />
-        </mxCell>
+
+        <!-- ARROWS to dispatch + panels -->
+        <mxCell id="a_req_gate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2" edge="1" parent="1" source="req" target="gate"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a_gate_disp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#5A6478;strokeWidth=2" edge="1" parent="1" source="gate" target="dispatch"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a_disp_L" value="legacy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#2C5282;strokeWidth=2;fontSize=11;fontColor=#1F3A68" edge="1" parent="1" source="dispatch" target="L_panel"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="670" y="265" /></Array></mxGeometry></mxCell>
+        <mxCell id="a_disp_F" value="framework" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2;fontSize=11;fontColor=#4C2F87" edge="1" parent="1" source="dispatch" target="F_panel"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="2050" y="265" /></Array></mxGeometry></mxCell>
 
       </root>
     </mxGraphModel>

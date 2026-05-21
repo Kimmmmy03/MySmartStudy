@@ -6,7 +6,7 @@
 #     bash start-frontend-mobile.sh                   # auto-detect
 #     bash start-frontend-mobile.sh emulator-5554     # Android emulator
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEVICE="${1:-}"
 
 trap 'echo ""; echo "[done] Mobile app stopped."; kill $PID 2>/dev/null; exit 0' INT TERM

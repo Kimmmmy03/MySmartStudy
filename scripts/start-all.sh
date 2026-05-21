@@ -4,7 +4,7 @@
 #   Starts: Backend (8000) + Web Frontend (3000) + Flutter Mobile
 #   device_id: optional mobile device (default: emulator-5554)
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEVICE="${1:-emulator-5554}"
 
 cleanup() {
