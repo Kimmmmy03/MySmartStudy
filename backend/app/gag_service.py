@@ -24,6 +24,14 @@ async def generate_study_plan_artifact(
     Produces per-topic difficulty ratings based on student performance,
     linked resource references from RAG chunks, and actionable study sessions.
     """
+    # Dispatch to the LangChain implementation when AI_BACKEND=framework.
+    from .ai_framework import framework_enabled
+    if framework_enabled():
+        from . import gag_service_lc
+        return await gag_service_lc.generate_study_plan_artifact(
+            student_context, rag_chunks, deadlines, exam_info,
+        )
+
     from . import rag_service
 
     # Build context strings
@@ -140,6 +148,14 @@ async def generate_grading_report(
     Includes per-criterion analysis, comparative analysis against class
     performance, and improvement suggestions with resource links.
     """
+    # Dispatch to the CrewAI multi-agent grading crew when AI_BACKEND=framework.
+    from .ai_framework import framework_enabled
+    if framework_enabled():
+        from . import crew_service
+        return await crew_service.generate_grading_report(
+            submission_content, rubric, rag_chunks, assignment_info,
+        )
+
     from . import rag_service
 
     rag_context = rag_service.format_context(rag_chunks)
@@ -218,6 +234,15 @@ async def generate_graph_suggestions(
     Uses RAG-retrieved content and knowledge graph concepts to suggest
     nodes with source attribution and concept connections.
     """
+    # Dispatch to the LangChain implementation when AI_BACKEND=framework.
+    from .ai_framework import framework_enabled
+    if framework_enabled():
+        from . import gag_service_lc
+        return await gag_service_lc.generate_graph_suggestions(
+            map_nodes, map_edges, rag_chunks, concept_subgraph,
+            map_title, task_description,
+        )
+
     from . import rag_service
 
     node_labels = [n.get("label", "") for n in map_nodes if n.get("label")]
@@ -296,6 +321,14 @@ async def generate_plagiarism_network_report(
     Analyzes submission clusters for plagiarism patterns and generates
     a narrative report with visualization-ready graph data.
     """
+    # Dispatch to the LangChain implementation when AI_BACKEND=framework.
+    from .ai_framework import framework_enabled
+    if framework_enabled():
+        from . import gag_service_lc
+        return await gag_service_lc.generate_plagiarism_network_report(
+            similarity_graph, clusters, submission_contents,
+        )
+
     # Build cluster descriptions for the prompt
     cluster_text = ""
     for i, cluster in enumerate(clusters):

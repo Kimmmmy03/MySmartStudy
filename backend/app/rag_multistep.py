@@ -117,6 +117,14 @@ async def retrieve_multistep(
       3. Retrieve without rerank (over-fetch), merge, dedupe.
       4. Final cross-encoder rerank against the ORIGINAL query.
     """
+    # Dispatch to the LangChain implementation when AI_BACKEND=framework.
+    from .ai_framework import framework_enabled
+    if framework_enabled():
+        from . import rag_service_lc
+        return await rag_service_lc.retrieve_multistep(
+            query, course_ids, top_k=top_k, doc_types=doc_types,
+        )
+
     if not query or not course_ids:
         return [], [query]
 

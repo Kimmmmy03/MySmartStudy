@@ -505,6 +505,15 @@ async def retrieve(
 
     Returns list of {text, doc_id, doc_type, title, course_id, score}.
     """
+    # Dispatch to the LangChain implementation when AI_BACKEND=framework.
+    from .ai_framework import framework_enabled
+    if framework_enabled():
+        from . import rag_service_lc
+        return await rag_service_lc.retrieve(
+            query, course_ids, top_k=top_k, doc_types=doc_types,
+            rerank=rerank, query_embedding=query_embedding,
+        )
+
     if not query or not course_ids:
         return []
 

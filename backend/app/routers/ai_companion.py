@@ -241,6 +241,135 @@ async def _get_student_context(user_id: str) -> tuple[str, list[str]]:
     return context, course_ids
 
 
+# ── Planning-intent detection + delegation ────────────────────────────────────
+# The companion should give chat-fast answers (~2s).  But some questions are
+# really requests for a STRUCTURED STUDY PLAN — for which we already have a
+# better, GAG-based feature (generate_study_plan_artifact).
+#
+# Rather than spinning up a slow multi-agent crew inside the chat (which would
+# be the wrong tool — see REFACTOR_PLAN.md), we detect those requests with a
+# free keyword heuristic and DELEGATE to the existing study-plan feature,
+# then return its output formatted as a chat reply.
+#
+# Trade-off chosen on purpose:
+#   - Keyword classifier is FREE (zero LLM tokens) and INSTANT.
+#   - The cost of a false positive (chat treats a non-planning Q as a planning
+#     request) is just "the answer looks like a study plan instead of free
+#     text" — not broken behaviour. Worst case: the student rephrases.
+#   - The cost of a false negative is zero — it just falls through to normal
+#     chat handling.
+
+_PLAN_KEYWORDS = (
+    "study plan", "study schedule", "revision plan", "revision schedule",
+    "plan my", "plan for me", "schedule my", "schedule for me",
+    "what should i study", "what should i revise", "what to study", "what to revise",
+    "plan my week", "plan my day", "plan my revision",
+)
+
+
+def _looks_like_planning_request(message: str) -> bool:
+    """True when the user's message reads like a study-plan request.
+
+    Deliberately conservative — favours falling through to normal chat over
+    accidentally hijacking a question (false negative is free, false positive
+    costs the user a re-phrase).
+    """
+    if not message:
+        return False
+    msg = message.lower()
+    return any(kw in msg for kw in _PLAN_KEYWORDS)
+
+
+def _format_study_plan_for_chat(plan: dict) -> str:
+    """Render a study-plan artifact dict (from generate_study_plan_artifact)
+    as a friendly chat-shaped string the companion can return verbatim."""
+    if not plan or not isinstance(plan, dict):
+        return ""
+
+    lines: list[str] = ["Here's a personalised study plan for you 📚\n"]
+
+    for i, rec in enumerate(plan.get("recommendations", []) or [], 1):
+        course = rec.get("course", "")
+        topic = rec.get("topic", "")
+        time = rec.get("suggested_time", "")
+        prio = rec.get("priority", "")
+        difficulty = rec.get("difficulty_rating", 0)
+        est = rec.get("estimated_time", "")
+        reason = rec.get("reason", "")
+
+        header = f"**{i}. {topic}**" + (f" ({course})" if course else "")
+        meta_bits = [b for b in (time, est, f"priority: {prio}" if prio else "",
+                                  f"difficulty: {difficulty}/5" if difficulty else "") if b]
+        if meta_bits:
+            header += " — " + " · ".join(meta_bits)
+        lines.append(header)
+        if reason:
+            lines.append(f"  {reason}")
+        activities = rec.get("suggested_activities") or []
+        for act in activities[:3]:
+            lines.append(f"  • {act}")
+        lines.append("")
+
+    summary = plan.get("daily_schedule_summary")
+    if summary:
+        lines.append(summary)
+    motivation = plan.get("motivational_message")
+    if motivation:
+        lines.append(f"\n{motivation}")
+
+    return "\n".join(lines).strip()
+
+
+async def _try_delegate_to_study_plan(
+    message: str, user_id: str, user_display_name: str, course_ids: list[str],
+) -> tuple[str, list[dict]] | None:
+    """If the message looks like a planning request, run the existing study-plan
+    feature and return (formatted_text, sources).  Returns None otherwise so the
+    caller falls through to normal chat handling.
+
+    Errors swallowed silently — a delegation failure must never break the chat.
+    """
+    if not _looks_like_planning_request(message):
+        return None
+    try:
+        from app import gag_service
+        from datetime import datetime, timezone
+
+        # Light RAG so the plan cites real course material
+        rag_chunks = []
+        if course_ids:
+            try:
+                rag_chunks, _ = await rag_multistep.retrieve_multistep(
+                    message, course_ids, top_k=3,
+                )
+            except Exception:
+                pass
+
+        student_context = {
+            "name": user_display_name or "Student",
+            "today": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "weak_topics": [],
+            "quiz_scores": [],
+            "timetables": [],
+        }
+
+        plan = await gag_service.generate_study_plan_artifact(
+            student_context=student_context,
+            rag_chunks=rag_chunks,
+            deadlines=[],
+        )
+        text = _format_study_plan_for_chat(plan)
+        if not text:
+            return None
+        sources = rag_service.format_citations(rag_chunks) if rag_chunks else []
+        return text, sources
+    except Exception as e:
+        # Never propagate — fall through to normal chat
+        import logging
+        logging.getLogger(__name__).warning("Study-plan delegation failed: %s", e)
+        return None
+
+
 # ── Endpoints ──
 
 @router.post("/chat")
@@ -274,6 +403,33 @@ async def chat(req: ChatRequest, user=Depends(get_current_user)):
 
     # Build system instruction with context + RAG
     student_context, course_ids = _get_student_context(user_id)
+
+    # ── Planning-intent delegation ──
+    # "Plan my week" / "what should I study?" etc. → reuse the existing
+    # structured study-plan feature instead of free-text chat. This keeps the
+    # response feature-rich AND chat-fast (single GAG call, no multi-agent
+    # crew inside the chat path).
+    delegated = await _try_delegate_to_study_plan(
+        req.message, user_id, user.get("displayName", ""), course_ids,
+    )
+    if delegated is not None:
+        text, delegated_sources = delegated
+        # Persist as a normal chat turn so the conversation history stays clean
+        now = datetime.now(timezone.utc).isoformat()
+        messages.append({"role": "user", "content": req.message, "timestamp": now})
+        messages.append({"role": "model", "content": text, "timestamp": now})
+        messages = messages[-15:]
+        if history_id:
+            db.collection(models.AI_CHAT_HISTORY).document(history_id).update({
+                "messages": messages, "lastMessageAt": now,
+            })
+        else:
+            history_id = models.gen_id()
+            db.collection(models.AI_CHAT_HISTORY).document(history_id).set({
+                "userId": user_id, "messages": messages,
+                "createdAt": now, "lastMessageAt": now,
+            })
+        return {"response": text, "sources": delegated_sources, "_delegated": "study_plan"}
 
     # RAG: retrieve relevant course content for the student's message
     rag_chunks = []
@@ -408,6 +564,43 @@ async def chat_stream(req: ChatRequest, user=Depends(get_current_user)):
 
     # Context + RAG
     student_context, course_ids = _get_student_context(user_id)
+
+    # ── Planning-intent delegation (same as /chat) ──
+    delegated = await _try_delegate_to_study_plan(
+        req.message, user_id, user.get("displayName", ""), course_ids,
+    )
+    if delegated is not None:
+        text, delegated_sources = delegated
+        now = datetime.now(timezone.utc).isoformat()
+        messages.append({"role": "user", "content": req.message, "timestamp": now})
+        messages.append({"role": "model", "content": text, "timestamp": now})
+        messages = messages[-15:]
+        if history_id:
+            db.collection(models.AI_CHAT_HISTORY).document(history_id).update({
+                "messages": messages, "lastMessageAt": now,
+            })
+        else:
+            history_id = models.gen_id()
+            db.collection(models.AI_CHAT_HISTORY).document(history_id).set({
+                "userId": user_id, "messages": messages,
+                "createdAt": now, "lastMessageAt": now,
+            })
+
+        async def _stream_delegated():
+            words = text.split(" ")
+            for i, word in enumerate(words):
+                token = word + (" " if i < len(words) - 1 else "")
+                yield f"data: {json_lib.dumps({'type': 'token', 'text': token})}\n\n"
+                await asyncio.sleep(0.03)
+            done_payload = {
+                "type": "done",
+                "sources": delegated_sources,
+                "_delegated": "study_plan",
+            }
+            yield f"data: {json_lib.dumps(done_payload)}\n\n"
+
+        return StreamingResponse(_stream_delegated(), media_type="text/event-stream")
+
     rag_chunks = []
     rag_context = ""
     sources = []

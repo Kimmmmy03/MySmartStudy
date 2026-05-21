@@ -29,6 +29,12 @@ async def build_course_graph(course_id: str):
     Uses Gemini to extract concepts and relationships from RAG-indexed
     content, then stores the graph in Firestore.
     """
+    # Dispatch to the LangChain implementation when AI_BACKEND=framework.
+    from .ai_framework import framework_enabled
+    if framework_enabled():
+        from . import knowledge_graph_service_lc
+        return await knowledge_graph_service_lc.build_course_graph(course_id)
+
     logger.info("Building knowledge graph for course %s", course_id)
 
     # Get all indexed documents for this course
