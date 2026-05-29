@@ -1,424 +1,229 @@
 <mxfile host="app.diagrams.net" agent="MySmartStudy" version="22.1.16">
   <diagram id="umlClass" name="UML Class Diagram">
-    <mxGraphModel dx="2600" dy="1500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3200" pageHeight="2200" math="0" shadow="0">
+    <mxGraphModel dx="2600" dy="1600" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3020" pageHeight="1760" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
 
-        <mxCell id="title" value="MySmartStudy — UML Class / Entity Diagram (Firestore Document Model)" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="1000" y="20" width="1200" height="36" as="geometry" />
+        <!-- ===== HEADER ===== -->
+        <mxCell id="hdr" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#607D8B;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="2920" height="58" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="Classes laid out in 4 rows × 4 columns.  Relationship lines route through vertical / horizontal &quot;buses&quot; in the margins so they never pass through a class box." style="text;html=1;align=center;whiteSpace=wrap;fontSize=12;fontStyle=2;fontColor=#3D4A5C" vertex="1" parent="1">
-          <mxGeometry x="600" y="60" width="2000" height="30" as="geometry" />
+        <mxCell id="hdr_title" value="MySmartStudy — Domain Class Diagram (web · mobile · backend)" style="text;html=1;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#1F2933" vertex="1" parent="1">
+          <mxGeometry x="56" y="26" width="900" height="22" as="geometry" />
         </mxCell>
-
-        <!-- Row Y-coordinates:  R1=140  R2=520  R3=900  R4=1280 -->
-        <!-- Column X-coordinates:  C1=100  C2=520  C3=940  C4=1360  C5=1780  C6=2200  C7=2620 -->
-
-        <!-- =================== ROW 1: User · Course · Assignment · Quiz · QuizQuestion · QuizAttempt · Map =================== -->
-        <mxCell id="cls_user" value="User" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#1F3A68;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="100" y="140" width="320" height="270" as="geometry" />
+        <mxCell id="hdr_sub" value="Pydantic *Create / *Update / *Out DTO variants collapsed into single domain entities." style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#546E7A" vertex="1" parent="1">
+          <mxGeometry x="56" y="48" width="900" height="18" as="geometry" />
         </mxCell>
-        <mxCell id="cls_user_body" value="- id : uuid&#10;- email, displayName&#10;- role : student | lecturer | admin&#10;- className, department&#10;- year, semester&#10;- photoURL, bio&#10;- points, streak : int&#10;- badges : string[]&#10;- createdAt&#10;&#10;+ register() / login()&#10;+ updateProfile()&#10;+ uploadAvatar()" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="115" y="172" width="295" height="230" as="geometry" />
+        <mxCell id="hdr_legend" value="Legend:   ◆——— composition     ◇——— aggregation     ——— association (with role)     - - -▸ uses / projection     [n..n] multiplicity     «entity» / «value» / «enumeration» stereotypes" style="text;html=1;align=right;verticalAlign=middle;fontSize=10;fontColor=#37474F" vertex="1" parent="1">
+          <mxGeometry x="1100" y="20" width="1860" height="58" as="geometry" />
         </mxCell>
 
-        <mxCell id="cls_course" value="Course" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3F2A6B;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="520" y="140" width="320" height="270" as="geometry" />
+        <!-- section grouping containers removed -->
+
+
+        <!-- ===== SECTION A ===== -->
+        <mxCell id="cA_auth" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;AuthUser&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;uid : string&#10;email : string&#10;displayName : string&#10;role : string" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="65" y="155" width="265" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="cls_course_body" value="- id, lecturerId&#10;- courseName, courseCode&#10;- semester, description&#10;- joinCode : string(6)&#10;- enrolledStudents : userId[]&#10;- createdAt&#10;&#10;+ join(code) / enrol(uid)&#10;+ index_for_rag()&#10;+ build_kg()" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="535" y="172" width="295" height="230" as="geometry" />
+        <mxCell id="cA_profile" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;UserProfile&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · email · displayName · role&#10;className · department&#10;year : int · semester : int&#10;photoURL · bio · coverPhotoURL&#10;points : int · streak : int&#10;badges : string[]&#10;followerCount · followingCount : int&#10;notificationPrefs : NotificationPrefs&#10;isFollowedByMe : bool?&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="350" y="155" width="265" height="225" as="geometry" />
+        </mxCell>
+        <mxCell id="cA_np" value="&lt;i&gt;«value»&lt;/i&gt;&lt;br&gt;&lt;b&gt;NotificationPrefs&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;newFollower : bool&#10;mapLike : bool&#10;mapComment : bool&#10;followedUserPosts : bool" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="350" y="405" width="265" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="cA_pp" value="&lt;i&gt;«projection»&lt;/i&gt;&lt;br&gt;&lt;b&gt;PublicProfile&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · displayName · photoURL&#10;coverPhotoURL · bio · role&#10;followerCount · followingCount&#10;isFollowedByMe : bool" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="65" y="280" width="265" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="cA_follow" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Follow&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;followerId : string&#10;followedId : string&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="65" y="410" width="265" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="cA_badge" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;BadgeDefinition&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · name · description&#10;icon · color&#10;conditionType : string&#10;conditionValue : int&#10;courseId : string?&#10;pointsReward : int" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="65" y="525" width="265" height="155" as="geometry" />
         </mxCell>
 
-        <mxCell id="cls_assign" value="Assignment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3F2A6B;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="940" y="140" width="320" height="270" as="geometry" />
+        <!-- ===== SECTION B ===== -->
+        <mxCell id="cB_course" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Course&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · lecturerId · lecturerName&#10;courseName · courseCode&#10;semester · year : int?&#10;academicSession · joinCode&#10;description · themeColor · pattern&#10;enrolledCount : int&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="685" y="155" width="280" height="170" as="geometry" />
         </mxCell>
-        <mxCell id="cls_assign_body" value="- id, lecturerId, courseId&#10;- title, description&#10;- deadline : iso8601&#10;- assignmentType : map | tutorial | file&#10;- allowedMapTypes : string[]&#10;&#10;+ create() / patch() / delete()&#10;+ aiGrade() — tutorial only" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="955" y="172" width="295" height="230" as="geometry" />
+        <mxCell id="cB_module" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Module&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · courseId&#10;title · description&#10;order : int&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1005" y="155" width="265" height="115" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_quiz" value="Quiz" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3F2A6B;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="1360" y="140" width="320" height="270" as="geometry" />
+        <mxCell id="cB_mi" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;ModuleItem&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · moduleId · title&#10;type : pdf|video|link|file&#10;url · filePath · fileType&#10;fileName · fileSize · embedUrl&#10;unlockDate : datetime?&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1005" y="305" width="265" height="155" as="geometry" />
         </mxCell>
-        <mxCell id="cls_quiz_body" value="- id, courseId, lecturerId&#10;- title, description&#10;- timeLimitMinutes, deadline&#10;- shuffleQuestions, showResults&#10;&#10;+ addQuestion()&#10;+ attempt(answers)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="1375" y="172" width="295" height="230" as="geometry" />
+        <mxCell id="cB_rp" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;ResourceProgress&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;userId · resourceId&#10;openedAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1310" y="155" width="265" height="80" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_qq" value="QuizQuestion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3F2A6B;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="1780" y="140" width="320" height="270" as="geometry" />
+        <mxCell id="cB_reminder" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Reminder / Task&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · ownerId · date&#10;title · type&#10;priority : low|normal|high&#10;isCompleted : bool" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1310" y="265" width="265" height="115" as="geometry" />
         </mxCell>
-        <mxCell id="cls_qq_body" value="- id, quizId, order&#10;- type : mcq | short | truefalse&#10;- text&#10;- options : string[]&#10;- correctAnswer, points" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="1795" y="172" width="295" height="230" as="geometry" />
-        </mxCell>
-
-        <mxCell id="cls_qa" value="QuizAttempt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#1F3A68;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="2200" y="140" width="320" height="270" as="geometry" />
-        </mxCell>
-        <mxCell id="cls_qa_body" value="- id, quizId, studentId&#10;- answers : map&lt;qid, value&gt;&#10;- score, totalPoints, percentage&#10;- startedAt, submittedAt" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="2215" y="172" width="295" height="230" as="geometry" />
+        <mxCell id="cB_cm" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;CourseMember&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;courseId · studentId&#10;joinedAt : datetime&#10;(enrolment record)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1310" y="415" width="265" height="95" as="geometry" />
         </mxCell>
 
-        <mxCell id="cls_map" value="Map (Mind Map)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#1F3A68;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="2620" y="140" width="320" height="270" as="geometry" />
+        <!-- ===== SECTION C ===== -->
+        <mxCell id="cC_map" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;MindMap&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · ownerId · ownerEmail · ownerName&#10;title&#10;graphData : JSON · graphFormat&#10;nodesText  (for RAG)&#10;thumbnail · shareCode&#10;collaborators : string[]&#10;visibility : MapVisibility&#10;likeCount · commentCount : int&#10;publishedAt? · lastModified" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1645" y="155" width="280" height="210" as="geometry" />
         </mxCell>
-        <mxCell id="cls_map_body" value="- id, ownerId, ownerEmail&#10;- title&#10;- graphData : JSON (ReactFlow)&#10;- graphFormat : 'reactflow'&#10;- nodesText (for RAG)&#10;- thumbnail, shareCode&#10;- collaborators : userId[]&#10;&#10;+ autoSave(5s) / export(PNG|PDF)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="2635" y="172" width="295" height="230" as="geometry" />
+        <mxCell id="cC_node" value="&lt;i&gt;«value»&lt;/i&gt;&lt;br&gt;&lt;b&gt;ReactFlowNode&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · type · label&#10;position : {x, y}&#10;data · style" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1955" y="155" width="255" height="110" as="geometry" />
         </mxCell>
-
-        <!-- =================== ROW 2: Submission · Rubric · CourseModule · ModuleItem · Discussion · Announcement · Reminder =================== -->
-        <mxCell id="cls_sub" value="Submission" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3F2A6B;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="940" y="520" width="320" height="240" as="geometry" />
+        <mxCell id="cC_edge" value="&lt;i&gt;«value»&lt;/i&gt;&lt;br&gt;&lt;b&gt;ReactFlowEdge&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · source · target&#10;type · animated&#10;label" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1955" y="295" width="255" height="105" as="geometry" />
         </mxCell>
-        <mxCell id="cls_sub_body" value="- id, assignmentId, studentId&#10;- submissionType : map | file | link&#10;- mapId? / filePath? / externalLink?&#10;- grade : float?, feedback&#10;- submittedAt&#10;&#10;+ submit()&#10;+ grade(score, feedback)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="955" y="552" width="295" height="200" as="geometry" />
+        <mxCell id="cC_like" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;MapLike&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;mapId · userId&#10;createdAt  (join doc)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1955" y="430" width="255" height="80" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_rub" value="Rubric" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3F2A6B;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="1360" y="520" width="320" height="240" as="geometry" />
+        <mxCell id="cC_comment" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;MapComment&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · mapId&#10;authorId · authorName&#10;text&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="2240" y="155" width="240" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="cls_rub_body" value="- id, assignmentId&#10;- criteria : Criterion[]&#10;   (name, description, maxPoints)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="1375" y="552" width="295" height="200" as="geometry" />
+        <mxCell id="cC_history" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;MapHistory&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · mapId&#10;userId · userName&#10;action · summary&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="2240" y="290" width="240" height="115" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_mod" value="CourseModule" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3F2A6B;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="100" y="520" width="320" height="240" as="geometry" />
-        </mxCell>
-        <mxCell id="cls_mod_body" value="- id, courseId, order&#10;- title, description&#10;- createdAt" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="115" y="552" width="295" height="200" as="geometry" />
+        <mxCell id="cC_vis" value="&lt;i&gt;«enumeration»&lt;/i&gt;&lt;br&gt;&lt;b&gt;MapVisibility&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;private&#10;unlisted&#10;public" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#FFF8E1;strokeColor=#E65100;align=left;verticalAlign=top;spacingLeft=10;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="2505" y="155" width="215" height="120" as="geometry" />
         </mxCell>
 
-        <mxCell id="cls_mi" value="ModuleItem" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3F2A6B;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="520" y="520" width="320" height="240" as="geometry" />
+        <!-- ===== SECTION D ===== -->
+        <mxCell id="cD_ann" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Announcement&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · courseId&#10;title · content&#10;senderId · senderName&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="65" y="720" width="275" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="cls_mi_body" value="- id, moduleId, title&#10;- type : pdf | video | link | file&#10;- url, filePath, fileType&#10;- unlockDate&#10;- createdAt" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="535" y="552" width="295" height="200" as="geometry" />
+        <mxCell id="cD_topic" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;DiscussionTopic&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · courseId&#10;title · description&#10;pinned : bool&#10;authorId · authorName&#10;replyCount · lastActivity" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="370" y="720" width="275" height="135" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_disc" value="Discussion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3F2A6B;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="1780" y="520" width="320" height="240" as="geometry" />
+        <mxCell id="cD_disc" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Discussion&lt;/b&gt;  (course chat)&lt;hr size=&quot;1&quot;&gt;id · courseId · text&#10;senderId · senderName · senderRole&#10;edited : bool · editedAt?&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="675" y="720" width="275" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="cls_disc_body" value="- id, courseId, senderId&#10;- text, senderRole&#10;- parentId?, replyCount&#10;- createdAt" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="1795" y="552" width="295" height="200" as="geometry" />
+        <mxCell id="cD_reply" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;DiscussionReply&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · parentId · courseId&#10;text&#10;senderId · senderName · senderRole&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="370" y="885" width="275" height="115" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_ann" value="Announcement" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#3F2A6B;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="2200" y="520" width="320" height="240" as="geometry" />
+        <mxCell id="cD_conv" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Conversation&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · participants : string[2]&#10;participantNames[] · participantRoles[]&#10;lastMessage · lastMessageAt&#10;unreadCount : int" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="985" y="720" width="285" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="cls_ann_body" value="- id, courseId, senderId&#10;- title, content&#10;- createdAt" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="2215" y="552" width="295" height="200" as="geometry" />
-        </mxCell>
-
-        <mxCell id="cls_rem" value="Reminder / Task" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#1F3A68;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="2620" y="520" width="320" height="240" as="geometry" />
-        </mxCell>
-        <mxCell id="cls_rem_body" value="- id, ownerId, date&#10;- title, type, priority&#10;- isCompleted : bool" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="2635" y="552" width="295" height="200" as="geometry" />
+        <mxCell id="cD_msg" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Message&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · conversationId&#10;senderId · senderName · text&#10;edited · deleted : bool&#10;readBy : string[]&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="985" y="880" width="285" height="130" as="geometry" />
         </mxCell>
 
-        <!-- =================== ROW 3: AI / KG / RAG entities =================== -->
-        <mxCell id="cls_aichat" value="AIChatHistory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#4C2F87;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="100" y="900" width="320" height="220" as="geometry" />
+        <!-- ===== SECTION G ===== -->
+        <mxCell id="cG_sess" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;CLPSessionDraft&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;sessionId · ownerId&#10;tarikh&#10;metadata : CLPUploadMetadata&#10;weeks : CLPWeekData[]&#10;kumpulanList : CLPGroupAttendance[]&#10;createdAt · updatedAt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1340" y="720" width="280" height="150" as="geometry" />
         </mxCell>
-        <mxCell id="cls_aichat_body" value="- id, userId&#10;- messages : ChatTurn[≤15]&#10;- createdAt, lastMessageAt" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="115" y="932" width="295" height="180" as="geometry" />
+        <mxCell id="cG_meta" value="&lt;i&gt;«value»&lt;/i&gt;&lt;br&gt;&lt;b&gt;CLPUploadMetadata&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;namaKursus · kodKursus&#10;semester · tahun · pensyarah&#10;jabatan · program · ambilan&#10;jumlahKredit&#10;kumpulanDiajar : string[]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1650" y="720" width="280" height="140" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_lp" value="LearningProfile" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#4C2F87;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="520" y="900" width="320" height="220" as="geometry" />
+        <mxCell id="cG_week" value="&lt;i&gt;«value»&lt;/i&gt;&lt;br&gt;&lt;b&gt;CLPWeekData&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;minggu : int · tarikh · topik&#10;jam · hpk · catatan&#10;hasilPembelajaran&#10;strategiAktiviti&#10;refleksi · refleksiTutorial&#10;refleksiEpembelajaran" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1960" y="720" width="280" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="cls_lp_body" value="- id, userId&#10;- learningStyle : visual | aud |&#10;        read | kin&#10;- strengths, weaknesses : string[]" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="535" y="932" width="295" height="180" as="geometry" />
+        <mxCell id="cG_grp" value="&lt;i&gt;«value»&lt;/i&gt;&lt;br&gt;&lt;b&gt;CLPGroupAttendance&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;nama : string&#10;jumlahPelajar : int&#10;kehadiran : int" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1650" y="885" width="280" height="95" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_aisp" value="AIStudyPlan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#4C2F87;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="940" y="900" width="320" height="220" as="geometry" />
-        </mxCell>
-        <mxCell id="cls_aisp_body" value="- id, userId, date&#10;- recommendations : Rec[]&#10;- weakTopics, motivationalMessage&#10;&#10;+ generate() (RAG + GAG)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="955" y="932" width="295" height="180" as="geometry" />
+        <mxCell id="cG_note" value="The CLP pipeline parses an uploaded syllabus PDF (Gemini) into a CLPSessionDraft; the lecturer edits week rows and group attendance, then the generator emits a formatted DOCX / ZIP Course Learning Plan. Field names are Malay — the document template is in Bahasa Melayu." style="text;html=1;align=left;whiteSpace=wrap;fontSize=9;fontStyle=2;fontColor=#546E7A" vertex="1" parent="1">
+          <mxGeometry x="1340" y="1005" width="900" height="80" as="geometry" />
         </mxCell>
 
-        <mxCell id="cls_aig" value="AIGradeRecommendation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#4C2F87;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="1360" y="900" width="320" height="220" as="geometry" />
+        <!-- ===== SECTION E ===== -->
+        <mxCell id="cE_assign" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Assignment&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · lecturerId · courseId&#10;title · description · deadline&#10;assignmentType : assignment|tutorial|project&#10;allowedMapTypes : string[]&#10;attachments : AttachmentItem[]&#10;availableFrom? · availableUntil?&#10;prerequisiteId? · minGrade?&#10;quizId? · peerReviewEnabled : bool&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="65" y="1125" width="295" height="215" as="geometry" />
         </mxCell>
-        <mxCell id="cls_aig_body" value="- id, submissionId&#10;- recommendedGrade : 0-100&#10;- criterionScores : map&#10;- justification, confidence&#10;- comparativeAnalysis (GAG)&#10;- improvementSuggestions[]&#10;&#10;+ recommend(submissionId)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="1375" y="932" width="295" height="180" as="geometry" />
+        <mxCell id="cE_sub" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Submission&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · assignmentId · studentId&#10;studentName&#10;submissionType : map|file|link&#10;mapId? · externalLink? · fileUrl?&#10;fileName? · comments&#10;grade : float? · feedback?&#10;submittedAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="430" y="1125" width="290" height="180" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_aip" value="AIPlagiarismReport" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#4C2F87;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="1780" y="900" width="320" height="220" as="geometry" />
+        <mxCell id="cE_quiz" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Quiz&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · courseId · lecturerId&#10;title · description&#10;timeLimitMinutes? · deadline?&#10;shuffleQuestions · showResults : bool&#10;questionCount · totalPoints&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="790" y="1125" width="290" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="cls_aip_body" value="- id, submissionId, assignmentId&#10;- plagiarismPercentage : float&#10;- sources : Source[]&#10;- summary, analyzedAt&#10;&#10;+ analyze() / networkAnalyse()" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="1795" y="932" width="295" height="180" as="geometry" />
+        <mxCell id="cE_question" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Question&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · quizId&#10;type : mcq|true_false|short_answer&#10;text · options : string[]&#10;correctAnswer · points : float" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1150" y="1125" width="290" height="120" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_mbm" value="AIMindmapBuddyMemory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#4C2F87;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="2200" y="900" width="320" height="220" as="geometry" />
+        <mxCell id="cE_attempt" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;QuizAttempt&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · quizId · studentId&#10;studentName&#10;answers : map&lt;qid, value&gt;&#10;score · totalPoints · percentage&#10;startedAt · submittedAt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1510" y="1125" width="290" height="145" as="geometry" />
         </mxCell>
-        <mxCell id="cls_mbm_body" value="- id, userId&#10;- messages : ChatTurn[]&#10;- preferences : map" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#4C2F87" vertex="1" parent="1">
-          <mxGeometry x="2215" y="932" width="295" height="180" as="geometry" />
+        <mxCell id="cE_rubric" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Rubric&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · assignmentId&#10;title&#10;criteria : RubricCriterion[]&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1870" y="1125" width="295" height="110" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_conv" value="Conversation + Message" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#1F3A68;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="2620" y="900" width="320" height="220" as="geometry" />
+        <mxCell id="cE_peer" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;PeerReview&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · submissionId&#10;reviewerId · reviewerName&#10;rating : 1-5 · comment&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="430" y="1380" width="290" height="115" as="geometry" />
         </mxCell>
-        <mxCell id="cls_conv_body" value="Conversation:&#10;- id, participants : userId[2]&#10;- lastMessage, lastMessageAt&#10;&#10;Message:&#10;- id, conversationId, senderId&#10;- text, readBy : userId[]" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="2635" y="932" width="295" height="180" as="geometry" />
+        <mxCell id="cE_rc" value="&lt;i&gt;«value»&lt;/i&gt;&lt;br&gt;&lt;b&gt;RubricCriterion&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;name : string&#10;description : string&#10;maxPoints : float" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1870" y="1380" width="295" height="95" as="geometry" />
         </mxCell>
-
-        <!-- =================== ROW 4: RAG / KG / governance =================== -->
-        <mxCell id="cls_rag" value="RAGIndexState" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#2E4A66;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="100" y="1280" width="320" height="240" as="geometry" />
+        <mxCell id="cE_cert" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Certificate&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · studentId · studentName&#10;courseId · courseName · courseCode&#10;lecturerName&#10;completionPercentage : float&#10;certificateNumber · issuedAt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="65" y="1380" width="295" height="140" as="geometry" />
         </mxCell>
-        <mxCell id="cls_rag_body" value="- docId, courseId&#10;- contentHash : sha256&#10;- lastIndexedAt, chunkCount&#10;- docType, title&#10;&#10;+ index() / retrieve() / remove()" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="115" y="1312" width="295" height="200" as="geometry" />
+        <mxCell id="cE_ge" value="&lt;i&gt;«value»&lt;/i&gt;&lt;br&gt;&lt;b&gt;GradebookEntry&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;itemType : assignment|quiz&#10;itemId · title&#10;grade? · totalPoints · percentage?&#10;feedback? · submittedAt?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="790" y="1380" width="290" height="125" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_kg" value="KnowledgeGraph" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#2E4A66;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="520" y="1280" width="320" height="240" as="geometry" />
+        <mxCell id="cE_cg" value="&lt;i&gt;«projection»&lt;/i&gt;&lt;br&gt;&lt;b&gt;CourseGradebook&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;courseId · courseName · courseCode&#10;entries : GradebookEntry[]&#10;average : float?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1150" y="1380" width="290" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="cls_kg_body" value="- courseId : PK&#10;- nodes : map&lt;id, Concept&gt;&#10;- edges : Edge[]&#10;- nodeCount, edgeCount&#10;&#10;+ build(courseId)&#10;+ queryRelated(concepts, depth)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="535" y="1312" width="295" height="200" as="geometry" />
+        <mxCell id="cE_cp" value="&lt;i&gt;«projection»&lt;/i&gt;&lt;br&gt;&lt;b&gt;CourseProgress&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;courseId · courseName · courseCode&#10;totalAssignments · submittedAssignments&#10;totalQuizzes · completedQuizzes&#10;totalResources · openedResources&#10;overallPercentage : float" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1510" y="1380" width="290" height="135" as="geometry" />
         </mxCell>
 
-        <mxCell id="cls_concept" value="«struct» Concept" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#4A6E8C;strokeWidth=2;align=left;verticalAlign=top;fontSize=12;fontStyle=2;fontColor=#2E4A66;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="940" y="1280" width="320" height="110" as="geometry" />
+        <!-- ===== SECTION F ===== -->
+        <mxCell id="cF_sess" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;AttendanceSession&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · courseId · date · title&#10;startTime? · endTime?&#10;qrToken? · createdAt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="65" y="1560" width="335" height="115" as="geometry" />
         </mxCell>
-        <mxCell id="cls_concept_body" value="- id, label, type&#10;- sources : docId[]&#10;- weight : int" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="955" y="1312" width="295" height="80" as="geometry" />
+        <mxCell id="cF_rec" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;AttendanceRecord&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;sessionId · studentId&#10;status : present|absent|late|excused&#10;scannedAt : datetime?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="425" y="1560" width="335" height="115" as="geometry" />
         </mxCell>
-        <mxCell id="cls_edge" value="«struct» Edge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF5;strokeColor=#4A6E8C;strokeWidth=2;align=left;verticalAlign=top;fontSize=12;fontStyle=2;fontColor=#2E4A66;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="940" y="1410" width="320" height="110" as="geometry" />
+        <mxCell id="cF_cal" value="&lt;i&gt;«projection»&lt;/i&gt;&lt;br&gt;&lt;b&gt;CalendarEvent&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · title · date · time? · location?&#10;type : assignment|quiz|reminder|&#10;        attendance|class|study_plan&#10;courseId? · isCompleted : bool" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="785" y="1560" width="335" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="cls_edge_body" value="- source, target : conceptId&#10;- relation : requires | part_of | …" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#2E4A66" vertex="1" parent="1">
-          <mxGeometry x="955" y="1442" width="295" height="80" as="geometry" />
+        <mxCell id="cF_refl" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Reflection&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · ownerId&#10;confidence : 1-5&#10;notes · weekLabel&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1145" y="1560" width="335" height="120" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_cfg" value="AIConfig (singleton 'global')" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#2D3748;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="1360" y="1280" width="320" height="240" as="geometry" />
+        <mxCell id="cF_home" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;HomepageContent&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · type : news|poster&#10;title · content · imageUrl&#10;order : int · visible : bool&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1505" y="1560" width="335" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="cls_cfg_body" value="- aiEnabled : bool&#10;- disabledFeatures : string[]&#10;- dailyTokenLimit : int&#10;&#10;features = (companion, mindmap_buddy,&#10;  study_materials, study_plan, grading,&#10;  plagiarism, import, images)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#2D3748" vertex="1" parent="1">
-          <mxGeometry x="1375" y="1312" width="295" height="200" as="geometry" />
+        <mxCell id="cF_an" value="&lt;i&gt;«projection»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Analytics&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;totalStudents · totalCourses&#10;avgSubmissionRate : float&#10;assignmentStats : list[map]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1865" y="1560" width="335" height="110" as="geometry" />
         </mxCell>
-
-        <mxCell id="cls_usage" value="AIDailyUsage / AIUsageSummary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0D6E2;strokeColor=#3D4A5C;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#2D3748;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="1780" y="1280" width="320" height="240" as="geometry" />
+        <mxCell id="cF_grp" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;CourseGroup&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · courseId&#10;name · description&#10;members : string[]&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="2225" y="1560" width="335" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="cls_usage_body" value="- userId_YYYY-MM-DD : PK&#10;- total_calls, total_tokens&#10;- {feature}_tokens (Increment)&#10;&#10;+ enforceQuota()&#10;     → 429 if exceeded" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#2D3748" vertex="1" parent="1">
-          <mxGeometry x="1795" y="1312" width="295" height="200" as="geometry" />
-        </mxCell>
-
-        <mxCell id="cls_att" value="Attendance Session + Record" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;align=left;verticalAlign=top;fontSize=12;fontStyle=1;fontColor=#3F2A6B;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="2200" y="1280" width="320" height="240" as="geometry" />
-        </mxCell>
-        <mxCell id="cls_att_body" value="Session:&#10;- id, courseId, date, title&#10;&#10;Record:&#10;- sessionId, studentId, status&#10;     (present | absent | excused)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#3F2A6B" vertex="1" parent="1">
-          <mxGeometry x="2215" y="1312" width="295" height="200" as="geometry" />
+        <mxCell id="cF_gt" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;GroupTask&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · courseId · title&#10;description · dueDate?&#10;groups : list[map]&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="2585" y="1560" width="335" height="120" as="geometry" />
         </mxCell>
 
-        <mxCell id="cls_peer" value="PeerReview" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#1F3A68;spacingLeft=10;spacingTop=10" vertex="1" parent="1">
-          <mxGeometry x="2620" y="1280" width="320" height="240" as="geometry" />
-        </mxCell>
-        <mxCell id="cls_peer_body" value="- id, submissionId, reviewerId&#10;- rating : 1-5, comment&#10;- createdAt" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#1F3A68" vertex="1" parent="1">
-          <mxGeometry x="2635" y="1312" width="295" height="200" as="geometry" />
-        </mxCell>
+        <!-- ===== RELATIONSHIPS ===== -->
+        <mxCell id="rA1" value="1   1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;strokeColor=#37474F;fontSize=9;exitX=1;exitY=0.4;entryX=0;entryY=0.3" edge="1" parent="1" source="cA_auth" target="cA_profile"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rA2" value="◆ 1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="cA_profile" target="cA_np"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rA3" value="projects" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;endFill=0;dashed=1;html=1;strokeColor=#607D8B;fontSize=9;exitX=0;exitY=0.75;entryX=1;entryY=0.5;" edge="1" parent="1" source="cA_profile" target="cA_pp"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rA4" value="follower / followed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;strokeColor=#37474F;fontSize=9;exitX=0;exitY=0.5;entryX=0;entryY=0.4" edge="1" parent="1" source="cA_auth" target="cA_follow"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="52" y="205" /><mxPoint x="52" y="446" /></Array></mxGeometry></mxCell>
 
-        <!-- ============= RELATIONSHIPS (orthogonal, routed through margins) ============= -->
-        <!-- Row 1 horizontal chains -->
-        <mxCell id="r_u_c" value="enrols *..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;endFill=0;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_user" target="cls_course"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="r_c_a" value="1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;endFill=0;startArrow=diamondThin;startFill=1;startSize=14;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_course" target="cls_assign"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="r_a_q" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;endFill=0;startArrow=diamondThin;startFill=1;startSize=14;strokeColor=#4A5568" edge="1" parent="1" source="cls_assign" target="cls_quiz"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="r_q_qq" value="1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;endFill=0;startArrow=diamondThin;startFill=1;startSize=14;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_quiz" target="cls_qq"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="r_qq_qa" value="1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;endFill=0;startArrow=diamondThin;startFill=1;startSize=14;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_qq" target="cls_qa"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rB1" value="◆ 1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=1;exitY=0.3;entryX=0;entryY=0.4" edge="1" parent="1" source="cB_course" target="cB_module"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rB2" value="◆ 1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="cB_module" target="cB_mi"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rB3" value="◆ 0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=1;exitY=0.7;entryX=0;entryY=0.5" edge="1" parent="1" source="cB_course" target="cB_cm"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="980" y="278" /><mxPoint x="980" y="462" /></Array></mxGeometry></mxCell>
 
-        <!-- User → Map  (across the page — routed via top bus at y=100) -->
-        <mxCell id="r_u_map" value="owns 1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=0;endArrow=open;endFill=0;startArrow=diamondThin;startFill=1;startSize=14;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_user" target="cls_map">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="260" y="110" />
-              <mxPoint x="2780" y="110" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
+        <mxCell id="rC1" value="◆ 0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=1;exitY=0.3;entryX=0;entryY=0.5" edge="1" parent="1" source="cC_map" target="cC_node"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rC2" value="◆ 0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=1;exitY=0.6;entryX=0;entryY=0.5" edge="1" parent="1" source="cC_map" target="cC_edge"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rC3" value="1   0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;strokeColor=#37474F;fontSize=9;exitX=1;exitY=0.6;entryX=0;entryY=0.5;" edge="1" parent="1" source="cC_map" target="cC_comment"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="2230" y="281" /><mxPoint x="2230" y="210" /></Array></mxGeometry></mxCell>
+        <mxCell id="rC4" value="1   0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;strokeColor=#37474F;fontSize=9;exitX=1;exitY=0.55;entryX=0;entryY=0.5;" edge="1" parent="1" source="cC_map" target="cC_history"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="2218" y="271" /><mxPoint x="2218" y="347" /></Array></mxGeometry></mxCell>
+        <mxCell id="rC5" value="1   0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;strokeColor=#37474F;fontSize=9;exitX=0.7;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="cC_map" target="cC_like"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1841" y="420" /><mxPoint x="2082" y="420" /></Array></mxGeometry></mxCell>
+        <mxCell id="rC6" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;endFill=0;dashed=1;html=1;strokeColor=#607D8B;fontSize=9;exitX=0.95;exitY=0;entryX=0.5;entryY=0;" edge="1" parent="1" source="cC_map" target="cC_vis"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1911" y="140" /><mxPoint x="2612" y="140" /></Array></mxGeometry></mxCell>
 
-        <!-- Row 1 ↔ Row 2 verticals -->
-        <mxCell id="r_a_s" value="1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=open;endFill=0;startArrow=diamondThin;startFill=1;startSize=14;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_assign" target="cls_sub"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="r_a_r" value="0..1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=1;entryX=0.5;entryY=0;endArrow=open;endFill=0;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_assign" target="cls_rub"><mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1164" y="460" />
-              <mxPoint x="1520" y="460" />
-            </Array>
-          </mxGeometry></mxCell>
+        <mxCell id="rD1" value="◆ 1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="cD_topic" target="cD_reply"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rD2" value="◆ 1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="cD_conv" target="cD_msg"><mxGeometry relative="1" as="geometry" /></mxCell>
 
-        <!-- Course → CourseModule  (route via left bus at x=80) -->
-        <mxCell id="r_c_m" value="1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;endArrow=open;endFill=0;startArrow=diamondThin;startFill=1;startSize=14;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_course" target="cls_mod">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="450" y="275" />
-              <mxPoint x="450" y="470" />
-              <mxPoint x="260" y="470" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="r_m_mi" value="1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;endFill=0;startArrow=diamondThin;startFill=1;startSize=14;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_mod" target="cls_mi"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rE1" value="◆ 1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=1;exitY=0.4;entryX=0;entryY=0.4" edge="1" parent="1" source="cE_assign" target="cE_sub"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rE2" value="1   0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;strokeColor=#37474F;fontSize=9;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="cE_sub" target="cE_peer"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rE3" value="1   0..1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;strokeColor=#37474F;fontSize=9;exitX=0.9;exitY=0;entryX=0.5;entryY=0;" edge="1" parent="1" source="cE_assign" target="cE_rubric"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="331" y="1105" /><mxPoint x="2017" y="1105" /></Array></mxGeometry></mxCell>
+        <mxCell id="rE4" value="◆ 1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="cE_rubric" target="cE_rc"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rE5" value="◆ 1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=1;exitY=0.4;entryX=0;entryY=0.4" edge="1" parent="1" source="cE_quiz" target="cE_question"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rE6" value="1   0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;strokeColor=#37474F;fontSize=9;exitX=1;exitY=0.7;entryX=0;entryY=0.4" edge="1" parent="1" source="cE_question" target="cE_attempt"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rE7" value="◆ *" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=0.5;exitY=0;entryX=0.5;entryY=1" edge="1" parent="1" source="cE_cg" target="cE_ge"><mxGeometry relative="1" as="geometry" /></mxCell>
 
-        <!-- Course → Discussion + Announcement -->
-        <mxCell id="r_c_disc" value="1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=1;entryX=0.5;entryY=0;endArrow=open;endFill=0;startArrow=diamondThin;startFill=1;startSize=14;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_course" target="cls_disc">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="900" y="450" />
-              <mxPoint x="1940" y="450" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="r_c_ann" value="1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.8;entryX=0.5;entryY=0;endArrow=open;endFill=0;startArrow=diamondThin;startFill=1;startSize=14;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_course" target="cls_ann">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="890" y="486" />
-              <mxPoint x="2360" y="486" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
+        <mxCell id="rF1" value="◆ 1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=1;exitY=0.5;entryX=0;entryY=0.5" edge="1" parent="1" source="cF_sess" target="cF_rec"><mxGeometry relative="1" as="geometry" /></mxCell>
 
-        <!-- User → Reminder -->
-        <mxCell id="r_u_rem" value="1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.8;entryX=0.5;entryY=0;endArrow=open;endFill=0;startArrow=diamondThin;startFill=1;startSize=14;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_user" target="cls_rem">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="460" y="356" />
-              <mxPoint x="2780" y="430" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
+        <mxCell id="rG1" value="◆ 1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=1;exitY=0.3;entryX=0;entryY=0.4" edge="1" parent="1" source="cG_sess" target="cG_meta"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="rG2" value="◆ 1..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=1;exitY=0.95;entryX=0;entryY=0.9;" edge="1" parent="1" source="cG_sess" target="cG_week"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1945" y="865" /></Array></mxGeometry></mxCell>
+        <mxCell id="rG3" value="◆ 0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=diamondThin;startFill=1;startSize=12;html=1;strokeColor=#37474F;fontSize=9;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="cG_meta" target="cG_grp"><mxGeometry relative="1" as="geometry" /></mxCell>
 
-        <!-- Row 2 → Row 3 verticals -->
-        <mxCell id="r_u_chat" value="0..1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.3;exitY=1;entryX=0.5;entryY=0;endArrow=open;endFill=0;strokeColor=#6B46C1;fontSize=10;fontColor=#4C2F87" edge="1" parent="1" source="cls_user" target="cls_aichat">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="196" y="450" />
-              <mxPoint x="196" y="870" />
-              <mxPoint x="260" y="870" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="r_u_lp" value="0..1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.6;exitY=1;entryX=0.5;entryY=0;endArrow=open;endFill=0;strokeColor=#6B46C1;fontSize=10;fontColor=#4C2F87" edge="1" parent="1" source="cls_user" target="cls_lp">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="292" y="430" />
-              <mxPoint x="680" y="430" />
-              <mxPoint x="680" y="870" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="r_u_sp" value="0..*/day" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.8;exitY=1;entryX=0.5;entryY=0;endArrow=open;endFill=0;strokeColor=#6B46C1;fontSize=10;fontColor=#4C2F87" edge="1" parent="1" source="cls_user" target="cls_aisp">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="356" y="425" />
-              <mxPoint x="1100" y="425" />
-              <mxPoint x="1100" y="870" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="r_s_g" value="0..1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0.5;entryY=0;endArrow=open;endFill=0;dashed=1;strokeColor=#6B46C1;fontSize=10;fontColor=#4C2F87" edge="1" parent="1" source="cls_sub" target="cls_aig">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1320" y="640" />
-              <mxPoint x="1520" y="640" />
-              <mxPoint x="1520" y="870" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="r_s_p" value="0..1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.7;entryX=0.5;entryY=0;endArrow=open;endFill=0;dashed=1;strokeColor=#6B46C1;fontSize=10;fontColor=#4C2F87" edge="1" parent="1" source="cls_sub" target="cls_aip">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1300" y="688" />
-              <mxPoint x="1940" y="688" />
-              <mxPoint x="1940" y="870" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="r_u_mbm" value="0..1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.9;entryX=0.5;entryY=0;endArrow=open;endFill=0;strokeColor=#6B46C1;fontSize=10;fontColor=#4C2F87" edge="1" parent="1" source="cls_user" target="cls_mbm">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="450" y="383" />
-              <mxPoint x="2360" y="383" />
-              <mxPoint x="2360" y="870" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="r_u_conv" value="participates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=1;entryX=0.5;entryY=0;endArrow=open;endFill=0;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_user" target="cls_conv">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="450" y="410" />
-              <mxPoint x="2780" y="410" />
-              <mxPoint x="2780" y="870" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <!-- Row 3 → Row 4 -->
-        <mxCell id="r_c_rag" value="1..* (indexed)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=1;entryX=0.5;entryY=0;endArrow=open;endFill=0;dashed=1;strokeColor=#4A6E8C;fontSize=10;fontColor=#2E4A66" edge="1" parent="1" source="cls_course" target="cls_rag">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="490" y="275" />
-              <mxPoint x="490" y="1240" />
-              <mxPoint x="260" y="1240" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="r_c_kg" value="0..1 (lazy)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=open;endFill=0;dashed=1;strokeColor=#4A6E8C;fontSize=10;fontColor=#2E4A66" edge="1" parent="1" source="cls_course" target="cls_kg">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="680" y="1240" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="r_kg_c" value="*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.3;entryX=0;entryY=0.5;endArrow=open;endFill=0;startArrow=diamondThin;startFill=1;startSize=14;strokeColor=#4A6E8C;fontSize=10;fontColor=#2E4A66" edge="1" parent="1" source="cls_kg" target="cls_concept"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="r_kg_e" value="*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.7;entryX=0;entryY=0.5;endArrow=open;endFill=0;startArrow=diamondThin;startFill=1;startSize=14;strokeColor=#4A6E8C;fontSize=10;fontColor=#2E4A66" edge="1" parent="1" source="cls_kg" target="cls_edge"><mxGeometry relative="1" as="geometry" /></mxCell>
-
-        <mxCell id="r_u_use" value="0..* / day" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;endArrow=open;endFill=0;dashed=1;strokeColor=#3D4A5C;fontSize=10;fontColor=#2D3748" edge="1" parent="1" source="cls_user" target="cls_usage">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="60" y="275" />
-              <mxPoint x="60" y="1240" />
-              <mxPoint x="1940" y="1240" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="r_a_att" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=1;entryX=0.5;entryY=0;endArrow=open;endFill=0;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_course" target="cls_att">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="870" y="430" />
-              <mxPoint x="2360" y="430" />
-              <mxPoint x="2360" y="1240" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="r_s_peer" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.9;entryX=0.5;entryY=0;endArrow=open;endFill=0;strokeColor=#4A5568;fontSize=10;fontColor=#3D4A5C" edge="1" parent="1" source="cls_sub" target="cls_peer">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1300" y="736" />
-              <mxPoint x="2780" y="736" />
-              <mxPoint x="2780" y="1240" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="note_cfg" value="AIConfig.aiEnabled and disabledFeatures are&#10;checked by ai_service._enforce_ai_gate() before&#10;every Gemini call (503).&#10;AIDailyUsage enforces 50 K-token/day quota (429)." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=11;fontColor=#3D4A5C;align=left;spacingLeft=10;spacingTop=8" vertex="1" parent="1">
-          <mxGeometry x="100" y="1560" width="800" height="110" as="geometry" />
-        </mxCell>
-
-        <!-- Legend -->
-        <mxCell id="legend" value="Legend" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;align=left;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#3D4A5C;spacingLeft=12;spacingTop=8" vertex="1" parent="1">
-          <mxGeometry x="1000" y="1560" width="1940" height="200" as="geometry" />
-        </mxCell>
-        <mxCell id="lg_legend" value="Blue — Student-side entity        Plum — Course / Lecturer entity        Violet — AI feature entity        Slate — RAG / KG infrastructure        Gray — Admin / governance        Light slate — embedded value object&#10;◆—— = composition (filled diamond)        ── = simple association        dashed = optional / lazy creation by AI subsystem&#10;All edges use orthogonal routing with explicit waypoints — they pass through horizontal &quot;buses&quot; in the gaps between rows / columns and never cross a class box." style="text;html=1;align=left;fontSize=12;fontColor=#3D4A5C;spacingLeft=16;spacingTop=36" vertex="1" parent="1">
-          <mxGeometry x="1010" y="1580" width="1920" height="170" as="geometry" />
-        </mxCell>
+        <!-- cross-section -->
+        <mxCell id="rX1" value="1   0..*  posts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;strokeColor=#90A4AE;fontSize=9;fontColor=#546E7A;exitX=0.1;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="cB_course" target="cD_ann"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="743" y="700" /><mxPoint x="202" y="700" /></Array></mxGeometry></mxCell>
+        <mxCell id="rX2" value="1   0..*  has" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;strokeColor=#90A4AE;fontSize=9;fontColor=#546E7A;exitX=0.9;exitY=1;entryX=0.3;entryY=0;" edge="1" parent="1" source="cB_course" target="cE_assign"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="967" y="1095" /><mxPoint x="153" y="1095" /></Array></mxGeometry></mxCell>
+        <mxCell id="rX3" value="1   0..*  owns" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;strokeColor=#90A4AE;fontSize=9;fontColor=#546E7A;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" edge="1" parent="1" source="cA_profile" target="cC_map"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="482" y="135" /><mxPoint x="1785" y="135" /></Array></mxGeometry></mxCell>
 
       </root>
     </mxGraphModel>

@@ -1,0 +1,178 @@
+{
+  "started": "2026-05-22T19:56:17.350572",
+  "course_id": "34bfbdb4-f5ec-4e4f-bde2-4b62e87c552c",
+  "generators_tested": 4,
+  "results": [
+    {
+      "feature": "study_plan",
+      "elapsed_seconds": 107.87,
+      "result_keys": [
+        "daily_schedule_summary",
+        "motivational_message",
+        "recommendations"
+      ],
+      "checks": [
+        {
+          "name": "dict_returned",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "recommendations_present",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "recommendations_non_empty",
+          "ok": true,
+          "detail": "3 items"
+        }
+      ],
+      "sample": {
+        "course": "Psikologi Perkembangan",
+        "topic": "Teori Erikson (Peringkat Psikososial)",
+        "priority": "high",
+        "suggested_time": "09:00-10:30",
+        "reason": "Your recent quiz score of 55% in Psikologi Perkembangan indicates a weak understanding of core theories. Specifically, Teori Erikson is an identified weak area and is directly relevant to your 'Tugasan refleksi peringkat psikososial' due on May 25th. Addressing this now is crucial for improving your understanding and preparing for the assignment.",
+        "estimated_time": "1 hour 30 mins",
+        "difficulty_rating": 4,
+        "resource_links": [
+          {
+            "index": 1,
+            "title": "Sejarah dan perkembangan Bahasa Melayu \u2014 daripada Bahasa Melayu Kuno hingga Baha",
+            "doc_type": "lecture_note",
+            "doc_id": "ipg_topic_05",
+            "course_id": "34bfbdb4-f5ec-4e4f-bde2-4b62e87c552c",
+            "score": 0.531
+          },
+          {
+            "index": 2,
+            "title": "Fonetik dan fonologi Bahasa Melayu \u2014 bunyi vokal, konsonan, diftong, suku kata",
+            "doc_type": "lecture_note",
+            "doc_id": "ipg_topic_01",
+            "course_id": "34bfbdb4-f5ec-4e4f-bde2-4b62e87c552c",
+            "score": 0.512
+          }
+        ],
+        "suggested_activities": [
+          "Review your lecture notes and textbook chapters on Teori Erikson's stages of psychosocial development.",
+          "Create a summary table for each stage, noting the age range, psychosocial crisis, and virtue.",
+          "Think of real-life examples for each stage to solidify your understanding.",
+          "Refer to your Psikologi Perkembangan course materials for detailed information."
+        ]
+      }
+    },
+    {
+      "feature": "grading_report",
+      "elapsed_seconds": 22.21,
+      "result_keys": [
+        "comparative_analysis",
+        "confidence",
+        "criterion_scores",
+        "improvement_suggestions",
+        "justification",
+        "recommended_grade"
+      ],
+      "checks": [
+        {
+          "name": "dict_returned",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "recommended_grade_present",
+          "ok": true,
+          "detail": "value=60.0"
+        },
+        {
+          "name": "grade_in_range",
+          "ok": true,
+          "detail": "value=60.0"
+        },
+        {
+          "name": "justification_non_empty",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "route": null
+    },
+    {
+      "feature": "graph_suggestions",
+      "elapsed_seconds": 28.24,
+      "result_keys": [
+        "related_concepts_graph",
+        "suggestions"
+      ],
+      "checks": [
+        {
+          "name": "dict_returned",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "suggestions_present",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "suggestions_non_empty",
+          "ok": true,
+          "detail": "7 items"
+        },
+        {
+          "name": "first_has_label",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "sample": {
+        "label": "Konsep Asas Piaget",
+        "description": "Node ini memperkenalkan konsep-konsep fundamental dalam teori Piaget seperti skema, asimilasi, akomodasi, dan ekuilibrasi yang menjelaskan bagaimana individu membina pemahaman mereka tentang dunia.",
+        "parent_label": "Teori Piaget",
+        "source": {
+          "title": "Knowledge Graph",
+          "doc_id": "KG_Piaget_CoreConcepts",
+          "doc_type": "knowledge_graph_entry"
+        },
+        "graph_connections": [
+          "Skema",
+          "Asimilasi",
+          "Akomodasi",
+          "Ekuilibrasi"
+        ]
+      }
+    },
+    {
+      "feature": "plagiarism_network",
+      "elapsed_seconds": 12.23,
+      "result_keys": [
+        "flagged_clusters",
+        "network_graph",
+        "summary"
+      ],
+      "checks": [
+        {
+          "name": "dict_returned",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "flagged_clusters_present",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "network_graph_attached",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "summary_non_empty",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    }
+  ]
+}

@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # Same env-tunable constants as the legacy path
 import os
 
-_FETCH_RATIO = int(os.getenv("RAG_FETCH_RATIO", "4"))
+_FETCH_RATIO = int(os.getenv("RAG_FETCH_RATIO", "6"))
 _HYDE_ENABLED = os.getenv("RAG_HYDE_ENABLED", "1") == "1"
 _HYDE_MIN_TOKENS = int(os.getenv("RAG_HYDE_MIN_TOKENS", "3"))
 _MULTISTEP_ENABLED = os.getenv("RAG_MULTISTEP_ENABLED", "1") == "1"
@@ -122,7 +122,7 @@ def _retrieve_sync(
 async def retrieve(
     query: str,
     course_ids: list[str],
-    top_k: int = 5,
+    top_k: int = 8,
     doc_types: list[str] | None = None,
     rerank: bool = True,
     query_embedding: list[float] | None = None,  # accepted for signature parity
@@ -162,7 +162,7 @@ async def _hyde_query(query: str) -> str:
 async def retrieve_multistep(
     query: str,
     course_ids: list[str],
-    top_k: int = 5,
+    top_k: int = 8,
     doc_types: list[str] | None = None,
 ) -> tuple[list[dict], list[str]]:
     """Multi-step retrieval — LangChain implementation.

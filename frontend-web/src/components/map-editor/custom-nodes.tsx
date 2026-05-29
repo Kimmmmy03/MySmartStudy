@@ -381,8 +381,11 @@ export const ShapeNode = memo(({ data, selected, id }: NodeProps) => {
     filter: shadow
       ? "drop-shadow(0 4px 12px rgba(0,0,0,0.4))"
       : undefined,
-    width: defaults.w,
-    height: defaults.h,
+    // Fill the React Flow node wrapper (sized via node.style by NodeResizer).
+    // The wrapper always has an explicit width/height (set on node creation /
+    // backfilled on load), so 100% resolves correctly and the shape resizes.
+    width: "100%",
+    height: "100%",
   };
 
   const handleDoubleClick = useCallback(
@@ -459,8 +462,8 @@ export const ShapeNode = memo(({ data, selected, id }: NodeProps) => {
         <>
           <svg
             className="absolute inset-0"
-            width={w}
-            height={h}
+            width="100%"
+            height="100%"
             viewBox={`0 0 ${w} ${h}`}
             preserveAspectRatio="none"
           >

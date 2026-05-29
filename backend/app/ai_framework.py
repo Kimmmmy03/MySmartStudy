@@ -125,7 +125,12 @@ def get_cross_encoder():
     try:
         from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 
-        from .rag_service import RERANKER_MODEL
+        from .rag_service import RERANKER_MODEL, reranking_allowed
+
+        # Same memory guard as the legacy path — refuse the ~2.2GB model load on
+        # a small instance rather than letting the worker get OOM-killed.
+        if not reranking_allowed():
+            return None
 
         _cross_encoder = HuggingFaceCrossEncoder(model_name=RERANKER_MODEL)
         logger.info("Framework cross-encoder loaded: %s", RERANKER_MODEL)

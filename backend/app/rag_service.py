@@ -20,7 +20,8 @@ from .firestore import db
 logger = logging.getLogger(__name__)
 
 # ── Cross-encoder reranker (Phase 1) ──
-# Lazy-loaded singleton. CPU-friendly MiniLM model (~80MB).
+# Lazy-loaded singleton. Re-ranking is an OPTIONAL quality enhancement — when
+# unavailable, retrieval gracefully falls back to embedding-similarity ordering.
 _reranker = None
 _reranker_failed_at: float | None = None
 _RERANKER_RETRY_SECS = 3600  # retry after 1 hour cooldown
@@ -33,6 +34,81 @@ RERANKER_MODEL = os.getenv(
     "BAAI/bge-reranker-v2-m3",
 )
 
+# Memory guard ────────────────────────────────────────────────────────────────
+# The default reranker (BAAI/bge-reranker-v2-m3 — an XLM-RoBERTa-large) needs
+# ~2.5GB RAM to load. On a small serverless instance (512MB–1GB, e.g. Cloud Run
+# defaults) that load is OOM-killed by the OS mid-request — a SIGKILL we cannot
+# catch — taking the whole worker down and breaking EVERY RAG-backed AI feature
+# (study guide, companion, mindmap buddy, study materials, grading). To avoid
+# that we refuse to even attempt the load unless there is enough free memory,
+# degrading to embedding-similarity ordering instead. Locally (where /proc is
+# absent or memory is ample) full reranking still runs.
+_RERANK_ENABLED = os.getenv("RAG_RERANK_ENABLED", "1").strip().lower() not in ("0", "false", "no")
+# Free memory (MB) required before attempting to load the cross-encoder.
+# Sized for the ~2.2GB default model + torch/runtime overhead.
+_RERANK_MIN_AVAIL_MB = int(os.getenv("RAG_RERANK_MIN_AVAIL_MB", "3000"))
+_rerank_disabled_logged = False
+
+
+def _available_memory_mb() -> float | None:
+    """Best-effort free system memory in MB; None when it can't be determined.
+
+    Prefers the container's cgroup limit (accurate on Cloud Run / k8s), then
+    falls back to host /proc/meminfo. Returns None on platforms without these
+    (e.g. Windows dev) so reranking is never blocked locally.
+    """
+    # cgroup v2, then v1 — reflects the container's actual memory budget.
+    try:
+        for cur_path, max_path in (
+            ("/sys/fs/cgroup/memory.current", "/sys/fs/cgroup/memory.max"),
+            ("/sys/fs/cgroup/memory/memory.usage_in_bytes",
+             "/sys/fs/cgroup/memory/memory.limit_in_bytes"),
+        ):
+            if os.path.exists(cur_path) and os.path.exists(max_path):
+                with open(max_path) as f:
+                    raw = f.read().strip()
+                if raw and raw != "max":
+                    limit = int(raw)
+                    if 0 < limit < (1 << 62):  # ignore "unlimited" sentinels
+                        with open(cur_path) as f:
+                            used = int(f.read().strip())
+                        return max(0.0, (limit - used) / 1024 / 1024)
+    except Exception:
+        pass
+    # Host-level fallback.
+    try:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                if line.startswith("MemAvailable:"):
+                    return int(line.split()[1]) / 1024  # kB → MB
+    except Exception:
+        pass
+    return None
+
+
+def reranking_allowed() -> bool:
+    """Whether it is safe to load/use the cross-encoder reranker in this process.
+
+    Shared by the legacy (``_get_reranker``) and framework
+    (``ai_framework.get_cross_encoder``) paths so both degrade identically on
+    memory-constrained instances.
+    """
+    global _rerank_disabled_logged
+    if not _RERANK_ENABLED:
+        return False
+    avail = _available_memory_mb()
+    if avail is not None and avail < _RERANK_MIN_AVAIL_MB:
+        if not _rerank_disabled_logged:
+            logger.warning(
+                "Reranker disabled: %.0fMB free < %dMB required for %s. "
+                "RAG will use embedding-similarity ordering. Set a smaller "
+                "RAG_RERANKER_MODEL or raise instance memory to enable it.",
+                avail, _RERANK_MIN_AVAIL_MB, RERANKER_MODEL,
+            )
+            _rerank_disabled_logged = True
+        return False
+    return True
+
 
 def _get_reranker():
     """Load cross-encoder once. Returns None if unavailable — caller should degrade gracefully.
@@ -44,6 +120,9 @@ def _get_reranker():
     global _reranker, _reranker_failed_at
     if _reranker is not None:
         return _reranker
+    # Refuse to load on memory-constrained instances — see _RERANK_MIN_AVAIL_MB.
+    if not reranking_allowed():
+        return None
     if _reranker_failed_at is not None:
         if time.monotonic() - _reranker_failed_at < _RERANKER_RETRY_SECS:
             return None  # still in cooldown
@@ -142,33 +221,63 @@ async def embed_texts(texts: list[str]) -> list[list[float]]:
 
 # ── Text chunking ──
 
-def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]:
+def chunk_text(text: str, chunk_size: int = 220, overlap: int = 30) -> list[str]:
     """Split text into token-approximate chunks with overlap.
 
-    Uses ~1.3 words per token heuristic. A chunk_size of 500 tokens ≈ 650 words.
+    Recursive splitter that respects natural breaks (paragraphs → sentences →
+    words) instead of cutting mid-sentence. Uses ~1.3 words per token heuristic.
+
+    Tuned defaults (smaller chunks + smaller overlap) significantly improve
+    RAG Context Precision and Answer Relevancy — see docs/RAG_EVAL_NOTES.md.
     """
     if not text or not text.strip():
         return []
 
-    words = text.split()
     words_per_chunk = int(chunk_size * 1.3)
     overlap_words = int(overlap * 1.3)
 
-    if len(words) <= words_per_chunk:
-        return [text.strip()]
+    # Split on natural separators in order of preference; if a piece is still
+    # too big, split it again with the next finer separator.
+    def _split(t: str, separators: list[str]) -> list[str]:
+        if not separators:
+            # final fallback: word-level sliding window with overlap
+            words = t.split()
+            if len(words) <= words_per_chunk:
+                return [t.strip()] if t.strip() else []
+            out = []
+            start = 0
+            while start < len(words):
+                end = start + words_per_chunk
+                piece = " ".join(words[start:end]).strip()
+                if piece:
+                    out.append(piece)
+                start = end - overlap_words
+                if start >= len(words):
+                    break
+            return out
 
-    chunks = []
-    start = 0
-    while start < len(words):
-        end = start + words_per_chunk
-        chunk = " ".join(words[start:end])
-        if chunk.strip():
-            chunks.append(chunk.strip())
-        start = end - overlap_words
-        if start >= len(words):
-            break
+        sep, rest = separators[0], separators[1:]
+        parts = [p for p in t.split(sep) if p.strip()]
+        chunks_out: list[str] = []
+        buf = ""
+        for part in parts:
+            candidate = (buf + sep + part).strip() if buf else part.strip()
+            if len(candidate.split()) <= words_per_chunk:
+                buf = candidate
+            else:
+                if buf:
+                    chunks_out.append(buf)
+                # part itself may still be too big — recurse on finer sep
+                if len(part.split()) > words_per_chunk:
+                    chunks_out.extend(_split(part, rest))
+                    buf = ""
+                else:
+                    buf = part.strip()
+        if buf:
+            chunks_out.append(buf)
+        return chunks_out
 
-    return chunks
+    return _split(text.strip(), ["\n\n", "\n", ". ", " "])
 
 
 def _content_hash(text: str) -> str:
@@ -215,8 +324,14 @@ async def index_document(
     if not chunks:
         return
 
-    # Embed all chunks
-    embeddings = await embed_texts(chunks)
+    # Prefix each chunk with a [Title — Type] header before embedding so the
+    # semantic vector carries document-level context. The raw chunk text is
+    # still stored verbatim in the document for downstream answer generation.
+    header = f"[{title}{' — ' + doc_type if doc_type else ''}]"
+    chunks_for_embedding = [f"{header} {c}" for c in chunks]
+
+    # Embed all chunks (with header)
+    embeddings = await embed_texts(chunks_for_embedding)
 
     # Prepare IDs and metadata
     collection = _get_collection(course_id)
@@ -230,6 +345,14 @@ async def index_document(
         logger.warning("Failed to remove old chunks for %s: %s", doc_id, e)
 
     chunk_ids = [f"{doc_id}_chunk_{i}" for i in range(len(chunks))]
+    # Per-document extra metadata (e.g. section/week/topic) propagates into
+    # every chunk so filtering and provenance work downstream. Only flat
+    # scalar values are accepted — ChromaDB rejects nested objects.
+    extra: dict = {}
+    if metadata:
+        for k, v in metadata.items():
+            if isinstance(v, (str, int, float, bool)):
+                extra[k] = v
     chunk_metas = [
         {
             "doc_id": doc_id,
@@ -238,6 +361,7 @@ async def index_document(
             "course_id": course_id,
             "chunk_index": i,
             "total_chunks": len(chunks),
+            **extra,
         }
         for i in range(len(chunks))
     ]
@@ -492,7 +616,7 @@ async def remove_document(course_id: str, doc_id: str):
 async def retrieve(
     query: str,
     course_ids: list[str],
-    top_k: int = 5,
+    top_k: int = 8,
     doc_types: Optional[list[str]] = None,
     rerank: bool = True,
     query_embedding: Optional[list[float]] = None,
@@ -519,7 +643,9 @@ async def retrieve(
 
     if query_embedding is None:
         query_embedding = (await embed_texts([query]))[0]
-    fetch_ratio = int(os.getenv("RAG_FETCH_RATIO", "4"))
+    # Over-fetch more candidates before the cross-encoder rerank: more
+    # candidates → reranker has a wider pool → better Context Precision.
+    fetch_ratio = int(os.getenv("RAG_FETCH_RATIO", "6"))
     fetch_k = top_k * fetch_ratio if rerank else top_k
 
     all_results = []

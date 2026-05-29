@@ -227,6 +227,14 @@ html.light select.glass-input option {
   z-index: 10;
 }
 
+/* Drag-to-swap: subtle ring on the node under the cursor while a shape is
+   being dragged from the palette. Tells the user "drop here to swap". */
+.swap-target-ring {
+  outline: 2px dashed rgba(99, 102, 241, 0.7);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
 /* Pulse ring */
 @keyframes pulse-ring {
   0% { box-shadow: 0 0 0 0 rgba(27, 42, 128, 0.4); }

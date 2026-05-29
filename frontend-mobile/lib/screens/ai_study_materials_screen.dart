@@ -121,12 +121,12 @@ class _AiStudyMaterialsScreenState extends State<AiStudyMaterialsScreen> {
 
     Widget screen;
     if (type == 'flashcards') {
-      screen = AiFlashcardViewer(title: title, cards: _parseList(content));
+      screen = AiFlashcardViewer(title: title, cards: _parseList(content), material: m);
     } else if (type == 'quiz') {
-      screen = AiPracticeQuizScreen(title: title, questions: _parseList(content));
+      screen = AiPracticeQuizScreen(title: title, questions: _parseList(content), material: m);
     } else {
       // summary / mindmap / default → plain text
-      screen = AiSummaryViewer(title: title, content: content?.toString() ?? '');
+      screen = AiSummaryViewer(title: title, content: content?.toString() ?? '', material: m);
     }
     Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
   }

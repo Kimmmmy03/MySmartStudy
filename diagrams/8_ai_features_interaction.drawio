@@ -135,6 +135,28 @@
         <mxCell id="a_disp_L" value="legacy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#2C5282;strokeWidth=2;fontSize=11;fontColor=#1F3A68" edge="1" parent="1" source="dispatch" target="L_panel"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="670" y="265" /></Array></mxGeometry></mxCell>
         <mxCell id="a_disp_F" value="framework" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0.5;entryY=0;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2;fontSize=11;fontColor=#4C2F87" edge="1" parent="1" source="dispatch" target="F_panel"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="2050" y="265" /></Array></mxGeometry></mxCell>
 
+        <!-- ============================================================ -->
+        <!-- MAY 2026 — SmartBuddy three-tier source pipeline             -->
+        <!-- ============================================================ -->
+        <mxCell id="tier_header" value="May 2026 update — SmartBuddy chat (/ai/mindmap-buddy/chat) + AI Study Materials by topic (/ai/study-materials/generate-by-topic) now branch through a three-tier source pipeline.&#10;Tier is decided per-request and exposed in the response as evidence_level + sources[] + suggested_actions[]." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE8CC;strokeColor=#B45309;strokeWidth=2;align=left;verticalAlign=top;fontSize=12;spacingLeft=14;spacingTop=10;fontStyle=1;fontColor=#7C3A09" vertex="1" parent="1">
+          <mxGeometry x="40" y="1230" width="2720" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="tier_course" value="🎓  Tier 1 — Course RAG&#10;rag_multistep.retrieve_multistep over the student's enrolled courses.&#10;Chunks with cosine score ≥ 0.40 → strong_course.&#10;Sources: {tier:'course', title, doc_type, course_id, doc_id, score}.&#10;Cache: aiNodeRecsCache 24h." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D4EDDA;strokeColor=#2C7A4B;strokeWidth=2;align=left;verticalAlign=top;fontSize=11;spacingLeft=12;spacingTop=8;fontColor=#1E5232" vertex="1" parent="1">
+          <mxGeometry x="40" y="1310" width="900" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="tier_online" value="📰  Tier 2 — OpenAlex (NEW · external_lookup.py)&#10;Only when course tier weak AND _is_study_question(msg) AND topic extracted via _extract_topic.&#10;GET https://api.openalex.org/works?search={topic}&amp;filter=from_publication_date:{today-6y},type:journal-article|book|book-chapter|review-article|proceedings-article|report&amp;mailto={env OPENALEX_MAILTO}.&#10;Per-process LRU 1h.  verify_citation() enforces the 6-y window defensively." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D6E4F0;strokeColor=#2C5282;strokeWidth=2;align=left;verticalAlign=top;fontSize=11;spacingLeft=12;spacingTop=8;fontColor=#1A365D" vertex="1" parent="1">
+          <mxGeometry x="950" y="1310" width="910" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="tier_gk" value="🤖  Tier 3 — Gemini general knowledge&#10;Only when both above tiers are empty.&#10;Prompt now FORBIDS inline citations / [Source N] / Author(Year).&#10;Defensive re.sub strips any stragglers before the response is returned.&#10;Sources: [] (empty by design).  Banner tells the student to verify." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCEFD8;strokeColor=#9C6A1F;strokeWidth=2;align=left;verticalAlign=top;fontSize=11;spacingLeft=12;spacingTop=8;fontColor=#5C3E10" vertex="1" parent="1">
+          <mxGeometry x="1870" y="1310" width="890" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="cta_box" value="💡  suggested_actions[] (chat response) → frontend CTA chips&#10;{ type: 'flashcards' | 'summary' | 'quiz', topic, evidence_tier, course_id? }&#10;Click → POST /ai/study-materials/generate-by-topic with the same evidence_tier.&#10;The new material is persisted to generatedStudyMaterials with evidenceTier, provenanceBanner, citations[].  The viewers render a tier-coloured banner at the top." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;align=left;verticalAlign=top;fontSize=11;spacingLeft=12;spacingTop=8;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="40" y="1490" width="2720" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="dash_strip" value="Style guard: chat prompt forbids em/en dashes (— –), and the handler runs response.replace('—', ', ').replace('–', '-') belt-and-braces.  Frontend renders buddy messages with react-markdown (web) / flutter_markdown (mobile)." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=12;spacingTop=6;fontStyle=2;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="40" y="1625" width="2720" height="50" as="geometry" />
+        </mxCell>
+
       </root>
     </mxGraphModel>
   </diagram>

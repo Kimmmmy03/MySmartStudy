@@ -1,0 +1,409 @@
+{
+  "started": "2026-05-22T05:35:54.228703",
+  "elapsed_seconds": 169.0,
+  "total": 40,
+  "passed": 20,
+  "failed": 20,
+  "results": [
+    {
+      "role": "student",
+      "page": "dashboard",
+      "url": "http://localhost:3000/student/dashboard",
+      "final_path": "/student/dashboard",
+      "status": "PASS",
+      "ok": true,
+      "note": "62 elements rendered",
+      "screenshot": "screenshots/student_dashboard.png"
+    },
+    {
+      "role": "student",
+      "page": "my-maps",
+      "url": "http://localhost:3000/student/my-maps",
+      "final_path": "/student/my-maps",
+      "status": "PASS",
+      "ok": true,
+      "note": "52 elements rendered",
+      "screenshot": "screenshots/student_my-maps.png"
+    },
+    {
+      "role": "student",
+      "page": "create-map",
+      "url": "http://localhost:3000/student/create-map",
+      "final_path": "/student/create-map",
+      "status": "PASS",
+      "ok": true,
+      "note": "93 elements rendered",
+      "screenshot": "screenshots/student_create-map.png"
+    },
+    {
+      "role": "student",
+      "page": "courses",
+      "url": "http://localhost:3000/student/courses",
+      "final_path": "/student/courses",
+      "status": "PASS",
+      "ok": true,
+      "note": "58 elements rendered",
+      "screenshot": "screenshots/student_courses.png"
+    },
+    {
+      "role": "student",
+      "page": "grades",
+      "url": "http://localhost:3000/student/grades",
+      "final_path": "/student/grades",
+      "status": "PASS",
+      "ok": true,
+      "note": "30 elements rendered",
+      "screenshot": "screenshots/student_grades.png"
+    },
+    {
+      "role": "student",
+      "page": "gradebook",
+      "url": "http://localhost:3000/student/gradebook",
+      "final_path": "/student/gradebook",
+      "status": "PASS",
+      "ok": true,
+      "note": "30 elements rendered",
+      "screenshot": "screenshots/student_gradebook.png"
+    },
+    {
+      "role": "student",
+      "page": "planner",
+      "url": "http://localhost:3000/student/planner",
+      "final_path": "/student/planner",
+      "status": "PASS",
+      "ok": true,
+      "note": "66 elements rendered",
+      "screenshot": "screenshots/student_planner.png"
+    },
+    {
+      "role": "student",
+      "page": "calendar",
+      "url": "http://localhost:3000/student/calendar",
+      "final_path": "/student/planner",
+      "status": "PASS",
+      "ok": true,
+      "note": "66 elements rendered",
+      "screenshot": "screenshots/student_calendar.png"
+    },
+    {
+      "role": "student",
+      "page": "messages",
+      "url": "http://localhost:3000/student/messages",
+      "final_path": "/student/messages",
+      "status": "PASS",
+      "ok": true,
+      "note": "36 elements rendered",
+      "screenshot": "screenshots/student_messages.png"
+    },
+    {
+      "role": "student",
+      "page": "achievements",
+      "url": "http://localhost:3000/student/achievements",
+      "final_path": "/student/achievements",
+      "status": "PASS",
+      "ok": true,
+      "note": "41 elements rendered",
+      "screenshot": "screenshots/student_achievements.png"
+    },
+    {
+      "role": "student",
+      "page": "activity",
+      "url": "http://localhost:3000/student/activity",
+      "final_path": "/student/activity",
+      "status": "PASS",
+      "ok": true,
+      "note": "33 elements rendered",
+      "screenshot": "screenshots/student_activity.png"
+    },
+    {
+      "role": "student",
+      "page": "notifications",
+      "url": "http://localhost:3000/student/notifications",
+      "final_path": "/student/notifications",
+      "status": "PASS",
+      "ok": true,
+      "note": "82 elements rendered",
+      "screenshot": "screenshots/student_notifications.png"
+    },
+    {
+      "role": "student",
+      "page": "study-materials",
+      "url": "http://localhost:3000/student/study-materials",
+      "final_path": "/student/study-materials",
+      "status": "PASS",
+      "ok": true,
+      "note": "53 elements rendered",
+      "screenshot": "screenshots/student_study-materials.png"
+    },
+    {
+      "role": "student",
+      "page": "study-guide",
+      "url": "http://localhost:3000/student/study-guide",
+      "final_path": "/student/study-guide",
+      "status": "PASS",
+      "ok": true,
+      "note": "34 elements rendered",
+      "screenshot": "screenshots/student_study-guide.png"
+    },
+    {
+      "role": "student",
+      "page": "exam-planner",
+      "url": "http://localhost:3000/student/exam-planner",
+      "final_path": "/student/exam-planner",
+      "status": "PASS",
+      "ok": true,
+      "note": "36 elements rendered",
+      "screenshot": "screenshots/student_exam-planner.png"
+    },
+    {
+      "role": "student",
+      "page": "explore",
+      "url": "http://localhost:3000/student/explore",
+      "final_path": "/student/explore",
+      "status": "PASS",
+      "ok": true,
+      "note": "36 elements rendered",
+      "screenshot": "screenshots/student_explore.png"
+    },
+    {
+      "role": "student",
+      "page": "feed",
+      "url": "http://localhost:3000/student/feed",
+      "final_path": "/student/feed",
+      "status": "PASS",
+      "ok": true,
+      "note": "32 elements rendered",
+      "screenshot": "screenshots/student_feed.png"
+    },
+    {
+      "role": "student",
+      "page": "certificates",
+      "url": "http://localhost:3000/student/certificates",
+      "final_path": "/student/certificates",
+      "status": "PASS",
+      "ok": true,
+      "note": "30 elements rendered",
+      "screenshot": "screenshots/student_certificates.png"
+    },
+    {
+      "role": "student",
+      "page": "attendance",
+      "url": "http://localhost:3000/student/attendance",
+      "final_path": "/student/attendance",
+      "status": "PASS",
+      "ok": true,
+      "note": "31 elements rendered",
+      "screenshot": "screenshots/student_attendance.png"
+    },
+    {
+      "role": "student",
+      "page": "profile",
+      "url": "http://localhost:3000/student/profile",
+      "final_path": "/student/profile",
+      "status": "PASS",
+      "ok": true,
+      "note": "52 elements rendered",
+      "screenshot": "screenshots/student_profile.png"
+    },
+    {
+      "role": "lecturer",
+      "page": "dashboard",
+      "url": "http://localhost:3000/lecturer/dashboard",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "lecturer",
+      "page": "class-management",
+      "url": "http://localhost:3000/lecturer/class-management",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "lecturer",
+      "page": "review-maps",
+      "url": "http://localhost:3000/lecturer/review-maps",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "lecturer",
+      "page": "analytics",
+      "url": "http://localhost:3000/lecturer/analytics",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "lecturer",
+      "page": "manage-badges",
+      "url": "http://localhost:3000/lecturer/manage-badges",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "lecturer",
+      "page": "messages",
+      "url": "http://localhost:3000/lecturer/messages",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "lecturer",
+      "page": "notifications",
+      "url": "http://localhost:3000/lecturer/notifications",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "lecturer",
+      "page": "planner",
+      "url": "http://localhost:3000/lecturer/planner",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "lecturer",
+      "page": "learning-plan",
+      "url": "http://localhost:3000/lecturer/learning-plan",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "lecturer",
+      "page": "profile",
+      "url": "http://localhost:3000/lecturer/profile",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "admin",
+      "page": "dashboard",
+      "url": "http://localhost:3000/admin/dashboard",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "admin",
+      "page": "users",
+      "url": "http://localhost:3000/admin/users",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "admin",
+      "page": "ai-settings",
+      "url": "http://localhost:3000/admin/ai-settings",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "admin",
+      "page": "ai-usage",
+      "url": "http://localhost:3000/admin/ai-usage",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "admin",
+      "page": "usage-analytics",
+      "url": "http://localhost:3000/admin/usage-analytics",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "admin",
+      "page": "audit-logs",
+      "url": "http://localhost:3000/admin/audit-logs",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "admin",
+      "page": "announcements",
+      "url": "http://localhost:3000/admin/announcements",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "admin",
+      "page": "email-settings",
+      "url": "http://localhost:3000/admin/email-settings",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "admin",
+      "page": "homepage-editor",
+      "url": "http://localhost:3000/admin/homepage-editor",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    },
+    {
+      "role": "admin",
+      "page": "manage-badges",
+      "url": "http://localhost:3000/admin/manage-badges",
+      "final_path": "",
+      "status": "BLOCKED",
+      "ok": false,
+      "note": "login failed",
+      "screenshot": ""
+    }
+  ]
+}

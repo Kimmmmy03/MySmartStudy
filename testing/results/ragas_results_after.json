@@ -1,0 +1,268 @@
+{
+  "started": "2026-05-22T16:40:43.708068",
+  "elapsed_seconds": 504.2,
+  "model_judge": "gemini-2.5-flash",
+  "embed_model": "models/gemini-embedding-001",
+  "num_samples": 10,
+  "aggregate_scores": {
+    "faithfulness": 1.0,
+    "answer_relevancy": 0.7439,
+    "context_precision": 0.97,
+    "context_recall": 0.9,
+    "answer_correctness": 0.8012
+  },
+  "per_sample": [
+    {
+      "course": "Psikologi Perkembangan Kanak-kanak dan Remaja",
+      "question": "For the Tutorial Activity in Topic 2, identify the central debate topic and state which factor (heredity or environment) each of the two teams (Government and Opposition) argues is more dominant.",
+      "num_contexts": 5,
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8236,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 0.9987
+    },
+    {
+      "course": "Psikologi Perkembangan Kanak-kanak dan Remaja",
+      "question": "Based on the provided course material, identify the four key aspects that will be considered or evaluated for the e-Pembelajaran activity, as outlined in the 'ULASAN AKTIVITI ePEMBELAJARAN' section.",
+      "num_contexts": 5,
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8917,
+      "context_precision": 0.7,
+      "context_recall": 1.0,
+      "answer_correctness": 0.8405
+    },
+    {
+      "course": "Pengantar Linguistik Melayu",
+      "question": "According to the text, what is fonologi the study of?",
+      "num_contexts": 5,
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.786,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 0.9774
+    },
+    {
+      "course": "Rangkaian Komputer",
+      "question": "What bit length is stated for an IPv4 address in the provided material?",
+      "num_contexts": 5,
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7327,
+      "context_precision": 1.0,
+      "context_recall": 0.5,
+      "answer_correctness": 0.5926
+    },
+    {
+      "course": "Kalkulus I",
+      "question": "What is the derivative of f(x) = x^3?",
+      "num_contexts": 5,
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7418,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 0.5363
+    },
+    {
+      "course": "Kalkulus I",
+      "question": "What specific question did Muhammad Hafiz and Nurul Aisyah both ask?",
+      "num_contexts": 5,
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8572,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 0.8855
+    },
+    {
+      "course": "Kimia Organik",
+      "question": "How many steps are involved in an SN2 reaction?",
+      "num_contexts": 5,
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8098,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 0.6091
+    },
+    {
+      "course": "Struktur Data & Algoritma",
+      "question": "According to the text, what specific requirement does Tan Mei Ling inquire about for the assignment?",
+      "num_contexts": 5,
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8942,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 0.8374
+    },
+    {
+      "course": "Struktur Data & Algoritma",
+      "question": "Menurut teks ini, prinsip apakah yang digunakan oleh Stack?",
+      "num_contexts": 5,
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.9019,
+      "context_precision": 1.0,
+      "context_recall": 0.5,
+      "answer_correctness": 0.994
+    },
+    {
+      "course": "Pengaturcaraan Python",
+      "question": "Based on the provided quiz question and options, what is the keyword for defining a function in Python?",
+      "num_contexts": 5,
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 0.7404
+    }
+  ],
+  "samples_detail": [
+    {
+      "course": "Psikologi Perkembangan Kanak-kanak dan Remaja",
+      "course_id": "c5a4cd2d-34d7-4db0-97a7-7e782bdbf23e",
+      "user_input": "For the Tutorial Activity in Topic 2, identify the central debate topic and state which factor (heredity or environment) each of the two teams (Government and Opposition) argues is more dominant.",
+      "response": "For the Tutorial Activity in Topic 2, the central debate topic is \"Heredity or Environment: The Main Factor in Individual Formation?\". The Government team argues that heredity is more dominant, while the Opposition team argues that environment is more dominant.",
+      "retrieved_contexts": [
+        "Topik 2 - Pertumbuhan dan Perkembangan (PAKK 1)\nTopik 2: Pertumbuhan dan Perkembangan. Konsep pertumbuhan dan perkembangan. Prinsip-prinsip asas pertumbuhan dan perkembangan. Faktor baka dan persekitaran yang mempengaruhi pertumbuhan dan perkembangan (Perspektif Sains, Perspektif Islam (Al-Ghazali)). Implikasi pertumbuhan dan perkembangan terhadap pengajaran dan pembelajaran. Model Reka Bentuk Pembelajaran: Pemanfaatan Digital (Canva), Rakan Pembelajaran (Kolaboratif bersama rakan pelajar & pensyarah), Persekitaran Pembelajaran (Pelajar berkolaboratif dalam kumpulan), Amalan Pedagogi (Pensyarah sebagai penggerak). Aktiviti Kuliah / Tutorial / e-Pembelajaran (Minggu 2: 25-29 Ogos 2025, 29 Ogos 2025 (Jumaat), 2.00-5.00 petang). ARAHAN AKTIVITI KULIAH: Secara berkumpulan banding bezakan pertumbuhan dan perkembangan daripada aspek jasmani, emosi, rohani, intelek dan sosial dalam bentuk pengurusan grafik yang menarik. ARAHAN AKTIVITI TUTORIAL: Tajuk: Baka atau Persekitaran: Faktor Utama Pembentukan Individu? Pasukan Kerajaan berhujah baka lebih dominan. Pasukan Pembangkang berhujah persekitaran lebih dominan. Tugas: Hasilkan infografik berdasarkan dapatan debat (ringkasan hujah pihak Kerajaan dan Pembangkang).",
+        "Topik 2 - Pertumbuhan dan Perkembangan (PK 2)\nTopik 2: Pertumbuhan dan Perkembangan. Konsep pertumbuhan dan perkembangan. Prinsip-prinsip asas pertumbuhan dan perkembangan. Faktor baka dan persekitaran yang mempengaruhi pertumbuhan dan perkembangan (Perspektif Sains, Perspektif Islam (Al-Ghazali)). Implikasi pertumbuhan dan perkembangan terhadap pengajaran dan pembelajaran. Model Reka Bentuk Pembelajaran: Pemanfaatan Digital (Canva), Rakan Pembelajaran (Kolaboratif bersama rakan pelajar & pensyarah), Persekitaran Pembelajaran (Pelajar berkolaboratif dalam kumpulan), Amalan Pedagogi (Pensyarah sebagai penggerak). Aktiviti Kuliah / Tutorial / e-Pembelajaran (Minggu 2: 25-29 Ogos 2025, 29 Ogos 2025 (Jumaat), 2.00-5.00 petang). ARAHAN AKTIVITI KULIAH: Secara berkumpulan banding bezakan pertumbuhan dan perkembangan daripada aspek jasmani, emosi, rohani, intelek dan sosial dalam bentuk pengurusan grafik yang menarik. ARAHAN AKTIVITI TUTORIAL: Tajuk: Baka atau Persekitaran: Faktor Utama Pembentukan Individu? Pasukan Kerajaan berhujah baka lebih dominan. Pasukan Pembangkang berhujah persekitaran lebih dominan. Tugas: Hasilkan infografik berdasarkan dapatan debat (ringkasan hujah pihak Kerajaan dan Pembangkang).",
+        "Topik 2 - Pertumbuhan dan Perkembangan (PK 1)\nTopik 2: Pertumbuhan dan Perkembangan. Konsep pertumbuhan dan perkembangan. Prinsip-prinsip asas pertumbuhan dan perkembangan. Faktor baka dan persekitaran yang mempengaruhi pertumbuhan dan perkembangan (Perspektif Sains, Perspektif Islam (Al-Ghazali)). Implikasi pertumbuhan dan perkembangan terhadap pengajaran dan pembelajaran. Model Reka Bentuk Pembelajaran: Pemanfaatan Digital (Canva), Rakan Pembelajaran (Kolaboratif bersama rakan pelajar & pensyarah), Persekitaran Pembelajaran (Pelajar berkolaboratif dalam kumpulan), Amalan Pedagogi (Pensyarah sebagai penggerak). Aktiviti Kuliah / Tutorial / e-Pembelajaran (Minggu 2: 25-29 Ogos 2025, 27 Ogos 2025 (Rabu), 9.00 pagi - 12.00 tengah hari). ARAHAN AKTIVITI KULIAH: Secara berkumpulan banding bezakan pertumbuhan dan perkembangan daripada aspek jasmani, emosi, rohani, intelek dan sosial dalam bentuk pengurusan grafik yang menarik. ARAHAN AKTIVITI TUTORIAL: Tajuk: Baka atau Persekitaran: Faktor Utama Pembentukan Individu? Pasukan Kerajaan berhujah baka lebih dominan. Pasukan Pembangkang berhujah persekitaran lebih dominan. Tugas: Hasilkan infografik berdasarkan dapatan debat (ringkasan hujah pihak Kerajaan dan Pembangkang).",
+        "Tajuk: Baka atau Persekitaran: Faktor Utama Pembentukan Individu? Hasilkan infografik berdasarkan dapatan debat (ringkasan hujah pihak Kerajaan dan Pembangkang).",
+        "Topik 3 - Teori dan Peringkat Perkembangan Fizikal (PK 2)\nTopik 3: Teori dan Peringkat Perkembangan Fizikal. Teori Kematangan Arnold Gessel. Teori Tugas Perkembangan Robert Havighurst. Implikasi teori terhadap pengajaran dan pembelajaran. Model Reka Bentuk Pembelajaran: Pemanfaatan Digital (Canva), Rakan Pembelajaran (Kolaboratif bersama rakan pelajar & pensyarah), Persekitaran Pembelajaran (Pelajar berkolaboratif dalam kumpulan), Amalan Pedagogi (Pensyarah sebagai penggerak). Aktiviti Kuliah / Tutorial / e-Pembelajaran (Minggu 3: 1-5 September 2025, 3 September 2025 (Rabu), 8.00 pagi - 11.00 pagi). ARAHAN AKTIVITI KULIAH: Jawab soalan kuiz di platform Quizizz dan tangkap layar mengikut kumpulan. ARAHAN AKTIVITI TUTORIAL: Gallery Walk. Berdasarkan situasi yang diberikan, bincangkan dalam kumpulan dan hasilkan infografik. ARAHAN AKTIVITI ePEMBELAJARAN: Dalam kumpulan, bincangkan teori perkembangan fizikal (Arnold Gesell atau Robert Havighurst) dan pilih satu dapatan penting untuk dikaitkan dengan implikasi PdP. Rakam video refleksi berdurasi 3\u20135 minit. Hasil rakaman perlu dihantar melalui platform e-pembelajaran (google site), dan setiap kumpulan wajib menonton sekurang-kurangnya satu video kumpulan lain serta memberikan komen ringkas. ULASAN AKTIVITI ePEMBELAJARAN: Kefahaman teori, kaitan dengan PdP, persembahan video, interaksi reflektif."
+      ],
+      "reference": "For the Tutorial Activity in Topic 2, the central debate topic is \"Heredity or Environment: The Main Factor in Individual Formation?\". The Government team argues that heredity is more dominant in shaping an individual. Conversely, the Opposition team contends that environment is the more dominant factor.",
+      "num_contexts": 5
+    },
+    {
+      "course": "Psikologi Perkembangan Kanak-kanak dan Remaja",
+      "course_id": "c5a4cd2d-34d7-4db0-97a7-7e782bdbf23e",
+      "user_input": "Based on the provided course material, identify the four key aspects that will be considered or evaluated for the e-Pembelajaran activity, as outlined in the 'ULASAN AKTIVITI ePEMBELAJARAN' section.",
+      "response": "Based on the 'ULASAN AKTIVITI ePEMBELAJARAN' section for Topik 3, the four key aspects that will be considered or evaluated for the e-Pembelajaran activity are: Kefahaman teori (understanding of theory), kaitan dengan PdP (connection to teaching and learning), persembahan video (video presentation), and interaksi reflektif (reflective interaction). These aspects guide the evaluation of the video reflection activity.",
+      "retrieved_contexts": [
+        "Topik 3 - Teori dan Peringkat Perkembangan Fizikal (PK 2)\nTopik 3: Teori dan Peringkat Perkembangan Fizikal. Teori Kematangan Arnold Gessel. Teori Tugas Perkembangan Robert Havighurst. Implikasi teori terhadap pengajaran dan pembelajaran. Model Reka Bentuk Pembelajaran: Pemanfaatan Digital (Canva), Rakan Pembelajaran (Kolaboratif bersama rakan pelajar & pensyarah), Persekitaran Pembelajaran (Pelajar berkolaboratif dalam kumpulan), Amalan Pedagogi (Pensyarah sebagai penggerak). Aktiviti Kuliah / Tutorial / e-Pembelajaran (Minggu 3: 1-5 September 2025, 3 September 2025 (Rabu), 8.00 pagi - 11.00 pagi). ARAHAN AKTIVITI KULIAH: Jawab soalan kuiz di platform Quizizz dan tangkap layar mengikut kumpulan. ARAHAN AKTIVITI TUTORIAL: Gallery Walk. Berdasarkan situasi yang diberikan, bincangkan dalam kumpulan dan hasilkan infografik. ARAHAN AKTIVITI ePEMBELAJARAN: Dalam kumpulan, bincangkan teori perkembangan fizikal (Arnold Gesell atau Robert Havighurst) dan pilih satu dapatan penting untuk dikaitkan dengan implikasi PdP. Rakam video refleksi berdurasi 3\u20135 minit. Hasil rakaman perlu dihantar melalui platform e-pembelajaran (google site), dan setiap kumpulan wajib menonton sekurang-kurangnya satu video kumpulan lain serta memberikan komen ringkas. ULASAN AKTIVITI ePEMBELAJARAN: Kefahaman teori, kaitan dengan PdP, persembahan video, interaksi reflektif.",
+        "Topik 5: Teori dan Perkembangan Sosioemosi. Teori Kecerdasan Emosi Daniel Goleman. Teori Perkembangan Psikososial Erik Erikson. Implikasi teori terhadap pengajaran dan pembelajaran. Model Reka Bentuk Pembelajaran: Pemanfaatan Digital (Canva), Rakan Pembelajaran (Kolaboratif bersama rakan pelajar & pensyarah), Persekitaran Pembelajaran (Pelajar berkolaboratif dalam kumpulan), Amalan Pedagogi (Pensyarah sebagai penggerak). Aktiviti Kuliah / Tutorial / e-Pembelajaran (Minggu 6: 22-26 Sept 2025, GANTI 30 Sept 2025 (Selasa), 2.00 petang-5.00 petang). ARAHAN AKTIVITI KULIAH: Kenali emosi diri. ARAHAN AKTIVITI TUTORIAL: GALLERY WALK. ARAHAN AKTIVITI KULIAH (Minggu 7): Berapa persen guru. Kad Situasi. Berdasarkan kad situasi, dalam kumpulan: Tentukan peringkat Erikson yang sesuai. Nyatakan krisis utama dan kebajikan yang terlibat. Berikan justifikasi ringkas. ARAHAN AKTIVITI ePEMBELAJARAN: Layari portal jurnal/pangkalan data akademik atau sumber pendidikan yang sahih. Cari sekurang-kurangnya satu artikel ilmiah atau bahan akademik yang membincangkan Teori Perkembangan Psikososial Erik Erikson. Muat naik rumusan dalam google site mengikut kumpulan masing-masing. ULASAN AKTIVITI ePEMBELAJARAN: Ulasan artikel baik berdasarkan tajuk yang telah diberikan. Aktiviti Tutorial (Minggu 8: 6-10 Oktober 2025, 10 Oktober 2025 (Rabu), 9.00 pagi - 12.00 tengah hari). Arahan Umum: Anda akan dibahagikan kepada 5 kumpulan. Setiap kumpulan akan menerima satu situasi kes ringkas yang berkaitan dengan cabaran sosioemosi murid di bilik darjah. Tugasan anda ialah menganalisis kes tersebut menggunakan dua teori utama: Teori Sosioemosi Daniel Goleman (Kecerdasan Emosi) dan Teori Perkembangan Psikososial Erik Erikson. Langkah Tugasan: Baca dan fahami kes kumpulan anda. Bincangkan bersama ahli kumpulan bagi menjawab soalan berikut: Apakah yang berlaku dari sudut sosioemosi menurut teori Goleman? Apakah yang berlaku dari sudut perkembangan psikososial menurut teori Erikson? Rumuskan hasil perbincangan anda dalam bentuk catatan minit mesyuarat. Sediakan pembentangan ringkas \u2192 Strategi Tindakan Guru. Analisis Teori (Goleman & Erikson) akan dikongsikan bersama kumpulan lain.",
+        "Topik 4 - Teori dan Perkembangan Kognitif (PK 1)\nTopik 4: Teori dan Perkembangan Kognitif. Teori Perkembangan Kognitif Jean Piaget. Teori Perkembangan Kognitif Lev Vygotsky. Implikasi teori terhadap pengajaran dan pembelajaran. Model Reka Bentuk Pembelajaran: Pemanfaatan Digital (Canva), Rakan Pembelajaran (Kolaboratif bersama rakan pelajar & pensyarah), Persekitaran Pembelajaran (Pelajar berkolaboratif dalam kumpulan), Amalan Pedagogi (Pensyarah sebagai penggerak). Aktiviti Kuliah / Tutorial / e-Pembelajaran (Minggu 4: 8-12 Sept 2025, 10 Sept 2025, 10.00 pagi - 1.00 tengah hari). ARAHAN AKTIVITI KULIAH: Aktiviti Kumpulan: \u201cStesen Piaget\u201d. Bentangkan contoh aktiviti pembelajaran/tingkah laku yang tipikal pada peringkat tersebut. Kaitkan dengan implikasi dalam pengajaran dan pembelajaran. ARAHAN AKTIVITI ePEMBELAJARAN: Akses satu artikel atau bahan penulisan berkaitan Teori Perkembangan Kognitif (Jean Piaget). Rumuskan idea-idea penting dengan memfokuskan kepada empat tahap perkembangan kognitif dan implikasinya terhadap pengajaran dan pembelajaran. Kongsikan bahan rumusan anda pada ruang link bahan yang disediakan. ARAHAN AKTIVITI KULIAH (Minggu 5): Padlet implikasi teori Vygotsky. ARAHAN AKTIVITI TUTORIAL: Setiap kumpulan pilih satu faktor sosial budaya dan bincangkan kesannya kepada perkembangan kanak-kanak. Hasilkan poster digital dan muat naik di dalam google site, Bentangkan di dalam kumpulan. ARAHAN AKTIVITI E PEMBELAJARAN: Carian Bahan Ilmiah. Setiap kumpulan perlu mencari sekurang-kurangnya satu jurnal akademik yang membincangkan Teori Peringkat Perkembangan Kognitif Lev Vygotsky. Rumuskan isi utama jurnal dengan bahasa sendiri. Sertakan contoh aplikasi teori dalam bilik darjah. Hasilkan peta minda menggunakan Coggle.",
+        "Topik 4 - Teori dan Peringkat Perkembangan Kognitif (PK 2)\nTopik 4: Teori dan Peringkat Perkembangan Kognitif. Teori Perkembangan Kognitif Jean Piaget. Teori Perkembangan Kognitif Lev Vygotsky. Implikasi teori terhadap pengajaran dan pembelajaran. Model Reka Bentuk Pembelajaran: Pemanfaatan Digital (Canva), Rakan Pembelajaran (Kolaboratif bersama rakan pelajar & pensyarah), Persekitaran Pembelajaran (Pelajar berkolaboratif dalam kumpulan), Amalan Pedagogi (Pensyarah sebagai penggerak). Aktiviti Kuliah / Tutorial / e-Pembelajaran (Minggu 4: 8-12 September 2025, 8 September 2025 (Isnin), 9.00 pagi). ARAHAN AKTIVITI KULIAH: Aktiviti \u201cReka Situasi PdP\u201d. Rancang satu aktiviti PdP ringkas bagi kanak-kanak berumur 6 hingga 11 tahun dengan mengambil kira salah satu teori (Piaget/Vygotsky). ARAHAN AKTIVITI E PEM: Akses satu artikel atau bahan penulisan berkaitan Teori Perkembangan Kognitif (Jean Piaget). Rumuskan idea-idea penting dengan memfokuskan kepada empat tahap perkembangan kognitif dan implikasinya terhadap pengajaran dan pembelajaran. Kongsikan bahan rumusan anda pada ruang link bahan yang disediakan. ARAHAN AKTIVITI KULIAH (Minggu 5): Padlet Implikasi Teori Vygotsky terhadap PdP. ARAHAN AKTIVITI TUTORIAL: Setiap kumpulan pilih satu faktor sosial budaya dan bincangkan kesannya kepada perkembangan kanak-kanak. Hasilkan poster digital dan muat naik di dalam google site, Bentangkan di dalam kumpulan. ARAHAN AKTIVITI KULIAH (Minggu 6): Gallery Walk. Mengenalpasti cabaran dan implikasi bagi Teori Jean Piaget & Teori Vygotsky. ARAHAN AKTIVITI E PEMBELAJARAN: Carian Bahan Ilmiah. Setiap kumpulan perlu mencari sekurang-kurangnya satu jurnal akademik yang membincangkan Teori Peringkat Perkembangan Kognitif Lev Vygotsky. Rumuskan isi utama jurnal dengan bahasa sendiri. Sertakan contoh aplikasi teori dalam bilik darjah. Hasilkan peta minda menggunakan Coggle.",
+        "Topik 3 - Teori dan Peringkat Perkembangan Fizikal (PK 1)\nTopik 3: Teori dan Peringkat Perkembangan Fizikal. Teori Kematangan Arnold Gessel. Teori Tugas Perkembangan Robert Havighurst. Implikasi teori terhadap pengajaran dan pembelajaran. Model Reka Bentuk Pembelajaran: Pemanfaatan Digital (Canva), Rakan Pembelajaran (Kolaboratif bersama rakan pelajar & pensyarah), Persekitaran Pembelajaran (Pelajar berkolaboratif dalam kumpulan), Amalan Pedagogi (Pensyarah sebagai penggerak). Aktiviti Kuliah / Tutorial / e-Pembelajaran (Minggu 3: 1-5 September 2025, 3 September 2026, 9.00 pagi - 1.00 tengah hari). ARAHAN AKTIVITI KULIAH: Jawab soalan kuiz dan tangkap layar mengikut kumpulan. ARAHAN AKTIVITI TUTORIAL: Gallery Walk. Berdasarkan situasi yang diberikan, bincangkan dalam kumpulan dan hasilkan infografik. ARAHAN AKTIVITI ePEMBELAJARAN: Dalam kumpulan, bincangkan teori perkembangan fizikal (Arnold Gesell atau Robert Havighurst) dan pilih satu dapatan penting untuk dikaitkan dengan implikasi PdP. Rakam video refleksi berdurasi 3\u20135 minit. Hasil rakaman perlu dihantar melalui platform e-pembelajaran (google site), dan setiap kumpulan wajib menonton sekurang-kurangnya satu video kumpulan lain serta memberikan komen ringkas."
+      ],
+      "reference": "Based on the 'ULASAN AKTIVITI ePEMBELAJAN' section, four key aspects will be considered or evaluated for the e-Pembelajaran activity. These aspects include the understanding of theory (Kefahaman teori) and its connection to teaching and learning (kaitan dengan PdP). Additionally, the video presentation (persembahan video) and reflective interaction (interaksi reflektif) will be evaluated.",
+      "num_contexts": 5
+    },
+    {
+      "course": "Pengantar Linguistik Melayu",
+      "course_id": "34bfbdb4-f5ec-4e4f-bde2-4b62e87c552c",
+      "user_input": "According to the text, what is fonologi the study of?",
+      "response": "Menurut teks, fonologi ialah kajian tentang sistem bunyi bahasa.",
+      "retrieved_contexts": [
+        "Quiz: Kuiz: Pengantar Linguistik Melayu\nQ: Kata ganti nama diri pertama ialah: Options: dia, mereka, saya, kamu\nQ: Berikan contoh kata majmuk dalam Bahasa Melayu.\nQ: Apakah jenis imbuhan dalam kata 'membaca'? Options: Imbuhan awalan, Imbuhan akhiran, Imbuhan apitan, Imbuhan sisipan\nQ: Fonologi ialah kajian tentang sistem bunyi bahasa.\nQ: Ayat pasif menggunakan kata kerja berimbuhan di-.",
+        "Tutorial 1: Fonetik dan Fonologi BM\nTranskripsi fonetik bagi 15 perkataan Bahasa Melayu. Kenal pasti vokal, konsonan, dan diftong.",
+        "Pengumuman: Pengantar Linguistik Melayu\nPeringatan: Hantar tugasan analisis morfologi sebelum tarikh akhir.",
+        "Tugasan 1: Analisis Morfologi Kata Kerja\nAnalisis 20 kata kerja Bahasa Melayu dari aspek imbuhan awalan, akhiran, dan apitan. Sertakan contoh ayat bagi setiap kata kerja.",
+        "Pengumuman: Pengantar Linguistik Melayu\nKelas ganti minggu depan di Dewan Kuliah A."
+      ],
+      "reference": "According to the text, fonologi is the study of the sound system of language.",
+      "num_contexts": 5
+    },
+    {
+      "course": "Rangkaian Komputer",
+      "course_id": "1edc06e0-75bb-43af-8f78-bf553974e1ae",
+      "user_input": "What bit length is stated for an IPv4 address in the provided material?",
+      "response": "Alamat IP versi 4 mempunyai 128 bit.",
+      "retrieved_contexts": [
+        "Quiz: Kuiz: Rangkaian Komputer\nQ: Protokol HTTP beroperasi pada lapisan: Options: Network, Transport, Session, Application\nQ: Lapisan ke-3 dalam model OSI ialah: Options: Data Link, Network, Transport, Session\nQ: Apakah fungsi router dalam rangkaian?\nQ: Alamat IP versi 4 mempunyai 128 bit.",
+        "Tugasan 2: Pengalamatan IP dan Subnetting\nSelesaikan 10 soalan pengalamatan IPv4, subnet mask, dan subnetting VLSM.",
+        "Fatimah Zahra: Terima kasih pensyarah, bahan ini sangat membantu!\nFatimah Zahra: Bila tarikh akhir untuk projek semester ini?\nArun Prasad: Terima kasih pensyarah, bahan ini sangat membantu!",
+        "Nota IT201 Minggu 3 - Bahagian 1\nhttps://example.com/IT201/week3/part1",
+        "Nota IT201 Minggu 1 - Bahagian 1\nhttps://example.com/IT201/week1/part1"
+      ],
+      "reference": "The provided material states that an IPv4 address has 128 bits. This information is found in the last line of the excerpt.",
+      "num_contexts": 5
+    },
+    {
+      "course": "Kalkulus I",
+      "course_id": "2667207d-1f7d-45f3-9110-a55854619a11",
+      "user_input": "What is the derivative of f(x) = x^3?",
+      "response": "Terbitan bagi f(x) = x^3 ialah f'(x) = 3x^2.",
+      "retrieved_contexts": [
+        "Quiz: Kuiz: Kalkulus I\nQ: Cari terbitan bagi f(x) = 5x^4 + 3x^2.\nQ: Kamiran tentu boleh mempunyai nilai negatif.\nQ: Terbitan bagi f(x) = x^3 ialah f'(x) = 3x^2.\nQ: Terbitan bagi sin(x) ialah: Options: -sin(x), cos(x), -cos(x), tan(x)\nQ: Had bagi (x^2 - 1)/(x - 1) apabila x menghampiri 1 ialah: Options: 0, 1, 2, Tak wujud",
+        "Double Bubble Map Concept A Concept B Similar 1 Similar 2 Similar 3 Unique A1 Unique A2 Unique A3 Unique B1 Unique B2 Unique B3",
+        "Central Idea Branch 1 Branch 2 Branch 3 Branch 4 Branch 5 Branch 6",
+        "Nota MT101 Minggu 3 - Bahagian 1\nhttps://example.com/MT101/week3/part1",
+        "Nota MT101 Minggu 1 - Bahagian 1\nhttps://example.com/MT101/week1/part1"
+      ],
+      "reference": "According to the excerpt, the derivative of f(x) = x^3 is f'(x) = 3x^2. The text explicitly states this as \"Terbitan bagi f(x) = x^3 ialah f'(x) = 3x^2.\"",
+      "num_contexts": 5
+    },
+    {
+      "course": "Kalkulus I",
+      "course_id": "2667207d-1f7d-45f3-9110-a55854619a11",
+      "user_input": "What specific question did Muhammad Hafiz and Nurul Aisyah both ask?",
+      "response": "Muhammad Hafiz and Nurul Aisyah both asked, \"Adakah kita perlu sertakan rujukan?\" regarding the assignment.",
+      "retrieved_contexts": [
+        "Arun Prasad: Bolehkah kita bincang dalam kumpulan untuk tutorial?\nTan Mei Ling: Saya dapati konsep ini agak sukar. Ada tips?\nMuhammad Hafiz: Saya ada soalan tentang tugasan. Adakah kita perlu sertakan rujukan?\nNurul Aisyah: Saya ada soalan tentang tugasan. Adakah kita perlu sertakan rujukan?",
+        "Main Topic Subtopic 1 Subtopic 2 Detail A Detail B Detail C Detail D",
+        "Main Topic Subtopic 1 Subtopic 2 Detail A Detail B Detail C Detail D",
+        "Main Topic Subtopic 1 Subtopic 2 Detail A Detail B Detail C Detail D",
+        "Quiz: Kuiz: Kalkulus I\nQ: Cari terbitan bagi f(x) = 5x^4 + 3x^2.\nQ: Kamiran tentu boleh mempunyai nilai negatif.\nQ: Terbitan bagi f(x) = x^3 ialah f'(x) = 3x^2.\nQ: Terbitan bagi sin(x) ialah: Options: -sin(x), cos(x), -cos(x), tan(x)\nQ: Had bagi (x^2 - 1)/(x - 1) apabila x menghampiri 1 ialah: Options: 0, 1, 2, Tak wujud"
+      ],
+      "reference": "Muhammad Hafiz and Nurul Aisyah both asked the same specific question about the assignment. They both inquired, \"Adakah kita perlu sertakan rujukan?\" (Do we need to include references?)",
+      "num_contexts": 5
+    },
+    {
+      "course": "Kimia Organik",
+      "course_id": "c000345d-1f40-4801-bb02-8e2a3182d6a1",
+      "user_input": "How many steps are involved in an SN2 reaction?",
+      "response": "Tindak balas SN2 berlaku dalam satu langkah.",
+      "retrieved_contexts": [
+        "Quiz: Kuiz: Kimia Organik\nQ: Kumpulan berfungsi bagi alkohol ialah: Options: -COOH, -OH, -NH2, -CHO\nQ: Tindak balas SN2 berlaku dalam satu langkah.\nQ: Alkena mempunyai ikatan: Options: Tunggal sahaja, Ganda dua, Ganda tiga, Tiada ikatan\nQ: Namakan sebatian CH3CH2OH menggunakan IUPAC.",
+        "Projek: Tindak Balas Organik\nTunjukkan mekanisme tindak balas penukargantian nukleofilik (SN1 dan SN2) bagi 5 sebatian organik berbeza.",
+        "Nota SN202 Minggu 1 - Bahagian 2\nhttps://example.com/SN202/week1/part2",
+        "Nota SN202 Minggu 1 - Bahagian 3\nhttps://example.com/SN202/week1/part3",
+        "Nota SN202 Minggu 2 - Bahagian 1\nhttps://example.com/SN202/week2/part1"
+      ],
+      "reference": "An SN2 reaction involves one step. The excerpt states, \"Tindak balas SN2 berlaku dalam satu langkah,\" which translates to \"SN2 reaction occurs in one step.\"",
+      "num_contexts": 5
+    },
+    {
+      "course": "Struktur Data & Algoritma",
+      "course_id": "199301d9-adab-4e32-9f48-b19ecf19756e",
+      "user_input": "According to the text, what specific requirement does Tan Mei Ling inquire about for the assignment?",
+      "response": "According to the text, Tan Mei Ling inquires about a specific requirement for the assignment. She asks whether references need to be included.",
+      "retrieved_contexts": [
+        "Tan Mei Ling: Saya dapati konsep ini agak sukar. Ada tips?\nTan Mei Ling: Saya ada soalan tentang tugasan. Adakah kita perlu sertakan rujukan?\nMuhammad Hafiz: Bila tarikh akhir untuk projek semester ini?\nMuhammad Hafiz: Saya dapati konsep ini agak sukar. Ada tips?",
+        "Main Topic Subtopic 1 Subtopic 2 Detail A Detail B Detail C Detail D",
+        "Main Topic Subtopic 1 Subtopic 2 Detail A Detail B Detail C Detail D",
+        "Main Topic Subtopic 1 Subtopic 2 Detail A Detail B Detail C Detail D",
+        "Kesusasteraan, Novel, Puisi, Drama, Sasterawan Negara, Tema, Gaya Bahasa"
+      ],
+      "reference": "Tan Mei Ling specifically inquires about whether students need to include references for the assignment. She asks, \"Adakah kita perlu sertakan rujukan?\" regarding the \"tugasan.\"",
+      "num_contexts": 5
+    },
+    {
+      "course": "Struktur Data & Algoritma",
+      "course_id": "199301d9-adab-4e32-9f48-b19ecf19756e",
+      "user_input": "Menurut teks ini, prinsip apakah yang digunakan oleh Stack?",
+      "response": "Menurut teks ini, Stack menggunakan prinsip FIFO (First In First Out).",
+      "retrieved_contexts": [
+        "Quiz: Kuiz: Struktur Data & Algoritma\nQ: Stack menggunakan prinsip FIFO (First In First Out).\nQ: Apakah perbezaan antara Stack dan Queue?\nQ: Kerumitan masa bagi Binary Search ialah: Options: O(n), O(log n), O(n^2), O(1)\nQ: Algoritma Merge Sort mempunyai kerumitan masa: Options: O(n), O(n log n), O(n^2), O(log n)",
+        "Struktur Data, Array, Linked List, Stack, Queue, Tree, Graph, Sorting",
+        "Tugasan 2: Analisis Kerumitan Algoritma\nAnalisis kerumitan masa (Big O) bagi 5 algoritma pengisihan: Bubble Sort, Selection Sort, Insertion Sort, Merge Sort, Quick Sort.",
+        "Kalkulus, Had, Terbitan, Kamiran, Peraturan Kuasa, Peraturan Rantai, Fungsi Trigonometri",
+        "Pengumuman: Struktur Data & Algoritma\nPengumuman penting untuk Struktur Data & Algoritma."
+      ],
+      "reference": "Menurut teks ini, Stack menggunakan prinsip FIFO. FIFO adalah singkatan dari First In First Out.",
+      "num_contexts": 5
+    },
+    {
+      "course": "Pengaturcaraan Python",
+      "course_id": "767b0702-e5c5-4e84-ab89-9ea1ccec28ff",
+      "user_input": "Based on the provided quiz question and options, what is the keyword for defining a function in Python?",
+      "response": "The provided context is insufficient to determine the keyword for defining a function in Python. The context only lists \"function, def, func, define\" as options for a quiz question.",
+      "retrieved_contexts": [
+        "Quiz: Kuiz: Pengaturcaraan Python\nQ: Apakah kata kunci untuk mentakrifkan fungsi dalam Python? Options: function, def, func, define\nQ: Nyatakan satu perbezaan antara list dan tuple dalam Python.\nQ: Python adalah bahasa pengaturcaraan bertaip statik.\nQ: Indeks pertama dalam senarai Python bermula pada 0.\nQ: Apakah output bagi: print(type(3.14))? Options: <class 'int'>, <class 'float'>, <class 'str'>, <class 'double'>",
+        "Python, Pembolehubah, Fungsi, Gelung For, Gelung While, Senarai, Kamus, Tuple",
+        "Tugasan 1: Program Kalkulator Python\nBina program kalkulator menggunakan Python yang boleh melakukan operasi tambah, tolak, darab, bahagi, dan kuasa. Gunakan fungsi dan pengendalian ralat.",
+        "Struktur Data, Array, Linked List, Stack, Queue, Tree, Graph, Sorting",
+        "Kalkulus, Had, Terbitan, Kamiran, Peraturan Kuasa, Peraturan Rantai, Fungsi Trigonometri"
+      ],
+      "reference": "The provided quiz question asks for the keyword used to define a function in Python. The options given for this question are 'function', 'def', 'func', and 'define'. However, the excerpt itself does not explicitly state which of these options is the correct keyword.",
+      "num_contexts": 5
+    }
+  ]
+}

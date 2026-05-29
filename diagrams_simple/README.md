@@ -4,6 +4,8 @@ Plain-English versions of the 6 most "how does it work?" diagrams, written for n
 
 Open any `.drawio` file at <https://app.diagrams.net> or in VS Code's "Draw.io Integration" extension.
 
+> **May 2026 update** — *SmartBuddy chat now tells you exactly where every answer came from* (your lecturer's notes, peer-reviewed papers from the last 6 years, or general AI knowledge, clearly labelled), and offers one-tap **Generate Flashcards / Make a Summary / Build a Quiz** buttons under each answer. See the root `README.md` "What's New (May 2026)" section for the full picture. Two diagrams have been updated in place: `1_system_architecture_simple.drawio` now has a fourth layer "What it talks to outside MySmartStudy" with Gemini and OpenAlex clouds, and `6_ai_features_interaction_simple.drawio` now has a fifth row showing the three source tiers and the three CTA buttons. Open them in draw.io to re-export.
+
 | # | File | Plain-English question it answers |
 |---|------|-----------------------------------|
 | 1 | `1_system_architecture_simple.drawio` | *"What is MySmartStudy actually made of?"*  — three layers: the people who use it, the brain that does the work, and where information is stored. |
@@ -32,6 +34,10 @@ If you're new to the project, read them in this order:
 - **Cool slate** — data and infrastructure
 - **Gray** — admin / governance / shared concerns
 - **Light slate** — explanatory notes
+
+## The AI engine note
+
+Every simple diagram carries a short plain-English note: the AI can run on **two interchangeable engines** — a custom-built one, or one assembled from popular ready-made AI toolkits (**LangChain** and **CrewAI**). Both do exactly the same job; an admin can switch between them at any time, and students and lecturers never notice the difference.
 
 ## Related — technical version
 

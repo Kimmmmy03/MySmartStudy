@@ -7,8 +7,16 @@ import {
   ChevronRight, Lightbulb, RefreshCw, Loader2,
   Star, MessageSquare, Send, Plus, ArrowRight,
   Image as ImageIcon, BookMarked, GitBranch,
+  GraduationCap, FileText, Bot, ExternalLink, ShieldAlert,
 } from "lucide-react";
-import { aiStudyPlanApi, DailyGuide, aiMindmapBuddyApi, aiImagesApi, type MapAnalysis, type NodeSuggestion } from "@/lib/api";
+import { type Node } from "@xyflow/react";
+import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import {
+  aiStudyPlanApi, DailyGuide, aiMindmapBuddyApi, aiImagesApi, aiStudyMaterialsApi,
+  type MapAnalysis, type NodeSuggestion,
+  type ChatSource, type ChatSuggestedAction, type EvidenceTier,
+} from "@/lib/api";
 import LearningStyleSetup from "./learning-style-setup";
 import { aiCompanionApi } from "@/lib/api";
 import { useMindmapContext } from "@/contexts/mindmap-context";
@@ -166,6 +174,47 @@ function suggestionTypeStyle(type: SuggestionType) {
 }
 
 type MindmapTab = "insights" | "chat";
+type NonMapTab = "guide" | "chat";
+
+// The legacy whole-map "Add to your map" suggestion list is hidden in favour of
+// the per-node build-out wizard. Flip to true to bring it back.
+const SHOW_LEGACY_SUGGESTIONS = false;
+
+// ── "Build out this node" wizard ──
+// After a node is selected, SmartBuddy walks this sequence one type at a time,
+// auto-advancing after each Add/Skip so the student fleshes out a node fully.
+const WIZARD_SEQUENCE = ["subtopic", "detail", "example", "image", "resource"] as const;
+type WizardType = (typeof WIZARD_SEQUENCE)[number];
+const WIZARD_TYPE_META: Record<WizardType, { label: string; icon: typeof GitBranch; color: string; bg: string; btn: string }> = {
+  subtopic: { label: "Subtopic", icon: GitBranch,  color: "text-indigo-600",  bg: "bg-indigo-50 border-indigo-200",   btn: "from-indigo-500 to-purple-500" },
+  detail:   { label: "Detail",   icon: Lightbulb,  color: "text-cyan-600",    bg: "bg-cyan-50 border-cyan-200",       btn: "from-cyan-500 to-blue-500" },
+  example:  { label: "Example",  icon: BookMarked, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200", btn: "from-emerald-500 to-teal-500" },
+  image:    { label: "Image",    icon: ImageIcon,  color: "text-pink-600",    bg: "bg-pink-50 border-pink-200",       btn: "from-purple-500 to-pink-500" },
+  resource: { label: "Resource", icon: BookOpen,   color: "text-amber-600",   bg: "bg-amber-50 border-amber-200",     btn: "from-amber-500 to-orange-500" },
+};
+/** Strip a leading "[Tag] " marker (e.g. "[Example] ") from a suggestion label. */
+function stripTag(label: string): string {
+  return label.replace(/^\[[^\]]+\]\s*/, "").trim();
+}
+/** Map a recommended mind-map type to the node shape that visually fits it,
+ * so wizard-added nodes match the Insight's recommended map type. */
+function shapeForMapType(mapType?: string): string {
+  const t = (mapType || "").toLowerCase();
+  if (t.includes("spider")) return "ellipse";   // oval
+  if (t.includes("bubble")) return "circle";
+  if (t.includes("concept")) return "rectangle";
+  if (t.includes("flow")) return "rectangle";
+  if (t.includes("fishbone") || t.includes("ishikawa")) return "parallelogram";
+  if (t.includes("tree") || t.includes("hierarch")) return "roundedRect";
+  return "roundedRect"; // mind map / unknown
+}
+/** Where to start the wizard for a clicked node, based on its own type:
+ * recommend the NEXT type in the chain. Untyped nodes start at subtopic. */
+function nodeStartStep(node: Node): number {
+  const t = (node.data as Record<string, unknown>)?.smartType as WizardType | undefined;
+  const idx = t ? WIZARD_SEQUENCE.indexOf(t) : -1;
+  return idx + 1; // untyped→0 (subtopic) … detail→2 (example) … resource→5 (done)
+}
 
 export default function AiCompanionWidget() {
   const [open, setOpen] = useState(false);
@@ -203,6 +252,7 @@ export default function AiCompanionWidget() {
   const mindmapCtx = useMindmapContext();
   const isMapMode = mindmapCtx?.active ?? false;
   const [mapTab, setMapTab] = useState<MindmapTab>("insights");
+  const [nonMapTab, setNonMapTab] = useState<NonMapTab>("guide");
   const [analysis, setAnalysis] = useState<MapAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [suggestions, setSuggestions] = useState<NodeSuggestion[]>([]);
@@ -210,9 +260,35 @@ export default function AiCompanionWidget() {
   const [expandedSuggestion, setExpandedSuggestion] = useState<number | null>(null);
   const [pillsHidden, setPillsHidden] = useState(false);
   const [generatingImageIdx, setGeneratingImageIdx] = useState<number | null>(null);
-  const [chatMessages, setChatMessages] = useState<{ role: "user" | "buddy"; text: string }[]>([]);
+  type ChatMessage = {
+    role: "user" | "buddy";
+    text: string;
+    evidence_level?: EvidenceTier | "mixed";
+    sources?: ChatSource[];
+    suggested_actions?: ChatSuggestedAction[];
+  };
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  // Tracks which CTA is currently generating so its button can show a spinner.
+  const [genActionKey, setGenActionKey] = useState<string | null>(null);
+  const router = useRouter();
+
+  // ── Node "build-out" wizard state ──
+  const [wizStep, setWizStep] = useState(0);
+  const [wizSugs, setWizSugs] = useState<NodeSuggestion[]>([]);
+  const [wizLoading, setWizLoading] = useState(false);
+  const [wizNodeId, setWizNodeId] = useState<string | null>(null);
+  const [wizGenIdx, setWizGenIdx] = useState<number | null>(null);
+  // Labels the user has already added at the CURRENT step. Used to mark the
+  // matching suggestion card with an "Added ✓" pill so multi-pick is obvious.
+  // Reset whenever the step changes or a new node is selected.
+  const [wizAddedLabels, setWizAddedLabels] = useState<Set<string>>(new Set());
+  // The "hub" is the node new wizard children attach to. It starts as the
+  // clicked node and becomes the subtopic once one is added, so detail/example/
+  // image/resource form a hierarchy under the subtopic instead of all hanging
+  // off the main topic.
+  const hubCtxRef = useRef<{ nodeId: string; label: string; parentLabels: string[]; siblingLabels: string[]; childLabels: string[] } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const loadedRef = useRef(false);
@@ -323,14 +399,170 @@ const loadData = useCallback(async () => {
     }
   }, [open]);
 
-  // Auto-suggest all nodes when map mode is active (even before panel opens)
+  // Auto-suggest all nodes — only when the legacy list is shown. The list is
+  // hidden in favour of the per-node wizard, so this no longer fires (it was
+  // burning AI tokens on every map open for a hidden result).
   const autoSuggestedRef = useRef(false);
   useEffect(() => {
-    if (isMapMode && mindmapCtx && mindmapCtx.nodes.length > 0 && suggestions.length === 0 && !suggesting && !autoSuggestedRef.current) {
+    if (SHOW_LEGACY_SUGGESTIONS && isMapMode && mindmapCtx && mindmapCtx.nodes.length > 0 && suggestions.length === 0 && !suggesting && !autoSuggestedRef.current) {
       autoSuggestedRef.current = true;
       handleSuggestAll();
     }
   }, [isMapMode, mindmapCtx?.nodes.length, suggestions.length, suggesting, handleSuggestAll]);
+
+  // ── Node "build-out" wizard logic ──────────────────────────────────────────
+  /** Derive parent/sibling/existing-child labels for a node from the live map. */
+  const buildNodeContext = useCallback((node: Node) => {
+    const allNodes = mindmapCtx?.nodes ?? [];
+    const allEdges = mindmapCtx?.edges ?? [];
+    const labelOf = (id: string) =>
+      ((allNodes.find(n => n.id === id)?.data as Record<string, unknown>)?.label as string) || "";
+    const parentIds = allEdges.filter(e => e.target === node.id).map(e => e.source);
+    const childIds = allEdges.filter(e => e.source === node.id).map(e => e.target);
+    const siblingIds = allEdges
+      .filter(e => parentIds.includes(e.source) && e.target !== node.id)
+      .map(e => e.target);
+    return {
+      parentLabels: [...new Set(parentIds.map(labelOf).filter(Boolean))],
+      siblingLabels: [...new Set(siblingIds.map(labelOf).filter(Boolean))],
+      childLabels: childIds.map(labelOf).filter(Boolean),
+    };
+  }, [mindmapCtx]);
+
+  /** Snapshot a node into the wizard "hub" context used for recommend + attach. */
+  const nodeToCtx = useCallback((node: Node) => {
+    const label = ((node.data as Record<string, unknown>)?.label as string) || "";
+    return { nodeId: node.id, label, ...buildNodeContext(node) };
+  }, [buildNodeContext]);
+  type HubCtx = ReturnType<typeof nodeToCtx>;
+
+  /** Fetch recommendations of the step's type, contextualised on the hub node. */
+  const fetchWizard = useCallback(async (ctx: HubCtx, step: number) => {
+    if (!mindmapCtx || step >= WIZARD_SEQUENCE.length) return;
+    const recType = WIZARD_SEQUENCE[step];
+    setWizLoading(true);
+    try {
+      const res = await aiMindmapBuddyApi.recommendNodes({
+        node_id: ctx.nodeId,
+        node_label: ctx.label,
+        parent_labels: ctx.parentLabels,
+        sibling_labels: ctx.siblingLabels,
+        map_topic: mindmapCtx.title,
+        rec_type: recType,
+        existing_children: ctx.childLabels,
+      });
+      setWizSugs(res.suggestions || []);
+    } catch {
+      setWizSugs([]);
+    }
+    setWizLoading(false);
+  }, [mindmapCtx]);
+
+  // Restart the wizard whenever the selected node changes.
+  const selectedNodeId = mindmapCtx?.selectedNode?.id ?? null;
+  useEffect(() => {
+    if (!isMapMode) return;
+    if (selectedNodeId && selectedNodeId !== wizNodeId) {
+      const node = mindmapCtx?.selectedNode;
+      const start = node ? nodeStartStep(node) : 0;
+      setWizNodeId(selectedNodeId);
+      setWizStep(start);
+      setWizSugs([]);
+      setWizAddedLabels(new Set());
+      // The clicked node is the initial hub; a subtopic added later takes over.
+      hubCtxRef.current = node ? nodeToCtx(node) : null;
+      if (hubCtxRef.current && start < WIZARD_SEQUENCE.length) fetchWizard(hubCtxRef.current, start);
+    } else if (!selectedNodeId && wizNodeId) {
+      setWizNodeId(null);
+      setWizStep(0);
+      setWizSugs([]);
+      setWizAddedLabels(new Set());
+      hubCtxRef.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMapMode, selectedNodeId]);
+
+  const advanceWizard = useCallback(() => {
+    // The hub only changes between steps — never during a step. This is where
+    // it happens. If the step just finished was "subtopic" and the user picked
+    // at least one, the LAST-added subtopic becomes the hub for the upcoming
+    // step (so detail/example/image/resource hang beneath it). For non-
+    // subtopic steps the hub stays the same; we just append the picks to
+    // childLabels so the next fetch's "avoid duplicates" set is accurate.
+    const currentStepType = WIZARD_SEQUENCE[wizStep];
+    const picks = Array.from(wizAddedLabels);
+    if (hubCtxRef.current && picks.length > 0) {
+      if (currentStepType === "subtopic") {
+        const lastSubtopic = picks[picks.length - 1];
+        const prevHub = hubCtxRef.current;
+        hubCtxRef.current = {
+          nodeId: `wiz-${lastSubtopic}-${Date.now()}`,
+          label: lastSubtopic,
+          parentLabels: [prevHub.label],
+          siblingLabels: picks.slice(0, -1),
+          childLabels: [],
+        };
+      } else {
+        hubCtxRef.current = {
+          ...hubCtxRef.current,
+          childLabels: [...hubCtxRef.current.childLabels, ...picks],
+        };
+      }
+    }
+    setWizSugs([]);
+    setWizAddedLabels(new Set());
+    setWizStep(prev => {
+      const next = prev + 1;
+      if (next < WIZARD_SEQUENCE.length && hubCtxRef.current) fetchWizard(hubCtxRef.current, next);
+      return next;
+    });
+  }, [fetchWizard, wizStep, wizAddedLabels]);
+
+  /** Add a suggestion under the current hub. Does NOT auto-advance and does
+   *  NOT mutate the hub — every Add inside the same step attaches to the
+   *  exact same parent. The hub only moves when the user clicks "Next →"
+   *  (handled in advanceWizard). */
+  const addWizardNode = useCallback((s: NodeSuggestion, generatedImageUrl?: string) => {
+    const hub = hubCtxRef.current;
+    if (!hub) return;
+    const recType = (s.rec_type as WizardType) || WIZARD_SEQUENCE[wizStep];
+    const isImage = recType === "image";
+    const labelToAdd = stripTag(s.label);
+    // Defensive: the UI already swaps the Add button for an "Added ✓" pill.
+    if (wizAddedLabels.has(labelToAdd)) return;
+    const shape = isImage ? "image" : shapeForMapType(analysis?.recommended_map_type);
+    // Always attach to the CURRENT hub. Two subtopics added back-to-back both
+    // attach to the clicked node; two details added back-to-back both attach
+    // to the same subtopic. (Bug fixed Jun 2026.)
+    mindmapCtx?.onAddNode?.(labelToAdd, hub.label, shape, recType);
+    if (isImage && generatedImageUrl) {
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("smartbuddy-image-generated", {
+          detail: { imageUrl: generatedImageUrl, label: labelToAdd },
+        }));
+      }, 500);
+    }
+    setWizAddedLabels(prev => {
+      const next = new Set(prev);
+      next.add(labelToAdd);
+      return next;
+    });
+  }, [mindmapCtx, wizStep, wizAddedLabels, analysis?.recommended_map_type]);
+
+  const generateWizardImage = useCallback(async (s: NodeSuggestion, idx: number) => {
+    setWizGenIdx(idx);
+    const cleanLabel = stripTag(s.label);
+    try {
+      const result = await aiImagesApi.generate(cleanLabel, undefined, mindmapCtx?.mapId || undefined);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:8000";
+      const imageUrl = result.image_url.startsWith("http") ? result.image_url : `${apiUrl}${result.image_url}`;
+      addWizardNode(s, imageUrl);
+    } catch {
+      addWizardNode(s); // fall back to an empty image node
+    } finally {
+      setWizGenIdx(null);
+    }
+  }, [mindmapCtx, addWizardNode]);
 
   const handleStyleComplete = (style: string) => {
     setLearningStyle(style);
@@ -343,30 +575,244 @@ const loadData = useCallback(async () => {
   };
 
   const handleChat = useCallback(async () => {
-    if (!chatInput.trim() || !mindmapCtx) return;
+    if (!chatInput.trim()) return;
     const msg = chatInput.trim();
     setChatInput("");
     setChatMessages(prev => [...prev, { role: "user", text: msg }]);
     setChatLoading(true);
     try {
-      const result = await aiMindmapBuddyApi.chat(msg, {
+      // Map context is only attached when the user is actually in the map
+      // editor. On other pages we send the message bare — the backend's
+      // course-RAG / OpenAlex / Gemini pipeline doesn't need a map.
+      const mapContext = mindmapCtx?.active ? {
         title: mindmapCtx.title,
         nodeCount: mindmapCtx.nodes.length,
         edgeCount: mindmapCtx.edges.length,
         nodeLabels: mindmapCtx.nodes.slice(0, 20).map(n => ((n.data as Record<string, unknown>)?.label as string) || ""),
-      });
-      setChatMessages(prev => [...prev, { role: "buddy", text: result.response }]);
+      } : undefined;
+      const result = await aiMindmapBuddyApi.chat(msg, mapContext);
+      setChatMessages(prev => [...prev, {
+        role: "buddy",
+        text: result.response,
+        evidence_level: result.evidence_level,
+        sources: result.sources || [],
+        suggested_actions: result.suggested_actions || [],
+      }]);
     } catch {
       setChatMessages(prev => [...prev, { role: "buddy", text: "Sorry, I couldn't process that. Try again!" }]);
     }
     setChatLoading(false);
   }, [chatInput, mindmapCtx]);
 
+  /** Generate a study material from a chat CTA, then jump to the Study
+   *  Materials page where the new entry is now saved. */
+  const handleSuggestedAction = useCallback(async (a: ChatSuggestedAction, msgIdx: number, actionIdx: number) => {
+    const key = `${msgIdx}:${actionIdx}`;
+    setGenActionKey(key);
+    try {
+      await aiStudyMaterialsApi.generateByTopic({
+        topic: a.topic,
+        course_id: a.course_id || "",
+        type: a.type,
+        evidence_tier: a.evidence_tier,
+      });
+      // Persistent saved in `generatedStudyMaterials` — open the page so the
+      // student sees it alongside their other materials with the provenance
+      // banner at the top.
+      router.push("/student/study-materials");
+    } catch (err) {
+      // Surface a single follow-up message rather than a toast — keeps the
+      // chat self-contained. Include the backend reason when present so the
+      // user (and we) see e.g. "No peer-reviewed academic sources found...".
+      const reason = err instanceof Error ? err.message : "please try again in a moment";
+      setChatMessages(prev => [...prev, {
+        role: "buddy",
+        text: `Couldn't generate that: ${reason}`,
+      }]);
+    } finally {
+      setGenActionKey(null);
+    }
+  }, [router]);
+
   if (!enabled) return null;
 
   const styleBadgeLabel = learningStyle
     ? learningStyle.charAt(0).toUpperCase() + learningStyle.slice(1)
     : null;
+
+  // Shared chat panel — used both in mind-map mode (Chat tab beside Insights)
+  // and on every other dashboard page (Chat tab beside Guide). Adapts copy
+  // based on whether the user is currently in the map editor.
+  const renderChatPanel = () => (
+    <div className="flex flex-col h-[340px]">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+        {chatMessages.length === 0 && (
+          <div className="text-center py-10">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mx-auto mb-3">
+              <MessageSquare className="w-6 h-6 text-indigo-400" />
+            </div>
+            <p className="text-sm font-medium text-gray-700">Ask me anything</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {isMapMode
+                ? "I can help you improve your mind map"
+                : "I'll cite where the info comes from — your course notes, peer-reviewed papers, or general knowledge."}
+            </p>
+          </div>
+        )}
+        {chatMessages.map((m, i) => (
+          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div className={`max-w-[85%] ${m.role === "buddy" ? "space-y-2" : ""}`}>
+              <div
+                className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+                  m.role === "user"
+                    ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-br-md shadow-sm"
+                    : "bg-white border border-gray-100 text-gray-800 rounded-bl-md shadow-sm chat-markdown"
+                }`}
+              >
+                {m.role === "buddy" ? (
+                  // Buddy answers may contain markdown (bold, bullets, headings,
+                  // [Source N] citations). User messages are single-line input —
+                  // render as plain text to avoid surprises.
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                      ul: ({ children }) => <ul className="list-disc pl-4 mb-2 last:mb-0 space-y-0.5">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 last:mb-0 space-y-0.5">{children}</ol>,
+                      li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                      strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                      em: ({ children }) => <em className="italic">{children}</em>,
+                      h1: ({ children }) => <h3 className="text-sm font-semibold text-gray-900 mt-2 first:mt-0 mb-1">{children}</h3>,
+                      h2: ({ children }) => <h3 className="text-sm font-semibold text-gray-900 mt-2 first:mt-0 mb-1">{children}</h3>,
+                      h3: ({ children }) => <h3 className="text-sm font-semibold text-gray-900 mt-2 first:mt-0 mb-1">{children}</h3>,
+                      code: ({ children }) => <code className="px-1 py-0.5 rounded bg-gray-100 text-gray-800 text-[12px] font-mono">{children}</code>,
+                      a: ({ children, href }) => (
+                        <a href={href} target="_blank" rel="noopener noreferrer" className="underline text-indigo-600 hover:text-indigo-800">{children}</a>
+                      ),
+                    }}
+                  >
+                    {m.text}
+                  </ReactMarkdown>
+                ) : (
+                  m.text
+                )}
+              </div>
+              {m.role === "buddy" && (m.sources?.length || m.suggested_actions?.length) ? (
+                <div className="space-y-1.5">
+                  {m.evidence_level === "online" && (
+                    <p className="text-[10.5px] text-gray-500 italic px-1">
+                      No course materials matched — using peer-reviewed academic literature.
+                    </p>
+                  )}
+                  {m.evidence_level === "general_knowledge" && (
+                    <p className="text-[10.5px] text-amber-600 italic px-1 flex items-center gap-1">
+                      <ShieldAlert className="w-3 h-3 shrink-0" />
+                      No course materials or open-access papers found — please verify citations.
+                    </p>
+                  )}
+                  {m.sources && m.sources.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {m.sources.map((s, idx) => {
+                        const isCourse = s.tier === "course";
+                        const isOnline = s.tier === "online";
+                        const isUnverified = s.tier === "general_knowledge" && s.verified === false;
+                        const Icon = isCourse ? GraduationCap : isOnline ? FileText : Bot;
+                        const colour = isCourse
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                          : isOnline
+                            ? "bg-sky-50 border-sky-200 text-sky-700"
+                            : isUnverified
+                              ? "bg-amber-50 border-amber-300 text-amber-800"
+                              : "bg-gray-50 border-gray-200 text-gray-700";
+                        const label = isCourse
+                          ? `Course — ${s.title}${s.doc_type ? ` (${s.doc_type})` : ""}`
+                          : isOnline
+                            ? `${s.authors || ""} (${s.year ?? "n.d."}). ${s.title}${s.venue ? ` — ${s.venue}` : ""}`
+                            : `${s.authors || ""} (${s.year ?? "n.d."}). ${s.title}${isUnverified ? " — unverified" : ""}`;
+                        const content = (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] border ${colour}`}>
+                            <Icon className="w-3 h-3 shrink-0" />
+                            <span className="truncate max-w-[260px]">{label}</span>
+                            {s.url ? <ExternalLink className="w-2.5 h-2.5 shrink-0 opacity-70" /> : null}
+                          </span>
+                        );
+                        return s.url ? (
+                          <a key={idx} href={s.url} target="_blank" rel="noopener noreferrer" title={s.url}>{content}</a>
+                        ) : (
+                          <span key={idx} title={s.title}>{content}</span>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {m.suggested_actions && m.suggested_actions.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {m.suggested_actions.map((a, idx) => {
+                        const key = `${i}:${idx}`;
+                        const isBusy = genActionKey === key;
+                        const label = a.type === "flashcards"
+                          ? "Generate flashcards"
+                          : a.type === "summary"
+                            ? "Make a summary"
+                            : "Build a quiz";
+                        return (
+                          <button
+                            key={key}
+                            disabled={!!genActionKey}
+                            onClick={() => handleSuggestedAction(a, i, idx)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                            title={a.evidence_tier === "course"
+                              ? "From your course notes"
+                              : a.evidence_tier === "online"
+                                ? "From academic literature (NOT your course notes)"
+                                : "From AI general knowledge (NOT your course notes)"}
+                          >
+                            {isBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                            {label}
+                            {a.evidence_tier !== "course" && (
+                              <span className="text-[9px] uppercase opacity-70">⚠ not course</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ))}
+        {chatLoading && (
+          <div className="flex justify-start">
+            <div className="bg-white border border-gray-100 px-3 py-2.5 rounded-2xl rounded-bl-md shadow-sm">
+              <div className="flex gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={chatEndRef} />
+      </div>
+      <div className="p-3" style={{ borderTop: "1px solid #f0f0f0" }}>
+        <form onSubmit={e => { e.preventDefault(); handleChat(); }} className="flex gap-2">
+          <input
+            type="text"
+            value={chatInput}
+            onChange={e => setChatInput(e.target.value)}
+            placeholder={isMapMode ? "Ask about your mind map..." : "Ask me anything..."}
+            className="flex-1 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-100 transition-colors"
+          />
+          <button
+            type="submit"
+            disabled={chatLoading || !chatInput.trim()}
+            className="p-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:opacity-90 transition-all disabled:opacity-40 active:scale-95 shadow-sm"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -718,6 +1164,130 @@ const loadData = useCallback(async () => {
                   {/* ── Insights Tab ── */}
                   {mapTab === "insights" && (
                     <div className="p-4 space-y-3">
+                      {/* ── Per-node build-out wizard (auto-advances by type) ── */}
+                      {(() => {
+                        const selNode = mindmapCtx?.selectedNode;
+                        if (!selNode) {
+                          return mindmapCtx && mindmapCtx.nodes.length > 0 ? (
+                            <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-indigo-50/60 border border-indigo-100 text-[11px] text-indigo-600">
+                              <Lightbulb className="w-3.5 h-3.5 shrink-0" />
+                              Click a node on your map to build it out step by step.
+                            </div>
+                          ) : null;
+                        }
+                        const nodeLabel = ((selNode.data as Record<string, unknown>)?.label as string) || "(empty node)";
+                        const nodeType = ((selNode.data as Record<string, unknown>)?.smartType as WizardType) || undefined;
+                        const nodeTypeMeta = nodeType ? WIZARD_TYPE_META[nodeType] : null;
+                        const done = wizStep >= WIZARD_SEQUENCE.length;
+                        const curMeta = !done ? WIZARD_TYPE_META[WIZARD_SEQUENCE[wizStep]] : null;
+                        return (
+                          <div className="rounded-xl border border-indigo-200 bg-white overflow-hidden shadow-sm">
+                            {/* Header */}
+                            <div className="px-3 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-indigo-100 flex items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-[10px] uppercase tracking-wider text-indigo-400 font-semibold">Build out this node</p>
+                                  {nodeTypeMeta && (
+                                    <span className={`inline-flex items-center gap-0.5 px-1.5 py-px rounded text-[9px] font-semibold border ${nodeTypeMeta.bg} ${nodeTypeMeta.color}`}>
+                                      <nodeTypeMeta.icon className="w-2 h-2" />{nodeTypeMeta.label}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm font-semibold text-gray-800 truncate">{nodeLabel}</p>
+                              </div>
+                              {!done && <span className="text-[10px] text-gray-400 shrink-0">Step {wizStep + 1}/{WIZARD_SEQUENCE.length}</span>}
+                            </div>
+                            {/* Step pills */}
+                            <div className="flex flex-wrap items-center gap-1 px-3 py-2">
+                              {WIZARD_SEQUENCE.map((t, i) => {
+                                const meta = WIZARD_TYPE_META[t];
+                                const isDone = i < wizStep, isCur = i === wizStep;
+                                return (
+                                  <div key={t} className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${isCur ? `${meta.bg} ${meta.color}` : isDone ? "bg-gray-100 text-gray-400 border-gray-200" : "bg-white text-gray-300 border-gray-100"}`}>
+                                    <meta.icon className="w-2.5 h-2.5" />{meta.label}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {/* Body */}
+                            <div className="px-3 pb-3 pt-0.5">
+                              {done ? (
+                                <div className="text-center py-3 space-y-2">
+                                  <p className="text-sm text-gray-600">🎉 Nice — you&apos;ve built out this node.</p>
+                                  <p className="text-[11px] text-gray-400">Click another node to keep going.</p>
+                                </div>
+                              ) : wizLoading ? (
+                                <div className="flex items-center gap-2 py-3 text-gray-500 text-xs">
+                                  <Loader2 className="w-4 h-4 animate-spin" /> Finding a {curMeta!.label.toLowerCase()}…
+                                </div>
+                              ) : wizSugs.length === 0 ? (
+                                <div className="flex items-center justify-between py-2">
+                                  <p className="text-xs text-gray-400">No {curMeta!.label.toLowerCase()} suggestion right now.</p>
+                                  <button onClick={advanceWizard} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-medium hover:opacity-90 transition-all active:scale-95 shadow-sm">
+                                    Next <ArrowRight className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {wizSugs.map((s, i) => {
+                                    const recType = ((s.rec_type as WizardType) || WIZARD_SEQUENCE[wizStep]);
+                                    const meta = WIZARD_TYPE_META[recType] || curMeta!;
+                                    const isImage = recType === "image";
+                                    const SIcon = meta.icon;
+                                    const cleanLabel = stripTag(s.label);
+                                    const alreadyAdded = wizAddedLabels.has(cleanLabel);
+                                    return (
+                                      <div key={i} className={`rounded-lg border p-2.5 ${meta.bg} ${alreadyAdded ? "opacity-70" : ""}`}>
+                                        <div className="flex items-start gap-2">
+                                          <SIcon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${meta.color}`} />
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-gray-800">{cleanLabel}</p>
+                                            {s.description && <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{s.description}</p>}
+                                          </div>
+                                        </div>
+                                        <div className="flex gap-1.5 mt-2 flex-wrap">
+                                          {alreadyAdded ? (
+                                            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
+                                              ✓ Added to map
+                                            </span>
+                                          ) : isImage ? (
+                                            <>
+                                              <button onClick={() => addWizardNode(s)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-all active:scale-95 shadow-sm">
+                                                <ImageIcon className="w-3 h-3" /> Add image node
+                                              </button>
+                                              <button disabled={wizGenIdx === i} onClick={() => generateWizardImage(s, i)} className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r ${meta.btn} text-white text-xs font-medium hover:opacity-90 transition-all active:scale-95 shadow-sm disabled:opacity-50`}>
+                                                {wizGenIdx === i ? <><Loader2 className="w-3 h-3 animate-spin" /> Generating…</> : <><Sparkles className="w-3 h-3" /> Generate</>}
+                                              </button>
+                                            </>
+                                          ) : (
+                                            <button onClick={() => addWizardNode(s)} className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r ${meta.btn} text-white text-xs font-medium hover:opacity-90 transition-all active:scale-95 shadow-sm`}>
+                                              <Plus className="w-3 h-3" /> Add to map
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                  {/* Footer: Next-step button is the primary action now (replaces per-card Skip).
+                                      Pick count tells the user how many they've added at this step. */}
+                                  <div className="flex items-center justify-between pt-1">
+                                    <button onClick={() => hubCtxRef.current && fetchWizard(hubCtxRef.current, wizStep)} className="text-[11px] text-gray-400 hover:text-gray-600 inline-flex items-center gap-1">
+                                      <RefreshCw className="w-3 h-3" /> More ideas
+                                    </button>
+                                    <button onClick={advanceWizard} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-medium hover:opacity-90 transition-all active:scale-95 shadow-sm">
+                                      {wizAddedLabels.size > 0 && (
+                                        <span className="text-[10px] opacity-90">{wizAddedLabels.size} added ·</span>
+                                      )}
+                                      Next <ArrowRight className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       {mindmapCtx && mindmapCtx.nodes.length === 0 ? (
                         <div className="text-center py-10">
                           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mx-auto mb-3">
@@ -744,56 +1314,67 @@ const loadData = useCallback(async () => {
                         <>
                           {/* ── Rating Card ── */}
                           {analysis && (
-                            <div className={`rounded-xl overflow-hidden border ${ratingBg(analysis.rating)}`}>
-                              <div className="p-3 bg-gradient-to-br">
-                                <div className="flex items-center justify-between mb-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className={`text-2xl font-bold ${ratingColor(analysis.rating)}`}>{analysis.rating}</span>
-                                    <span className="text-gray-400 text-xs">/10</span>
-                                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                      analysis.rating >= 8 ? "bg-emerald-100 text-emerald-700" :
-                                      analysis.rating >= 6 ? "bg-blue-100 text-blue-700" :
-                                      analysis.rating >= 4 ? "bg-amber-100 text-amber-700" :
-                                      "bg-red-100 text-red-700"
-                                    }`}>{analysis.rating_label}</span>
-                                  </div>
-                                  <button onClick={() => { handleAnalyze(); autoSuggestedRef.current = false; setSuggestions([]); handleSuggestAll(); }} disabled={analyzing} className="p-1.5 hover:bg-white/60 rounded-lg transition-colors text-gray-400" title="Re-analyze">
-                                    {analyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                                  </button>
-                                </div>
-                                <div className="flex gap-0.5 mb-2">
-                                  {Array.from({ length: 10 }).map((_, i) => (
-                                    <div key={i} className="h-1 flex-1 rounded-full" style={{ background: i < analysis.rating ? ratingBarColor(analysis.rating) : "#e5e7eb" }} />
-                                  ))}
-                                </div>
-                                <p className="text-xs text-gray-600 leading-relaxed">{analysis.structure_feedback}</p>
+                            <div className={`rounded-2xl border bg-gradient-to-br ${ratingBg(analysis.rating)} p-4`}>
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                                  <Sparkles className="w-3 h-3" /> Map health
+                                </span>
+                                <button onClick={() => handleAnalyze()} disabled={analyzing} className="p-1.5 hover:bg-white/70 rounded-lg transition-colors text-gray-400" title="Re-analyze">
+                                  {analyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                                </button>
                               </div>
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="flex items-baseline gap-1">
+                                  <span className={`text-4xl font-bold leading-none ${ratingColor(analysis.rating)}`}>{analysis.rating}</span>
+                                  <span className="text-gray-400 text-sm font-medium">/10</span>
+                                </div>
+                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                                  analysis.rating >= 8 ? "bg-emerald-100 text-emerald-700" :
+                                  analysis.rating >= 6 ? "bg-blue-100 text-blue-700" :
+                                  analysis.rating >= 4 ? "bg-amber-100 text-amber-700" :
+                                  "bg-red-100 text-red-700"
+                                }`}>{analysis.rating_label}</span>
+                              </div>
+                              <div className="flex gap-1 mb-3">
+                                {Array.from({ length: 10 }).map((_, i) => (
+                                  <div key={i} className="h-1.5 flex-1 rounded-full transition-colors" style={{ background: i < analysis.rating ? ratingBarColor(analysis.rating) : "#e5e7eb" }} />
+                                ))}
+                              </div>
+                              <p className="text-xs text-gray-600 leading-relaxed">{analysis.structure_feedback}</p>
                             </div>
                           )}
 
-                          {/* ── Strengths & Improvements (compact) ── */}
+                          {/* ── Strengths & Improvements (stacked, clearer) ── */}
                           {analysis && (analysis.strengths.length > 0 || analysis.improvements.length > 0) && (
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-2">
                               {analysis.strengths.length > 0 && (
-                                <div className="rounded-xl p-2.5 bg-emerald-50/80 border border-emerald-100">
-                                  <h4 className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                                    <Star className="w-3 h-3" /> Strengths
+                                <div className="rounded-2xl p-3 bg-white border border-emerald-100 shadow-sm">
+                                  <h4 className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <span className="w-5 h-5 rounded-lg bg-emerald-100 flex items-center justify-center"><Star className="w-3 h-3" /></span>
+                                    Strengths
                                   </h4>
-                                  <ul className="space-y-1">
+                                  <ul className="space-y-1.5">
                                     {analysis.strengths.slice(0, 3).map((s, i) => (
-                                      <li key={i} className="text-[11px] text-gray-600 leading-tight">{s}</li>
+                                      <li key={i} className="flex items-start gap-2 text-xs text-gray-600 leading-snug">
+                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                                        {s}
+                                      </li>
                                     ))}
                                   </ul>
                                 </div>
                               )}
                               {analysis.improvements.length > 0 && (
-                                <div className="rounded-xl p-2.5 bg-amber-50/80 border border-amber-100">
-                                  <h4 className="text-[10px] font-semibold text-amber-600 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                                    <Lightbulb className="w-3 h-3" /> Improve
+                                <div className="rounded-2xl p-3 bg-white border border-amber-100 shadow-sm">
+                                  <h4 className="text-[11px] font-semibold text-amber-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <span className="w-5 h-5 rounded-lg bg-amber-100 flex items-center justify-center"><Lightbulb className="w-3 h-3" /></span>
+                                    To improve
                                   </h4>
-                                  <ul className="space-y-1">
+                                  <ul className="space-y-1.5">
                                     {analysis.improvements.slice(0, 3).map((s, i) => (
-                                      <li key={i} className="text-[11px] text-gray-600 leading-tight">{s}</li>
+                                      <li key={i} className="flex items-start gap-2 text-xs text-gray-600 leading-snug">
+                                        <ArrowRight className="w-3 h-3 text-amber-400 mt-0.5 shrink-0" />
+                                        {s}
+                                      </li>
                                     ))}
                                   </ul>
                                 </div>
@@ -803,17 +1384,18 @@ const loadData = useCallback(async () => {
 
                           {/* ── Map Type Recommendation ── */}
                           {analysis && analysis.type_change_reason && (
-                            <div className="flex items-start gap-2 rounded-lg p-2.5 bg-purple-50 border border-purple-100">
-                              <ArrowRight className="w-3.5 h-3.5 text-purple-500 shrink-0 mt-0.5" />
-                              <div>
-                                <span className="text-xs font-medium text-purple-700">Try: {analysis.recommended_map_type}</span>
-                                <p className="text-[10px] text-gray-500 mt-0.5">{analysis.type_change_reason}</p>
+                            <div className="rounded-2xl p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100">
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                <span className="w-5 h-5 rounded-lg bg-purple-100 flex items-center justify-center"><GitBranch className="w-3 h-3 text-purple-600" /></span>
+                                <span className="text-[11px] font-semibold uppercase tracking-wider text-purple-600">Suggested map type</span>
                               </div>
+                              <p className="text-sm font-semibold text-gray-800">{analysis.recommended_map_type}</p>
+                              <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{analysis.type_change_reason}</p>
                             </div>
                           )}
 
-                          {/* ── Suggestions Section ── */}
-                          {(suggestions.length > 0 || (analysis && analysis.suggested_nodes.length > 0) || suggesting) && (
+                          {/* ── Suggestions Section (hidden: the per-node wizard above replaces "Add to your map") ── */}
+                          {SHOW_LEGACY_SUGGESTIONS && (suggestions.length > 0 || (analysis && analysis.suggested_nodes.length > 0) || suggesting) && (
                             <>
                               <div className="flex items-center gap-2 pt-1">
                                 <div className="flex-1 h-px bg-gray-200" />
@@ -1016,70 +1598,38 @@ const loadData = useCallback(async () => {
                     </div>
                   )}
 
-                  {/* ── Chat Tab ── */}
-                  {mapTab === "chat" && (
-                    <div className="flex flex-col h-[340px]">
-                      <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
-                        {chatMessages.length === 0 && (
-                          <div className="text-center py-10">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mx-auto mb-3">
-                              <MessageSquare className="w-6 h-6 text-indigo-400" />
-                            </div>
-                            <p className="text-sm font-medium text-gray-700">Ask me anything</p>
-                            <p className="text-xs text-gray-400 mt-1">I can help you improve your mind map</p>
-                          </div>
-                        )}
-                        {chatMessages.map((m, i) => (
-                          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                            <div
-                              className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
-                                m.role === "user"
-                                  ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-br-md shadow-sm"
-                                  : "bg-white border border-gray-100 text-gray-800 rounded-bl-md shadow-sm"
-                              }`}
-                            >
-                              {m.text}
-                            </div>
-                          </div>
-                        ))}
-                        {chatLoading && (
-                          <div className="flex justify-start">
-                            <div className="bg-white border border-gray-100 px-3 py-2.5 rounded-2xl rounded-bl-md shadow-sm">
-                              <div className="flex gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "300ms" }} />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        <div ref={chatEndRef} />
-                      </div>
-                      <div className="p-3" style={{ borderTop: "1px solid #f0f0f0" }}>
-                        <form onSubmit={e => { e.preventDefault(); handleChat(); }} className="flex gap-2">
-                          <input
-                            type="text"
-                            value={chatInput}
-                            onChange={e => setChatInput(e.target.value)}
-                            placeholder="Ask about your mind map..."
-                            className="flex-1 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-100 transition-colors"
-                          />
-                          <button
-                            type="submit"
-                            disabled={chatLoading || !chatInput.trim()}
-                            className="p-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:opacity-90 transition-all disabled:opacity-40 active:scale-95 shadow-sm"
-                          >
-                            <Send className="w-4 h-4" />
-                          </button>
-                        </form>
-                      </div>
-                    </div>
-                  )}
+                  {/* ── Chat Tab ── (shared with non-map mode) */}
+                  {mapTab === "chat" && renderChatPanel()}
                 </div>
               </>
             ) : (
-              /* ═══ NORMAL STUDY MODE ═══ */
+              /* ═══ NORMAL STUDY MODE — Guide / Chat tabs ═══ */
               <>
+                {/* Tab strip — same shape as the map-mode strip so the widget
+                    feels consistent. The Chat tab is reachable on every
+                    dashboard page (not just the map editor). */}
+                <div className="flex" style={{ borderBottom: "1px solid #e5e7eb" }}>
+                  {([
+                    { key: "guide" as NonMapTab, icon: Lightbulb, label: "Guide" },
+                    { key: "chat" as NonMapTab, icon: MessageSquare, label: "Chat" },
+                  ]).map(t => (
+                    <button
+                      key={t.key}
+                      onClick={() => setNonMapTab(t.key)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${
+                        nonMapTab === t.key
+                          ? "text-indigo-600 border-b-2 border-indigo-500 bg-indigo-50/50"
+                          : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      <t.icon className="w-3.5 h-3.5" />
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                {nonMapTab === "chat" ? renderChatPanel() : (
+                  <>
                 {learningStyle === undefined ? (
                   <div className="flex-1 flex items-center justify-center p-8">
                     <div className="flex items-center gap-1.5">
@@ -1185,6 +1735,8 @@ const loadData = useCallback(async () => {
                       </>
                     ) : null}
                   </div>
+                )}
+                  </>
                 )}
               </>
             )}

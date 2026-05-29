@@ -1,0 +1,787 @@
+{
+  "started": "2026-05-22T02:47:17.641582",
+  "elapsed_seconds": 259.8,
+  "total": 97,
+  "passed": 77,
+  "failed": 20,
+  "server_errors": 4,
+  "total_routes_in_spec": 235,
+  "results": [
+    {
+      "role": null,
+      "method": "GET",
+      "path": "/",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/activity/",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/activity/reflections",
+      "status": 500,
+      "ok": false,
+      "note": "SERVER ERROR"
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/admin/ai-settings",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/admin/ai-token-limit",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/admin/ai-usage",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/admin/announcements",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/admin/audit-logs",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/admin/email-settings",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/admin/homepage/content",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/admin/top-users",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/admin/users",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/ai/companion/history",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/ai/companion/learning-profile",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/ai/images/my-images",
+      "status": 500,
+      "ok": false,
+      "note": "SERVER ERROR"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/ai/images/quota",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/ai/images/styles",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/ai/mindmap-buddy/memory",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/ai/status",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/ai/study-materials/",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/ai/study-plan/daily-guide",
+      "status": 503,
+      "ok": false,
+      "note": "SERVER ERROR"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/ai/study-plan/exam-plans",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/ai/study-plan/timetables",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "lecturer",
+      "method": "GET",
+      "path": "/api/analytics/",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "lecturer",
+      "method": "GET",
+      "path": "/api/analytics/at-risk-students",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "lecturer",
+      "method": "GET",
+      "path": "/api/analytics/engagement-heatmap",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "lecturer",
+      "method": "GET",
+      "path": "/api/analytics/map-type-popularity",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "lecturer",
+      "method": "GET",
+      "path": "/api/analytics/submission-trends",
+      "status": 500,
+      "ok": false,
+      "note": "SERVER ERROR"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/assignments/",
+      "status": 422,
+      "ok": false,
+      "note": "needs params"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/assignments/by-lecturer",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/assignments/my-upcoming",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/assignments/pending-reviews",
+      "status": 403,
+      "ok": false,
+      "note": "auth/permission"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/attendance/student/my",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/badges/check",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/badges/definitions",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/badges/lottie-overrides",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/certificates/my",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/clp/drafts",
+      "status": 403,
+      "ok": false,
+      "note": "auth/permission"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/enrolled",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/search/students",
+      "status": 404,
+      "ok": false,
+      "note": "not found"
+    },
+    {
+      "role": "lecturer",
+      "method": "GET",
+      "path": "/api/courses/teaching",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/views/recent",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/gradebook/my",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": null,
+      "method": "GET",
+      "path": "/api/homepage/content",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": null,
+      "method": "GET",
+      "path": "/api/homepage/stats",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/import/course-kb",
+      "status": 403,
+      "ok": false,
+      "note": "auth/permission"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/maps/",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/maps/search/by-code",
+      "status": 422,
+      "ok": false,
+      "note": "needs params"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/maps/search/by-email",
+      "status": 422,
+      "ok": false,
+      "note": "needs params"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/maps/search/students",
+      "status": 422,
+      "ok": false,
+      "note": "needs params"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/maps/views/recent",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/messages/conversations",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/messages/search-users",
+      "status": 422,
+      "ok": false,
+      "note": "needs params"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/notifications/",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/notifications/grouped",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/peer-reviews/my-reviews",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/progress/calendar",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/progress/courses",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/quizzes/",
+      "status": 422,
+      "ok": false,
+      "note": "needs params"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/reminders/",
+      "status": 422,
+      "ok": false,
+      "note": "needs params"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/social/explore/suggested",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/social/explore/trending",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/social/feed",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/social/users/search",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/stats/map-type-distribution",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/stats/monthly-comparison",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/stats/study-activity",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/enrolled",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/maps/",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/ai/rag/index-status/15229be4-ffeb-449a-8479-9a8e4f34602c",
+      "status": 403,
+      "ok": false,
+      "note": "auth/permission"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/attendance/course/15229be4-ffeb-449a-8479-9a8e4f34602c",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/certificates/course/15229be4-ffeb-449a-8479-9a8e4f34602c",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/completion/course/15229be4-ffeb-449a-8479-9a8e4f34602c",
+      "status": 403,
+      "ok": false,
+      "note": "auth/permission"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/completion/course/15229be4-ffeb-449a-8479-9a8e4f34602c/summary",
+      "status": 403,
+      "ok": false,
+      "note": "auth/permission"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/15229be4-ffeb-449a-8479-9a8e4f34602c/group-tasks/",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/15229be4-ffeb-449a-8479-9a8e4f34602c/groups/",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/15229be4-ffeb-449a-8479-9a8e4f34602c",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/15229be4-ffeb-449a-8479-9a8e4f34602c/announcements/",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/15229be4-ffeb-449a-8479-9a8e4f34602c/discussions/",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/15229be4-ffeb-449a-8479-9a8e4f34602c/modules/",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/15229be4-ffeb-449a-8479-9a8e4f34602c/modules/progress",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/15229be4-ffeb-449a-8479-9a8e4f34602c/participation/",
+      "status": 403,
+      "ok": false,
+      "note": "auth/permission"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/15229be4-ffeb-449a-8479-9a8e4f34602c/students",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/courses/15229be4-ffeb-449a-8479-9a8e4f34602c/topics/",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "lecturer",
+      "method": "GET",
+      "path": "/api/gradebook/course/15229be4-ffeb-449a-8479-9a8e4f34602c",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "lecturer",
+      "method": "GET",
+      "path": "/api/gradebook/course/15229be4-ffeb-449a-8479-9a8e4f34602c/export",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/gradebook/settings/15229be4-ffeb-449a-8479-9a8e4f34602c",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/maps/search/by-course/15229be4-ffeb-449a-8479-9a8e4f34602c",
+      "status": 403,
+      "ok": false,
+      "note": "auth/permission"
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/maps/245d746d-06d9-44fa-8b95-d3d29441e09b",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/maps/245d746d-06d9-44fa-8b95-d3d29441e09b/annotations",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/maps/245d746d-06d9-44fa-8b95-d3d29441e09b/history",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/maps/245d746d-06d9-44fa-8b95-d3d29441e09b/presence",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/maps/245d746d-06d9-44fa-8b95-d3d29441e09b/visitors",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "GET",
+      "path": "/api/peer-reviews/enabled/15229be4-ffeb-449a-8479-9a8e4f34602c",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "POST",
+      "path": "/api/reminders/",
+      "status": 201,
+      "ok": true,
+      "note": ""
+    },
+    {
+      "role": "student",
+      "method": "DELETE",
+      "path": "/api/reminders/e8ad05b1-1a8b-488d-be03-2108a3d8e24a",
+      "status": 200,
+      "ok": true,
+      "note": ""
+    }
+  ]
+}

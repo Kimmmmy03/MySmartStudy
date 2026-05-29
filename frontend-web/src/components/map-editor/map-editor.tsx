@@ -25,6 +25,8 @@ import "@xyflow/react/dist/style.css";
 import { nodeTypes, SHAPE_DEFAULTS } from "./custom-nodes";
 import { edgeTypes, MarkerDefinitions } from "./custom-edges";
 import ShapePalette from "./shape-palette";
+import SwapShapePrompt from "./swap-shape-prompt";
+import { NON_SWAPPABLE_SHAPES } from "./shape-meta";
 import {
   getHierarchicalTemplate, getSpiderTemplate, getBubbleTemplate, getTreeTemplate,
   getFlowchartTemplate, getSwotTemplate, getKwlTemplate, getCauseEffectTemplate,
@@ -62,6 +64,42 @@ interface MapEditorProps {
   initialTemplate?: string | null;
 }
 
+/** Distinct colours cycled across added nodes so each node stands out. */
+const NODE_PALETTE = [
+  "#6366f1", "#10b981", "#f59e0b", "#ec4899", "#06b6d4",
+  "#8b5cf6", "#f97316", "#14b8a6", "#ef4444", "#a78bfa",
+  "#38bdf8", "#eab308", "#f43f5e", "#a3e635",
+];
+
+/** When a node is added by the SmartBuddy wizard it carries a `smartType`
+ *  (subtopic / detail / example / image / resource). Colour the stroke by
+ *  type so the map reads at a glance: all subtopics indigo, all details
+ *  emerald, etc. Generic nodes (no smartType) still cycle through
+ *  NODE_PALETTE so they stay visually distinct. */
+const SMART_TYPE_COLORS: Record<string, string> = {
+  subtopic: "#6366f1", // indigo
+  detail:   "#10b981", // emerald
+  example:  "#f59e0b", // amber
+  image:    "#ec4899", // pink
+  resource: "#06b6d4", // cyan
+};
+
+/** Backfill an explicit style.width/height on shape nodes saved before resizing
+ * worked (older maps stored no size, so NodeResizer had no box to act on).
+ * Text auto-sizes; group/image were already saved with a size. */
+function normalizeNodeSizes(nodes: Node[]): Node[] {
+  return nodes.map((n) => {
+    if (n.type === "text") return n;
+    const style = (n.style as Record<string, number> | undefined) || undefined;
+    if (style?.width != null && style?.height != null) return n;
+    const shape = ((n.data as Record<string, unknown>)?.shape as string) || n.type || "rectangle";
+    const defaults = SHAPE_DEFAULTS[shape] || { w: 140, h: 60 };
+    const w = n.measured?.width ?? style?.width ?? defaults.w;
+    const h = n.measured?.height ?? style?.height ?? defaults.h;
+    return { ...n, style: { ...(n.style || {}), width: w, height: h } };
+  });
+}
+
 /** Get the bounding box (width, height) of a node from its style or shape defaults. */
 function getNodeSize(node: Node): { w: number; h: number } {
   const shape = ((node.data as Record<string, unknown>)?.shape as string) || node.type || "rectangle";
@@ -70,6 +108,49 @@ function getNodeSize(node: Node): { w: number; h: number } {
     w: (node.measured?.width ?? (node.style as Record<string, number>)?.width ?? defaults.w),
     h: (node.measured?.height ?? (node.style as Record<string, number>)?.height ?? defaults.h),
   };
+}
+
+/** Common placeholder labels we DON'T want to use as a map title. */
+const PLACEHOLDER_LABELS = new Set([
+  "", "main topic", "central topic", "central idea", "main idea",
+  "topic", "untitled", "untitled map", "new node", "node",
+]);
+
+function isPlaceholderLabel(label: string): boolean {
+  return PLACEHOLDER_LABELS.has(label.trim().toLowerCase());
+}
+
+/** Pick the "main topic" node: most outgoing edges, ties broken by earliest in
+ *  the array (first-created). Returns null for empty maps. Matches the
+ *  most-connected heuristic already used by handleAddLabeledNode. */
+function pickMainNode(nodes: Node[], edges: Edge[]): Node | null {
+  if (nodes.length === 0) return null;
+  if (nodes.length === 1) return nodes[0];
+  const outDeg = new Map<string, number>();
+  edges.forEach(e => outDeg.set(e.source, (outDeg.get(e.source) || 0) + 1));
+  let best = nodes[0];
+  let bestDeg = outDeg.get(best.id) || 0;
+  for (let i = 1; i < nodes.length; i++) {
+    const d = outDeg.get(nodes[i].id) || 0;
+    if (d > bestDeg) { best = nodes[i]; bestDeg = d; }
+  }
+  return best;
+}
+
+/** Return the topmost node whose bounding box contains the given flow position. */
+function findNodeAt(pos: { x: number; y: number }, nodes: Node[]): Node | null {
+  // Iterate in reverse so later-painted (visually on top) nodes win on overlap.
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    const { w, h } = getNodeSize(n);
+    if (
+      pos.x >= n.position.x && pos.x <= n.position.x + w &&
+      pos.y >= n.position.y && pos.y <= n.position.y + h
+    ) {
+      return n;
+    }
+  }
+  return null;
 }
 
 /** Check whether two axis-aligned boxes overlap with the given gap between them. */
@@ -147,6 +228,11 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [title, setTitle] = useState("Untitled Map");
+  // Tracks the title we auto-set from the main node's label. While the live
+  // title still matches this (or the default), auto-sync keeps following the
+  // main node. The moment the user types into the title input we set this to
+  // null and stop. Clearing the title resets to "" → auto-sync re-engages.
+  const lastAutoTitleRef = useRef<string | null>("Untitled Map");
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
@@ -162,6 +248,12 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
   const canvasRef = useRef<HTMLDivElement>(null);
   const [history, setHistory] = useState<{ nodes: Node[]; edges: Edge[] }[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+
+  // Drag-from-palette → swap-existing-shape flow.
+  const [swapPrompt, setSwapPrompt] = useState<
+    { nodeId: string; currentShape: string; newShape: string; x: number; y: number } | null
+  >(null);
+  const [dragHoverNodeId, setDragHoverNodeId] = useState<string | null>(null);
 
   // Refs for stable access in callbacks (avoids stale closures)
   const nodesRef = useRef(nodes);
@@ -183,7 +275,7 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
     if (mapId) {
       loadMap(mapId).then(result => {
         if (result) {
-          setNodes(result.nodes);
+          setNodes(normalizeNodeSizes(result.nodes));
           setEdges(result.edges);
           setTitle(result.title);
         }
@@ -271,13 +363,35 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
     mindmapCtxRef.current?.update({ nodes, edges, title, selectedNode });
   }, [nodes, edges, title, selectedNode]);
 
-  // ── Apply SmartBuddy highlighting to nodes ──
+  // ── Auto-rename "Untitled Map" to the main topic's label ───────────────
+  // Keeps the title in sync with the most-connected node's label as long as
+  // the user hasn't manually overridden the title (see lastAutoTitleRef).
+  useEffect(() => {
+    const main = pickMainNode(nodes, edges);
+    if (!main) return;
+    const label = (((main.data as Record<string, unknown>)?.label as string) || "").trim();
+    if (!label || isPlaceholderLabel(label)) return;
+    // Auto-sync only when the title is still "ours" (last auto-set value) or
+    // a known default. A user-typed title sets lastAutoTitleRef to null, so
+    // the equality check below fails and we leave the title alone.
+    const isOurs = lastAutoTitleRef.current !== null && title === lastAutoTitleRef.current;
+    const isDefault = title === "Untitled Map" || title === "";
+    if (!isOurs && !isDefault) return;
+    if (title === label) return;
+    setTitle(label);
+    lastAutoTitleRef.current = label;
+  }, [nodes, edges, title]);
+
+  // ── Apply SmartBuddy highlighting + drag-to-swap hover ring ──
   const highlightedIds = mindmapCtx?.highlightedNodeIds ?? [];
-  const displayNodes = highlightedIds.length > 0
-    ? nodes.map(n => highlightedIds.includes(n.id)
-      ? { ...n, className: `${n.className || ""} smartbuddy-highlight`.trim() }
-      : n
-    )
+  const displayNodes = (highlightedIds.length > 0 || dragHoverNodeId)
+    ? nodes.map(n => {
+        const classes: string[] = [];
+        if (n.className) classes.push(n.className);
+        if (highlightedIds.includes(n.id)) classes.push("smartbuddy-highlight");
+        if (dragHoverNodeId === n.id) classes.push("swap-target-ring");
+        return classes.length ? { ...n, className: classes.join(" ") } : n;
+      })
     : nodes;
 
   // ── History ──
@@ -403,7 +517,15 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
         fontFamily: "inherit",
         gradientColor: "",
       },
-      ...(shape === "group" ? { style: { width: 300, height: 200 } } : shape === "image" ? { style: { width: 160, height: 140 } } : {}),
+      // Every node gets an explicit size so NodeResizer has a defined box to
+      // grow/shrink. Text is the exception — it auto-sizes to its content.
+      ...(shape === "group"
+        ? { style: { width: 300, height: 200 } }
+        : shape === "image"
+          ? { style: { width: 160, height: 140 } }
+          : shape === "text"
+            ? {}
+            : { style: { width: defaults.w, height: defaults.h } }),
     };
   }, [isDark]);
 
@@ -419,7 +541,7 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
     pushHistory();
   }, [createNode, pushHistory]);
 
-  const handleAddLabeledNode = useCallback((label: string, parentLabel?: string, nodeType?: string) => {
+  const handleAddLabeledNode = useCallback((label: string, parentLabel?: string, nodeType?: string, smartType?: string) => {
     const currentNodes = nodesRef.current;
     const currentEdges = edgesRef.current;
 
@@ -468,15 +590,22 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
     const baseX = anchor ? anchor.position.x + Math.cos(rad) * radius : 200 + Math.random() * 300;
     const baseY = anchor ? anchor.position.y + Math.sin(rad) * radius : 200 + Math.random() * 300;
 
-    const shape = nodeType === "image" ? "image" : "roundedRect";
+    // nodeType may carry any shape key (e.g. "ellipse" for a spider map) or
+    // "image"; fall back to roundedRect for anything unrecognised/undefined.
+    const shape = nodeType && SHAPE_DEFAULTS[nodeType] ? nodeType : "roundedRect";
     const pos = findNonOverlappingPosition(baseX, baseY, shape, currentNodes);
     const node = createNode(shape, pos);
-    node.data = { ...node.data as Record<string, unknown>, label };
+    // Colour rule: wizard nodes share a stroke colour by their smartType
+    // (all subtopics indigo, all details emerald, …) so the map reads at a
+    // glance. Generic nodes (no smartType) keep the rotating palette so a
+    // hand-built map still gets distinct colours per node.
+    const nodeColor = (smartType && SMART_TYPE_COLORS[smartType])
+      ? SMART_TYPE_COLORS[smartType]
+      : NODE_PALETTE[currentNodes.length % NODE_PALETTE.length];
+    node.data = { ...node.data as Record<string, unknown>, label, strokeColor: nodeColor, ...(smartType ? { smartType } : {}) };
 
-    // Build new edge connecting anchor → new node
-    // Inherit stroke color from the parent node so the edge matches visually
-    const anchorData = anchor ? (anchor.data as Record<string, unknown>) : null;
-    const inheritedColor = (anchorData?.strokeColor as string) || "#6366f1";
+    // Build new edge connecting anchor → new node — coloured to match the node.
+    const inheritedColor = nodeColor;
     const newEdge: Edge | null = anchor ? {
       id: `edge-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       source: anchor.id,
@@ -537,18 +666,73 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+    // Highlight the node under the cursor so the user sees they can drop-to-swap.
+    // dataTransfer.getData is restricted during dragover, so we just light up
+    // whatever node is under the cursor — drop will validate compatibility.
+    const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    const hit = findNodeAt(flowPos, nodesRef.current);
+    const hitId = hit && !NON_SWAPPABLE_SHAPES.has(
+      ((hit.data as Record<string, unknown>)?.shape as string) || hit.type || ""
+    ) ? hit.id : null;
+    setDragHoverNodeId(prev => (prev === hitId ? prev : hitId));
+  }, [screenToFlowPosition]);
+
+  const onDragLeave = useCallback(() => {
+    setDragHoverNodeId(null);
   }, []);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    setDragHoverNodeId(null);
     const shape = e.dataTransfer.getData("application/reactflow-shape");
     if (!shape) return;
     const dropPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+
+    // If the drop landed on an existing swappable node, offer to swap its
+    // shape instead of creating a new one. Text/image/group nodes are
+    // structurally different — fall through to "create" for those.
+    const hit = findNodeAt(dropPos, nodesRef.current);
+    if (hit) {
+      const currentShape = ((hit.data as Record<string, unknown>)?.shape as string) || hit.type || "rectangle";
+      const incompatible =
+        NON_SWAPPABLE_SHAPES.has(currentShape) ||
+        NON_SWAPPABLE_SHAPES.has(shape) ||
+        currentShape === shape;
+      if (!incompatible) {
+        setSwapPrompt({
+          nodeId: hit.id,
+          currentShape,
+          newShape: shape,
+          x: e.clientX,
+          y: e.clientY,
+        });
+        return;
+      }
+    }
+
     const position = findNonOverlappingPosition(dropPos.x, dropPos.y, shape, nodesRef.current);
     const node = createNode(shape, position);
     setNodes(nds => [...nds, node]);
     pushHistory();
   }, [screenToFlowPosition, createNode, pushHistory]);
+
+  /** Convert an existing node's shape in place. Keeps label, position,
+   *  size, colours, edges; only `data.shape` and `type` change. */
+  const handleSwapShape = useCallback((id: string, newShape: string) => {
+    setNodes(nds => nds.map(n => {
+      if (n.id !== id) return n;
+      const data = (n.data as Record<string, unknown>) || {};
+      const defaults = SHAPE_DEFAULTS[newShape] || {};
+      const nextData: Record<string, unknown> = { ...data, shape: newShape };
+      // Only fall back to the new shape's default stroke when the user hasn't
+      // explicitly picked one — keeps custom colours intact.
+      if (!data.strokeColor && defaults.stroke) {
+        nextData.strokeColor = defaults.stroke;
+      }
+      return { ...n, type: newShape, data: nextData };
+    }));
+    pushHistory();
+  }, [pushHistory]);
 
   // ── Property changes ──
 
@@ -616,7 +800,14 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
           <input
             type="text"
             value={title}
-            onChange={e => setTitle(e.target.value)}
+            onChange={e => {
+              const v = e.target.value;
+              setTitle(v);
+              // Typing into the title disables auto-sync (set to null).
+              // Clearing the title re-enables it (set to "" so the next
+              // sync gate's "isDefault" branch triggers).
+              lastAutoTitleRef.current = v === "" ? "" : null;
+            }}
             className="text-lg font-semibold text-white bg-transparent border-none outline-none focus:bg-white/5 px-2 py-1 rounded-lg"
           />
           <span className="text-xs text-dark-400 italic">
@@ -730,6 +921,7 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
             onSelectionChange={onSelectionChange}
             onNodeDragStop={onNodeDragStop}
             onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
             onDrop={onDrop}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
@@ -750,6 +942,20 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
             <Controls showInteractive={false} />
 
           </ReactFlow>
+          {/* Drag-to-swap confirmation popup (anchored at the drop cursor) */}
+          {swapPrompt && (
+            <SwapShapePrompt
+              x={swapPrompt.x}
+              y={swapPrompt.y}
+              currentShape={swapPrompt.currentShape}
+              newShape={swapPrompt.newShape}
+              onConfirm={() => {
+                handleSwapShape(swapPrompt.nodeId, swapPrompt.newShape);
+                setSwapPrompt(null);
+              }}
+              onCancel={() => setSwapPrompt(null)}
+            />
+          )}
           {/* Read-only annotation layer — shows lecturer sticky notes & drawings */}
           {mapId && authUser && showAnnotations && (
             <AnnotationLayer

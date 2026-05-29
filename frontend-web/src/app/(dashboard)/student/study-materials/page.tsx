@@ -154,6 +154,51 @@ export default function StudyMaterialsPage() {
     }
   };
 
+  /** Provenance banner shown above the viewer — tells the student whether the
+   *  content came from their course notes, academic literature, or AI general
+   *  knowledge (and whether the citations were verified). */
+  const renderProvenanceBanner = (material: StudyMaterial) => {
+    const tier = material.evidence_tier;
+    if (!tier) return null;
+    const isCourse = tier === "course";
+    const isOnline = tier === "online";
+    const styles = isCourse
+      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+      : isOnline
+        ? "border-sky-500/30 bg-sky-500/10 text-sky-100"
+        : "border-amber-500/30 bg-amber-500/10 text-amber-100";
+    const heading = isCourse
+      ? "🎓 Generated from your lecturer's course notes"
+      : isOnline
+        ? "⚠️ NOT from your course notes — sourced from academic literature (last 6 years)"
+        : "⚠️ NOT from your course notes — AI-generated with cited references";
+    const cites = material.citations || [];
+    return (
+      <div className={`mb-4 rounded-2xl border ${styles} p-3 text-sm`}>
+        <p className="font-semibold mb-1">{heading}</p>
+        {cites.length > 0 && (
+          <ul className="space-y-0.5 text-[12px] leading-relaxed">
+            {cites.slice(0, 5).map((c, i) => {
+              const head = `${c.authors || "Unknown"} (${c.year ?? "n.d."}). ${c.title || ""}.`;
+              const venue = c.venue ? ` ${c.venue}.` : "";
+              const unverified = !isCourse && tier === "general_knowledge" && c.verified === false;
+              return (
+                <li key={i} className="opacity-90">
+                  – {c.url ? <a className="underline hover:opacity-80" href={c.url} target="_blank" rel="noopener noreferrer">{head}</a> : head}
+                  {venue}
+                  {unverified && <span className="ml-1 text-amber-300">(unverified)</span>}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {tier === "general_knowledge" && (
+          <p className="mt-1 text-[11px] opacity-80">Please verify each citation before relying on it.</p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
       <div className="flex items-center gap-3 mb-2">
@@ -350,7 +395,12 @@ export default function StudyMaterialsPage() {
         title={selectedMaterial?.title || ""}
         maxWidth="max-w-3xl"
       >
-        {selectedMaterial && renderViewer(selectedMaterial)}
+        {selectedMaterial && (
+          <>
+            {renderProvenanceBanner(selectedMaterial)}
+            {renderViewer(selectedMaterial)}
+          </>
+        )}
       </Modal>
     </motion.div>
   );

@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../screens/ai_companion_screen.dart';
+import '../screens/smart_buddy_chat_screen.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_theme_ext.dart';
 
@@ -81,6 +82,73 @@ class _AiCompanionFabState extends State<AiCompanionFab>
     await prefs.setBool(_prefKey, true);
   }
 
+  /// Bottom sheet chooser — tapping the brain FAB opens this so the student
+  /// can pick between the Daily Guide hub and the new SmartBuddy chat.
+  void _showCompanionMenu(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetCtx) {
+        return SafeArea(
+          top: false,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x33000000),
+                  blurRadius: 24,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).dividerColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _CompanionMenuItem(
+                  icon: Icons.auto_awesome,
+                  title: 'SmartBuddy Chat',
+                  subtitle: 'Ask anything — cited from course, papers, or AI.',
+                  gradient: const [Color(0xFF6366F1), Color(0xFFA855F7)],
+                  onTap: () {
+                    Navigator.pop(sheetCtx);
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const SmartBuddyChatScreen()));
+                  },
+                ),
+                const SizedBox(height: 10),
+                _CompanionMenuItem(
+                  icon: Icons.dashboard_customize_outlined,
+                  title: 'Daily Guide & Plan',
+                  subtitle: 'Learning style, exam plan, timetable.',
+                  gradient: const [Color(0xFF06B6D4), Color(0xFF3B82F6)],
+                  onTap: () {
+                    Navigator.pop(sheetCtx);
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const AiCompanionScreen()));
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _pulseController.dispose();
@@ -119,10 +187,7 @@ class _AiCompanionFabState extends State<AiCompanionFab>
 
             // Main FAB button
             GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AiCompanionScreen()),
-              ),
+              onTap: () => _showCompanionMenu(context),
               onLongPress: _bubblesVisible ? _dismissBubbles : null,
               child: AnimatedBuilder(
                 animation: _pulseController,
@@ -219,4 +284,73 @@ class _BubblePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _BubblePainter old) => true;
+}
+
+class _CompanionMenuItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final List<Color> gradient;
+  final VoidCallback onTap;
+  const _CompanionMenuItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.gradient,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: gradient),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).hintColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right,
+                  color: Theme.of(context).hintColor),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

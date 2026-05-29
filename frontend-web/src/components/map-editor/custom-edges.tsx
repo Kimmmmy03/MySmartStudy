@@ -8,7 +8,10 @@ import {
   getBezierPath,
   getSmoothStepPath,
   useNodes,
+  useInternalNode,
+  Position,
   type EdgeProps,
+  type InternalNode,
 } from "@xyflow/react";
 import { getObstacles, computeAvoidancePath } from "./edge-routing";
 
@@ -90,14 +93,108 @@ function edgeStyle(props: EdgeProps): React.CSSProperties {
   };
 }
 
-/** Shared hook: compute obstacle-avoiding path for an edge */
-function useAvoidancePath(props: EdgeProps) {
-  const { sourceX, sourceY, targetX, targetY, source, target } = props;
+// ── Floating endpoints ──
+// For edges without explicit handles, attach each end to the side of the node
+// that faces the other node (instead of always the top handle). Recomputed
+// live as nodes move, so connections stay natural.
+
+type XY = { x: number; y: number };
+
+function nodeBox(node: InternalNode) {
+  const x = node.internals.positionAbsolute.x;
+  const y = node.internals.positionAbsolute.y;
+  const w = node.measured?.width ?? 0;
+  const h = node.measured?.height ?? 0;
+  return { x, y, w, h, cx: x + w / 2, cy: y + h / 2 };
+}
+
+/** Point where the ray from the node's centre toward `toward` exits its visible
+ *  contour. Falls back to the bounding rectangle for shapes whose body roughly
+ *  fills the rect — for circle/ellipse/diamond we use the actual shape so the
+ *  line touches the visible edge with no gap. */
+function borderPoint(node: InternalNode, toward: XY): XY {
+  const b = nodeBox(node);
+  const dx = toward.x - b.cx;
+  const dy = toward.y - b.cy;
+  if (dx === 0 && dy === 0) return { x: b.cx, y: b.cy };
+  const a = b.w / 2;
+  const c = b.h / 2;
+  if (a <= 0 || c <= 0) return { x: b.cx, y: b.cy };
+
+  const shape = ((node.data as Record<string, unknown>)?.shape as string) || "rectangle";
+  let t: number;
+  if (shape === "circle" || shape === "ellipse") {
+    // Ellipse contour: (X/a)² + (Y/c)² = 1, ray (dx·t, dy·t).
+    t = 1 / Math.sqrt((dx / a) ** 2 + (dy / c) ** 2);
+  } else if (shape === "diamond") {
+    // Rhombus: |X|/a + |Y|/c = 1.
+    t = 1 / (Math.abs(dx) / a + Math.abs(dy) / c);
+  } else {
+    // Bounding rectangle: smaller of horizontal/vertical exits first.
+    const scaleX = dx !== 0 ? a / Math.abs(dx) : Infinity;
+    const scaleY = dy !== 0 ? c / Math.abs(dy) : Infinity;
+    t = Math.min(scaleX, scaleY);
+  }
+  return { x: b.cx + dx * t, y: b.cy + dy * t };
+}
+
+/** Side the exit faces, derived from the direction vector (not the point), so
+ *  it works for any contour — not just points exactly on the rect's edges. */
+function borderSide(node: InternalNode, toward: XY): Position {
+  const b = nodeBox(node);
+  const dx = toward.x - b.cx;
+  const dy = toward.y - b.cy;
+  const a = Math.max(b.w / 2, 1);
+  const c = Math.max(b.h / 2, 1);
+  if (Math.abs(dx / a) > Math.abs(dy / c)) {
+    return dx > 0 ? Position.Right : Position.Left;
+  }
+  return dy > 0 ? Position.Bottom : Position.Top;
+}
+
+/** Shared hook: effective endpoints (floating when handle-less) + avoidance path. */
+function useEdgeGeometry(props: EdgeProps) {
+  const sourceNode = useInternalNode(props.source);
+  const targetNode = useInternalNode(props.target);
   const allNodes = useNodes();
-  return useMemo(() => {
-    const obstacles = getObstacles(allNodes, source, target);
-    return computeAvoidancePath(sourceX, sourceY, targetX, targetY, obstacles, true);
-  }, [allNodes, source, target, sourceX, sourceY, targetX, targetY]);
+  const hasHandles = !!(props.sourceHandleId || props.targetHandleId);
+
+  const coords = useMemo(() => {
+    const fallback = {
+      sourceX: props.sourceX, sourceY: props.sourceY,
+      targetX: props.targetX, targetY: props.targetY,
+      sourcePosition: props.sourcePosition, targetPosition: props.targetPosition,
+    };
+    // Respect explicit handle connections; skip when unmeasured or self-loop.
+    if (
+      hasHandles || !sourceNode || !targetNode ||
+      props.source === props.target ||
+      !sourceNode.measured?.width || !targetNode.measured?.width
+    ) {
+      return fallback;
+    }
+    const sBox = nodeBox(sourceNode);
+    const tBox = nodeBox(targetNode);
+    const sp = borderPoint(sourceNode, { x: tBox.cx, y: tBox.cy });
+    const tp = borderPoint(targetNode, { x: sBox.cx, y: sBox.cy });
+    return {
+      sourceX: sp.x, sourceY: sp.y,
+      targetX: tp.x, targetY: tp.y,
+      sourcePosition: borderSide(sourceNode, { x: tBox.cx, y: tBox.cy }),
+      targetPosition: borderSide(targetNode, { x: sBox.cx, y: sBox.cy }),
+    };
+  }, [
+    hasHandles, sourceNode, targetNode, props.source, props.target,
+    props.sourceX, props.sourceY, props.targetX, props.targetY,
+    props.sourcePosition, props.targetPosition,
+  ]);
+
+  const avoidPath = useMemo(() => {
+    const obstacles = getObstacles(allNodes, props.source, props.target);
+    return computeAvoidancePath(coords.sourceX, coords.sourceY, coords.targetX, coords.targetY, obstacles, true);
+  }, [allNodes, props.source, props.target, coords]);
+
+  return { ...coords, avoidPath };
 }
 
 /** Render helper shared by all edge types */
@@ -122,9 +219,9 @@ function AvoidanceEdge({ props, avoidPath }: { props: EdgeProps; avoidPath: { pa
 // ── Straight Edge ──
 
 export function StraightCustomEdge(props: EdgeProps) {
-  const avoidPath = useAvoidancePath(props);
+  const { sourceX, sourceY, targetX, targetY, avoidPath } = useEdgeGeometry(props);
   // If no obstacles were hit, use React Flow's native straight path for cleanliness
-  const { sourceX, sourceY, targetX, targetY, data, style } = props;
+  const { data, style } = props;
   const d = data as CustomEdgeData | undefined;
   const color = (style?.stroke as string) || "#6366f1";
   const [nativePath, nativeLX, nativeLY] = getStraightPath({ sourceX, sourceY, targetX, targetY });
@@ -153,8 +250,8 @@ export function StraightCustomEdge(props: EdgeProps) {
 // ── Bezier Edge ──
 
 export function BezierCustomEdge(props: EdgeProps) {
-  const avoidPath = useAvoidancePath(props);
-  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, style } = props;
+  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, avoidPath } = useEdgeGeometry(props);
+  const { data, style } = props;
   const d = data as CustomEdgeData | undefined;
   const color = (style?.stroke as string) || "#6366f1";
   const [nativePath, nativeLX, nativeLY] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
@@ -182,8 +279,8 @@ export function BezierCustomEdge(props: EdgeProps) {
 // ── Step Edge (orthogonal with rounded corners) ──
 
 export function StepCustomEdge(props: EdgeProps) {
-  const avoidPath = useAvoidancePath(props);
-  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, style } = props;
+  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, avoidPath } = useEdgeGeometry(props);
+  const { data, style } = props;
   const d = data as CustomEdgeData | undefined;
   const color = (style?.stroke as string) || "#6366f1";
   const [nativePath, nativeLX, nativeLY] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 8 });
@@ -211,8 +308,8 @@ export function StepCustomEdge(props: EdgeProps) {
 // ── Elbowed Edge (sharp right-angle corners like draw.io) ──
 
 export function ElbowedCustomEdge(props: EdgeProps) {
-  const avoidPath = useAvoidancePath(props);
-  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, style } = props;
+  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, avoidPath } = useEdgeGeometry(props);
+  const { data, style } = props;
   const d = data as CustomEdgeData | undefined;
   const color = (style?.stroke as string) || "#6366f1";
   const [nativePath, nativeLX, nativeLY] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 0 });

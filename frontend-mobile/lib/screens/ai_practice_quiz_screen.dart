@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../utils/app_theme_ext.dart';
+import '../widgets/provenance_banner.dart';
 
 // ── Pastel palette ──
 const _pLavender   = Color(0xFFBFA8D9);
@@ -37,8 +38,10 @@ Color _darken(Color color, [double amount = 0.18]) {
 class AiPracticeQuizScreen extends StatefulWidget {
   final String title;
   final List<Map<String, dynamic>> questions;
+  /// Full material map — passed so the provenance banner can render at the top.
+  final Map<String, dynamic>? material;
   const AiPracticeQuizScreen(
-      {super.key, required this.title, required this.questions});
+      {super.key, required this.title, required this.questions, this.material});
 
   @override
   State<AiPracticeQuizScreen> createState() => _AiPracticeQuizScreenState();
@@ -138,11 +141,22 @@ class _AiPracticeQuizScreenState extends State<AiPracticeQuizScreen> {
         foregroundColor: c.textPrimary,
         scrolledUnderElevation: 0,
       ),
-      body: total == 0
-          ? _emptyState(c)
-          : _submitted
-              ? _buildResultsView(c)
-              : _buildQuizView(c, total),
+      body: Column(
+        children: [
+          if (widget.material != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+              child: ProvenanceBanner(material: widget.material!),
+            ),
+          Expanded(
+            child: total == 0
+                ? _emptyState(c)
+                : _submitted
+                    ? _buildResultsView(c)
+                    : _buildQuizView(c, total),
+          ),
+        ],
+      ),
     );
   }
 

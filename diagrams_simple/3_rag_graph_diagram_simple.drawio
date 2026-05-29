@@ -1,130 +1,88 @@
-<mxfile host="Electron" agent="MySmartStudy">
+<mxfile host="app.diagrams.net" agent="MySmartStudy" version="22.1.16">
   <diagram id="ragGraphSimple" name="Knowledge Graph (Simple)">
     <mxGraphModel dx="2357" dy="1402" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=26;fontStyle=1;fontColor=#1F3A68" value="How the AI Sees How Topics Connect" vertex="1">
-          <mxGeometry height="44" width="1200" x="400" y="20" as="geometry" />
+
+        <mxCell id="title" value="How the AI Sees How Topics Connect" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=26;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="1200" height="44" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" parent="1" style="text;html=1;align=center;whiteSpace=wrap;fontSize=15;fontStyle=2;fontColor=#3D4A5C" value="The AI builds a mind-map of every course, then uses it to suggest ideas and catch copying." vertex="1">
-          <mxGeometry height="30" width="1600" x="200" y="64" as="geometry" />
+        <mxCell id="subtitle" value="The AI builds a mind-map of every course, then uses it to suggest ideas and to catch copying." style="text;html=1;align=center;whiteSpace=wrap;fontSize=15;fontStyle=2;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="200" y="64" width="1600" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="useA" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=15;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8;align=left;spacingLeft=18" value="Use 1 — A &quot;mind map&quot; of the course&#xa;The AI reads the course materials and draws a map of how topics connect." vertex="1">
-          <mxGeometry height="440" width="1280" x="40" y="120" as="geometry" />
+
+        <!-- USE 1 — COURSE MIND MAP -->
+        <mxCell id="useA" value="Use 1 — A &quot;mind map&quot; of the course&#xa;The AI reads the course materials and draws a map of how topics connect." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=15;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8;align=left;spacingLeft=18" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="1280" height="440" as="geometry" />
         </mxCell>
-        <mxCell id="c_db" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;fontSize=14;fontStyle=1;fontColor=#1F3A68" value="Database" vertex="1">
-          <mxGeometry height="60" width="140" x="120" y="220" as="geometry" />
+        <mxCell id="c_db" value="Database" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;fontSize=14;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="120" y="220" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="c_er" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;fontSize=14;fontStyle=1;fontColor=#1F3A68" value="ER Model" vertex="1">
-          <mxGeometry height="60" width="140" x="340" y="220" as="geometry" />
+        <mxCell id="c_er" value="ER Model" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;fontSize=14;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="340" y="220" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="c_eer" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;fontSize=14;fontStyle=1;fontColor=#1F3A68" value="EER Model" vertex="1">
-          <mxGeometry height="60" width="140" x="560" y="220" as="geometry" />
+        <mxCell id="c_eer" value="EER Model" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;fontSize=14;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="560" y="220" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="c_norm" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;fontSize=14;fontStyle=1;fontColor=#1F3A68" value="Normalisation" vertex="1">
-          <mxGeometry height="60" width="160" x="780" y="220" as="geometry" />
+        <mxCell id="c_norm" value="Normalisation" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;fontSize=14;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="780" y="220" width="160" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="c_3nf" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;fontSize=13;fontStyle=1;fontColor=#3F2A6B" value="3NF&#xa;(an example)" vertex="1">
-          <mxGeometry height="70" width="160" x="1020" y="220" as="geometry" />
+        <mxCell id="c_3nf" value="3NF&#xa;(an example)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;fontSize=13;fontStyle=1;fontColor=#3F2A6B" vertex="1" parent="1">
+          <mxGeometry x="1020" y="220" width="160" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="c_pk" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;fontSize=13;fontStyle=1;fontColor=#4C2F87" value="Primary Key" vertex="1">
-          <mxGeometry height="60" width="140" x="340" y="380" as="geometry" />
+        <mxCell id="c_pk" value="Primary Key" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;fontSize=13;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="340" y="380" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="c_fk" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;fontSize=13;fontStyle=1;fontColor=#4C2F87" value="Foreign Key" vertex="1">
-          <mxGeometry height="60" width="140" x="560" y="380" as="geometry" />
+        <mxCell id="c_fk" value="Foreign Key" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;fontSize=13;fontStyle=1;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="560" y="380" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="c_sql" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;fontSize=14;fontStyle=1;fontColor=#1F3A68" value="SQL" vertex="1">
-          <mxGeometry height="60" width="160" x="780" y="380" as="geometry" />
+        <mxCell id="c_sql" value="SQL" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;fontSize=14;fontStyle=1;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="780" y="380" width="160" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="c_join" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;fontSize=13;fontStyle=1;fontColor=#3F2A6B" value="JOIN" vertex="1">
-          <mxGeometry height="60" width="160" x="1020" y="380" as="geometry" />
+        <mxCell id="c_join" value="JOIN" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E0DAEF;strokeColor=#553C9A;strokeWidth=2;fontSize=13;fontStyle=1;fontColor=#3F2A6B" vertex="1" parent="1">
+          <mxGeometry x="1020" y="380" width="160" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="ce1" edge="1" parent="1" source="c_db" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C" target="c_er" value="part of">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="ce1" value="part of" edge="1" parent="1" source="c_db" target="c_er" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ce2" value="leads to" edge="1" parent="1" source="c_er" target="c_eer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ce3" value="needs" edge="1" parent="1" source="c_eer" target="c_norm" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ce4" value="example of" edge="1" parent="1" source="c_3nf" target="c_norm" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ce5" value="part of" edge="1" parent="1" source="c_pk" target="c_er" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ce6" value="related to" edge="1" parent="1" source="c_fk" target="c_pk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ce8" value="part of" edge="1" parent="1" source="c_join" target="c_sql" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ce7" value="used in" edge="1" parent="1" source="c_sql" target="c_db" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=1;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="860" y="480" /><mxPoint x="190" y="480" /></Array></mxGeometry>
         </mxCell>
-        <mxCell id="ce2" edge="1" parent="1" source="c_er" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C" target="c_eer" value="leads to">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="useA_note" value="What it's for&#xa;&#xa;When a student building a mind map types&#xa;&quot;ER Model&quot;, the AI suggests related ideas it&#xa;already knows from the course — Primary Key,&#xa;Normalisation, EER Model — and explains how&#xa;they connect.&#xa;&#xa;Because the AI keeps a map (not just plain text),&#xa;it recommends the RIGHT next idea, not&#xa;random ones." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=13;fontColor=#3D4A5C;align=left;spacingLeft=14;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="1340" y="170" width="620" height="390" as="geometry" />
         </mxCell>
-        <mxCell id="ce3" edge="1" parent="1" source="c_eer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C" target="c_norm" value="needs">
-          <mxGeometry relative="1" as="geometry" />
+
+        <!-- USE 2 — PLAGIARISM -->
+        <mxCell id="useB" value="Use 2 — Catching copied submissions&#xa;The AI compares every student's submission and draws a &quot;similarity map.&quot;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=15;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8;align=left;spacingLeft=18" vertex="1" parent="1">
+          <mxGeometry x="40" y="600" width="1920" height="500" as="geometry" />
         </mxCell>
-        <mxCell id="ce4" edge="1" parent="1" source="c_3nf" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C" target="c_norm" value="example of">
-          <mxGeometry relative="1" as="geometry" />
+
+        <mxCell id="sb1" value="📥  Collect&#xa;all submissions&#xa;for one assignment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;align=center;verticalAlign=middle;fontSize=14;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="90" y="700" width="320" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="ce5" edge="1" parent="1" source="c_pk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C" target="c_er" value="part of">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="sb2" value="📏  Measure how alike&#xa;every pair of submissions is&#xa;(0% = different,  100% = identical)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8E3;strokeColor=#4A6E8C;strokeWidth=2;align=center;verticalAlign=middle;fontSize=14;fontColor=#2E4A66" vertex="1" parent="1">
+          <mxGeometry x="490" y="700" width="430" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="ce6" edge="1" parent="1" source="c_fk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C" target="c_pk" value="related to">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="sb3" value="🔗  Group submissions that&#xa;are very alike into &quot;clusters&quot;&#xa;(flagged when 70%+ similar)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;strokeWidth=2;align=center;verticalAlign=middle;fontSize=14;fontColor=#3D4A5C" vertex="1" parent="1">
+          <mxGeometry x="1000" y="700" width="430" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="ce8" edge="1" parent="1" source="c_join" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C" target="c_sql" value="part of">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="sb4" value="📋  Show the lecturer&#xa;a clear report of which&#xa;students may have copied" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;align=center;verticalAlign=middle;fontSize=14;fontColor=#4C2F87" vertex="1" parent="1">
+          <mxGeometry x="1510" y="700" width="380" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="ce7" edge="1" parent="1" source="c_sql" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=1;endArrow=open;fontSize=11;strokeWidth=2;strokeColor=#4A5568;fontColor=#3D4A5C;entryDx=0;entryDy=0;exitDx=0;exitDy=0;" target="c_db" value="used in">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="860" y="480" />
-              <mxPoint x="190" y="480" />
-            </Array>
-          </mxGeometry>
+        <mxCell id="sbe1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#5A6478;strokeWidth=2.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5" edge="1" parent="1" source="sb1" target="sb2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="sbe2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#5A6478;strokeWidth=2.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5" edge="1" parent="1" source="sb2" target="sb3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="sbe3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#5A6478;strokeWidth=2.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5" edge="1" parent="1" source="sb3" target="sb4"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="useB_note" value="💡  The AI engine — both the course mind-map and the copy-checking can run on two interchangeable engines: a custom-built one, or one made from popular ready-made AI toolkits (LangChain and CrewAI). The result is the same; an admin can switch between them at any time." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=13;fontColor=#3D4A5C;align=left;spacingLeft=14;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="90" y="870" width="1800" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="useA_note" parent="1" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=13;fontColor=#3D4A5C;align=left;spacingLeft=14;spacingTop=10" value="What it&#39;s for&#xa;&#xa;When a student is building a mind map and types&#xa;&quot;ER Model&quot;, the AI can suggest related ideas it&#xa;already knows from the course — Primary Key,&#xa;Normalisation, EER Model — and explain how&#xa;they connect.&#xa;&#xa;The mind-map shape (not just plain text) lets&#xa;the AI recommend the right next idea, not&#xa;random ones." vertex="1">
-          <mxGeometry height="390" width="620" x="1340" y="170" as="geometry" />
-        </mxCell>
-        <mxCell id="useB" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;verticalAlign=top;fontSize=15;fontStyle=1;fontColor=#3D4A5C;dashed=1;spacingTop=8;align=left;spacingLeft=18" value="Use 2 — Catching copied submissions&#xa;The AI compares every student&#39;s work to every other student&#39;s work, and draws a line between any two that look unusually alike." vertex="1">
-          <mxGeometry height="540" width="1920" x="40" y="600" as="geometry" />
-        </mxCell>
-        <mxCell id="cluster1_title" parent="1" style="text;html=1;align=center;fontStyle=1;fontSize=13;fontColor=#4C2F87" value="Cluster A — very similar (review!)" vertex="1">
-          <mxGeometry height="20" width="380" x="60" y="680" as="geometry" />
-        </mxCell>
-        <mxCell id="s1" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;fontSize=12;fontStyle=1;fontColor=#4C2F87" value="Student 1" vertex="1">
-          <mxGeometry height="60" width="100" x="120" y="720" as="geometry" />
-        </mxCell>
-        <mxCell id="s2" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;fontSize=12;fontStyle=1;fontColor=#4C2F87" value="Student 2" vertex="1">
-          <mxGeometry height="60" width="100" x="320" y="720" as="geometry" />
-        </mxCell>
-        <mxCell id="s3" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;strokeWidth=2;fontSize=12;fontStyle=1;fontColor=#4C2F87" value="Student 3" vertex="1">
-          <mxGeometry height="60" width="100" x="220" y="840" as="geometry" />
-        </mxCell>
-        <mxCell id="se1" edge="1" parent="1" source="s1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=none;fontSize=11;strokeColor=#6B46C1;strokeWidth=3;fontColor=#4C2F87" target="s2" value="91% similar">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="se2" edge="1" parent="1" source="s2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=none;fontSize=11;strokeColor=#6B46C1;strokeWidth=3;fontColor=#4C2F87" target="s3" value="84% similar">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="se3" edge="1" parent="1" source="s1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=none;fontSize=11;strokeColor=#6B46C1;strokeWidth=3;fontColor=#4C2F87" target="s3" value="79% similar">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="cluster2_title" parent="1" style="text;html=1;align=center;fontStyle=1;fontSize=13;fontColor=#3D4A5C" value="Cluster B — moderately similar" vertex="1">
-          <mxGeometry height="20" width="380" x="500" y="680" as="geometry" />
-        </mxCell>
-        <mxCell id="s4" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;strokeWidth=2;fontSize=12;fontStyle=1;fontColor=#3D4A5C" value="Student 4" vertex="1">
-          <mxGeometry height="60" width="100" x="540" y="750" as="geometry" />
-        </mxCell>
-        <mxCell id="s5" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DDE2EB;strokeColor=#5A6478;strokeWidth=2;fontSize=12;fontStyle=1;fontColor=#3D4A5C" value="Student 5" vertex="1">
-          <mxGeometry height="60" width="100" x="740" y="750" as="geometry" />
-        </mxCell>
-        <mxCell id="se4" edge="1" parent="1" source="s4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=none;fontSize=11;strokeColor=#5A6478;strokeWidth=3;fontColor=#3D4A5C" target="s5" value="72%">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="cluster3_title" parent="1" style="text;html=1;align=center;fontStyle=1;fontSize=13;fontColor=#1F3A68" value="Unrelated submissions" vertex="1">
-          <mxGeometry height="20" width="380" x="940" y="680" as="geometry" />
-        </mxCell>
-        <mxCell id="s6" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;fontSize=12;fontStyle=1;fontColor=#1F3A68" value="Student 6" vertex="1">
-          <mxGeometry height="60" width="100" x="980" y="750" as="geometry" />
-        </mxCell>
-        <mxCell id="s7" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;strokeWidth=2;fontSize=12;fontStyle=1;fontColor=#1F3A68" value="Student 7" vertex="1">
-          <mxGeometry height="60" width="100" x="1180" y="750" as="geometry" />
-        </mxCell>
-        <mxCell id="se5" edge="1" parent="1" source="s6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=none;fontSize=10;strokeColor=#A0AEC0;dashed=1;strokeWidth=2;fontColor=#5A6478" target="s7" value="31% — not flagged">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="useB_legend" parent="1" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECE9F3;strokeColor=#7A6B98;fontSize=13;fontColor=#3D4A5C;align=left;spacingLeft=14;spacingTop=10" value="How to read it&#xa;&#xa;Each circle = one student&#39;s submission.&#xa;A line between two circles = how similar they are.&#xa;&#xa;Thick purple line  → very similar — lecturer should check&#xa;Gray line                → some similarity — could be coincidence&#xa;Faded dashed line → low similarity — ignored" vertex="1">
-          <mxGeometry height="200" width="600" x="1340" y="680" as="geometry" />
-        </mxCell>
-        <mxCell id="useB_outcome" parent="1" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ECEFF5;strokeColor=#4A6E8C;fontSize=13;fontColor=#2E4A66;align=left;spacingLeft=14;spacingTop=10" value="What the lecturer sees&#xa;&#xa;A picture like the one on the left, a short written summary explaining why each cluster looks suspicious, and the actual text passages that overlap — so they can decide if it was real plagiarism, both students using the same source, or just a coincidence." vertex="1">
-          <mxGeometry height="160" width="1860" x="80" y="940" as="geometry" />
+        <mxCell id="footer" value="Why it matters:  the &quot;maps&quot; let the AI give smarter study suggestions and help lecturers spot copying fairly." style="text;html=1;align=center;whiteSpace=wrap;fontSize=14;fontStyle=2;fontColor=#1F3A68" vertex="1" parent="1">
+          <mxGeometry x="90" y="970" width="1800" height="30" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 import os
+import re
 import hashlib
 from app.firestore import db
 from app.auth import get_current_user
@@ -23,8 +24,13 @@ class GenerateRequest(BaseModel):
 
 class TopicGenerateRequest(BaseModel):
     topic: str
-    course_id: str
+    course_id: str = ""  # required only when evidence_tier == "course"
     type: str  # "summary", "flashcards", "quiz"
+    # Which source tier the material should be grounded in:
+    #   "course"            — RAG against the lecturer's indexed course (default)
+    #   "online"            — OpenAlex peer-reviewed sources (last 6 years)
+    #   "general_knowledge" — Gemini's general knowledge with cited works
+    evidence_tier: str = "course"
 
 
 def _material_out(d: dict) -> dict:
@@ -36,6 +42,11 @@ def _material_out(d: dict) -> dict:
         "title": d.get("title", ""),
         "content": d.get("content"),
         "created_at": d.get("createdAt"),
+        # Source-tier metadata for topic-based materials. Older docs without
+        # these fields just render unchanged — the UI treats them as missing.
+        "evidence_tier": d.get("evidenceTier"),
+        "provenance_banner": d.get("provenanceBanner"),
+        "citations": d.get("citations") or [],
     }
 
 
@@ -393,9 +404,98 @@ async def generate_from_upload(
     return _material_out(mat_data)
 
 
+async def _verify_citations(raw: list[dict]) -> list[dict]:
+    """Verify each Gemini-emitted citation against OpenAlex so the UI can flag
+    hallucinated references. Cap to 6 to keep the OpenAlex calls bounded."""
+    from app.services import external_lookup
+    out: list[dict] = []
+    for c in (raw or [])[:6]:
+        if not isinstance(c, dict):
+            continue
+        title = (c.get("title") or "").strip()
+        verified = await external_lookup.verify_citation(title) if title else None
+        if verified:
+            out.append({**verified, "tier": "general_knowledge", "verified": True})
+        else:
+            out.append({
+                "tier": "general_knowledge",
+                "kind": "citation",
+                "title": title,
+                "authors": c.get("authors", ""),
+                "year": c.get("year"),
+                "venue": c.get("venue", ""),
+                "url": "",
+                "verified": False,
+            })
+    return out
+
+
+_CITATIONS_RE = re.compile(r"CITATIONS_JSON:\s*(\[.*?\])\s*$", re.DOTALL)
+
+
+async def _parse_and_verify_gk_citations(text: str) -> tuple[str, list[dict]]:
+    """Strip a trailing CITATIONS_JSON: [...] block from the generated text and
+    verify each entry. Returns (clean_text, verified_citations)."""
+    m = _CITATIONS_RE.search(text)
+    if not m:
+        return text, []
+    body = text[:m.start()].rstrip()
+    try:
+        import json as _json
+        raw = _json.loads(m.group(1))
+        verified = await _verify_citations(raw if isinstance(raw, list) else [])
+        return body, verified
+    except Exception:
+        return body, []
+
+
+async def _split_flashcards_and_citations(text: str) -> tuple[str, list[dict]]:
+    """For flashcard/quiz prompts: extract the leading JSON array + trailing
+    CITATIONS_JSON block. Returns (json_string, verified_citations)."""
+    # First strip any trailing CITATIONS_JSON tail and verify.
+    body, cites = await _parse_and_verify_gk_citations(text)
+    # The body should be a JSON array. Find its outermost [...] span.
+    body = body.strip()
+    if body.startswith("```"):
+        # Strip optional fenced code block ('```json\n...\n```').
+        body = re.sub(r"^```(?:json)?\s*", "", body)
+        body = re.sub(r"\s*```$", "", body)
+    start = body.find("[")
+    end = body.rfind("]")
+    if start != -1 and end > start:
+        body = body[start:end + 1]
+    return body, cites
+
+
+def _banner_for_tier(tier: str, citations: list[dict]) -> str:
+    """Provenance banner persisted at the top of the stored material so the
+    student always sees where the content was sourced from — even on reload."""
+    if tier == "course":
+        return "> 🎓 **Generated from your lecturer's course notes.**\n\n"
+    if tier == "online":
+        lines = ["> ⚠️ **NOT from your course notes.** Sourced from academic literature (last 6 years):"]
+        for c in citations[:5]:
+            line = f"> – {c.get('authors','Unknown')} ({c.get('year','n.d.')}). {c.get('title','')}."
+            if c.get("venue"):
+                line += f" *{c['venue']}*."
+            if c.get("url"):
+                line += f" [link]({c['url']})"
+            lines.append(line)
+        return "\n".join(lines) + "\n\n"
+    # general_knowledge
+    return (
+        "> ⚠️ **NOT from your course notes.** AI general knowledge, with no "
+        "verifiable academic sources from the last 6 years for this topic. "
+        "Cross-check key facts before relying on them.\n\n"
+    )
+
+
 @router.post("/generate-by-topic")
 async def generate_by_topic(req: TopicGenerateRequest, user=Depends(get_current_user)):
-    """RAG-powered: generate study materials by topic using multi-source retrieval."""
+    """RAG-powered: generate study materials by topic. Three source tiers —
+    course / online (OpenAlex, last 6 years) / Gemini general knowledge with
+    verified citations. All results are saved to GENERATED_STUDY_MATERIALS so
+    they appear in the Study Materials page."""
     set_tracking_context(user["id"], "study_materials")
     if req.type not in ("summary", "flashcards", "quiz"):
         raise HTTPException(400, "Type must be summary, flashcards, or quiz")
@@ -403,102 +503,172 @@ async def generate_by_topic(req: TopicGenerateRequest, user=Depends(get_current_
     if not req.topic or len(req.topic.strip()) < 3:
         raise HTTPException(400, "Topic must be at least 3 characters")
 
-    # ── Dedup: reuse topic-based material within 7 days ───────────────────────
-    # topic-based materials use resource_id="topic_search", keyed by topic text
+    tier = (req.evidence_tier or "course").strip().lower()
+    if tier not in ("course", "online", "general_knowledge"):
+        raise HTTPException(400, "evidence_tier must be course, online, or general_knowledge")
+
+    # ── Dedup key: include tier so course vs online vs Gemini don't collide ──
     import hashlib as _hashlib
-    topic_key = f"topic_{_hashlib.sha256(req.topic.strip().lower().encode()).hexdigest()[:16]}"
+    topic_key = f"topic_{tier}_{_hashlib.sha256(req.topic.strip().lower().encode()).hexdigest()[:16]}"
     existing = _find_recent_material(user["id"], topic_key, req.type)
     if existing:
         out = _material_out(existing)
         out["_cached"] = True
         return out
 
-    # RAG: retrieve relevant content from the course
-    rag_chunks = await rag_service.retrieve(req.topic, [req.course_id], top_k=8)
-    if not rag_chunks:
-        raise HTTPException(404, "No relevant course materials found for this topic. Try indexing the course first.")
+    # ── Build grounding context per tier ──
+    rag_context = ""
+    citations: list[dict] = []
+    course_id_for_storage = req.course_id
 
-    rag_context = rag_service.format_context(rag_chunks)
-    sources = rag_service.format_citations(rag_chunks)
+    if tier == "course":
+        if not req.course_id:
+            raise HTTPException(400, "course_id is required for course-sourced materials")
+        rag_chunks = await rag_service.retrieve(req.topic, [req.course_id], top_k=8)
+        if not rag_chunks:
+            raise HTTPException(404, "No relevant course materials found for this topic. Try indexing the course first.")
+        rag_context = rag_service.format_context(rag_chunks)
+        citations = rag_service.format_citations(rag_chunks)
+
+    elif tier == "online":
+        from app.services import external_lookup
+        oa_sources = await external_lookup.lookup_openalex(req.topic, top_k=6)
+        if not oa_sources:
+            raise HTTPException(404, "No peer-reviewed academic sources found in the last 6 years for this topic.")
+        rag_context = external_lookup.format_online_context(oa_sources)
+        citations = oa_sources
+        course_id_for_storage = course_id_for_storage or "external"
+
+    else:  # general_knowledge — no grounding context; the prompt itself enforces citation
+        rag_context = ""
+        citations = []  # populated after generation by parsing model's CITATIONS_JSON
+        course_id_for_storage = course_id_for_storage or "general"
 
     system = get_knowledge_base("study_materials")
 
+    # ── Per-type prompts ──
+    # General_knowledge tier: do NOT ask Gemini to cite. The model kept
+    # emitting classical references outside the 6-year window (e.g. Vygotsky
+    # 1978) that couldn't be verified, so we now suppress citations entirely
+    # in this tier. The provenance banner makes the "no verifiable sources"
+    # state clear to the student.
+    gk_citation_rule = (
+        "\n\nIMPORTANT: Do NOT include any inline citations, [Source N] markers, "
+        "Author (Year) references, or a CITATIONS list. The student will see a "
+        "banner explaining this content is AI general knowledge with no "
+        "verifiable academic sources."
+    )
+
     if req.type == "summary":
-        prompt = f"""Create concise study notes about "{req.topic}" using the following course materials.
-Organise with clear headings, bullet points, and highlight key concepts and definitions.
-Cite sources using [Source N] notation where applicable.
-
-RETRIEVED COURSE MATERIALS:
-{rag_context}
-
-Return the summary as plain text with markdown formatting."""
+        if tier == "general_knowledge":
+            prompt = (
+                f'Create concise study notes about "{req.topic}".\n'
+                "Organise with clear headings, bullet points, and highlight key concepts and definitions.\n"
+                "Return as plain text with markdown formatting."
+                + gk_citation_rule
+            )
+        else:
+            src_label = "ACADEMIC SOURCES" if tier == "online" else "RETRIEVED COURSE MATERIALS"
+            prompt = (
+                f'Create concise study notes about "{req.topic}" using the following materials.\n'
+                "Organise with clear headings, bullet points, and highlight key concepts and definitions.\n"
+                "Cite sources using [Source N] notation where applicable.\n\n"
+                f"{src_label}:\n{rag_context}\n\n"
+                "Return the summary as plain text with markdown formatting."
+            )
         try:
             result_text = await generate_text(prompt, system_instruction=system, model_name=FAST_MODEL)
         except Exception as e:
             raise HTTPException(502, f"AI generation failed: {str(e)}")
+        # For general_knowledge, parse out CITATIONS_JSON and verify each cite.
+        if tier == "general_knowledge":
+            result_text, citations = await _parse_and_verify_gk_citations(result_text)
         stored_content = result_text
 
     elif req.type == "flashcards":
-        prompt = f"""Generate flashcards about "{req.topic}" using the following course materials.
-Create 10-15 flashcards covering the most important concepts.
-
-RETRIEVED COURSE MATERIALS:
-{rag_context}
-
-Return JSON array with this structure:
-[
-  {{"front": "<question or term>", "back": "<answer or definition>"}},
-  ...
-]"""
-        try:
-            result = await generate_json(prompt, system_instruction=system, model_name=FAST_MODEL)
-        except Exception as e:
-            raise HTTPException(502, f"AI generation failed: {str(e)}")
-        import json
-        stored_content = json.dumps(result)
+        if tier == "general_knowledge":
+            prompt = (
+                f'Generate flashcards about "{req.topic}".\n'
+                "Create 10-15 flashcards covering the most important concepts.\n\n"
+                'Return JSON array with this structure: [{"front":"...","back":"..."}, ...]'
+                + gk_citation_rule
+                + "\nThe CITATIONS_JSON line must come AFTER the flashcards JSON, on its own line."
+            )
+            try:
+                result_text = await generate_text(prompt, system_instruction=system, model_name=FAST_MODEL)
+            except Exception as e:
+                raise HTTPException(502, f"AI generation failed: {str(e)}")
+            stored_content, citations = await _split_flashcards_and_citations(result_text)
+        else:
+            src_label = "ACADEMIC SOURCES" if tier == "online" else "RETRIEVED COURSE MATERIALS"
+            prompt = (
+                f'Generate flashcards about "{req.topic}" using the following materials.\n'
+                "Create 10-15 flashcards covering the most important concepts.\n\n"
+                f"{src_label}:\n{rag_context}\n\n"
+                'Return JSON array: [{"front":"<question or term>","back":"<answer or definition>"}, ...]'
+            )
+            try:
+                result = await generate_json(prompt, system_instruction=system, model_name=FAST_MODEL)
+            except Exception as e:
+                raise HTTPException(502, f"AI generation failed: {str(e)}")
+            import json
+            stored_content = json.dumps(result)
 
     elif req.type == "quiz":
-        prompt = f"""Generate a practice quiz about "{req.topic}" using the following course materials.
-Create 10 questions of mixed types (multiple choice and true/false).
+        if tier == "general_knowledge":
+            prompt = (
+                f'Generate a practice quiz about "{req.topic}".\n'
+                "Create 10 questions of mixed types (multiple choice and true/false).\n\n"
+                'Return JSON array: [{"question":"...","type":"mcq"|"true_false",'
+                '"options":["A","B","C","D"],"correct_answer":"...","explanation":"..."}, ...]'
+                + gk_citation_rule
+                + "\nThe CITATIONS_JSON line must come AFTER the quiz JSON, on its own line."
+            )
+            try:
+                result_text = await generate_text(prompt, system_instruction=system, model_name=FAST_MODEL)
+            except Exception as e:
+                raise HTTPException(502, f"AI generation failed: {str(e)}")
+            stored_content, citations = await _split_flashcards_and_citations(result_text)
+        else:
+            src_label = "ACADEMIC SOURCES" if tier == "online" else "RETRIEVED COURSE MATERIALS"
+            prompt = (
+                f'Generate a practice quiz about "{req.topic}" using the following materials.\n'
+                "Create 10 questions of mixed types (multiple choice and true/false).\n\n"
+                f"{src_label}:\n{rag_context}\n\n"
+                'Return JSON array: [{"question":"...","type":"mcq"|"true_false",'
+                '"options":["A","B","C","D"],"correct_answer":"...","explanation":"..."}, ...]'
+            )
+            try:
+                result = await generate_json(prompt, system_instruction=system, model_name=FAST_MODEL)
+            except Exception as e:
+                raise HTTPException(502, f"AI generation failed: {str(e)}")
+            import json
+            stored_content = json.dumps(result)
 
-RETRIEVED COURSE MATERIALS:
-{rag_context}
-
-Return JSON array with this structure:
-[
-  {{
-    "question": "<question text>",
-    "type": "mcq" | "true_false",
-    "options": ["A", "B", "C", "D"],
-    "correct_answer": "<correct option text>",
-    "explanation": "<brief explanation>"
-  }},
-  ...
-]"""
-        try:
-            result = await generate_json(prompt, system_instruction=system, model_name=FAST_MODEL)
-        except Exception as e:
-            raise HTTPException(502, f"AI generation failed: {str(e)}")
-        import json
-        stored_content = json.dumps(result)
-
-    # Store in Firestore
+    # ── Persist so the material appears in the Study Materials page ──
+    # Banner is stored separately from content because flashcards/quiz content
+    # is pure JSON parsed by the viewer — mixing markdown in would break it.
     mat_id = models.gen_id()
     now = datetime.now(timezone.utc).isoformat()
     mat_data = {
         "userId": user["id"],
         "resourceId": topic_key,
-        "courseId": req.course_id,
+        "courseId": course_id_for_storage,
         "type": req.type,
         "title": f"{req.type.capitalize()} — {req.topic}",
         "content": stored_content,
         "createdAt": now,
+        "evidenceTier": tier,
+        "provenanceBanner": _banner_for_tier(tier, citations),
+        "citations": citations[:5],
     }
     db.collection(models.GENERATED_STUDY_MATERIALS).document(mat_id).set(mat_data)
     mat_data["id"] = mat_id
 
     result_out = _material_out(mat_data)
-    result_out["sources"] = sources
+    # Echo the citations back to the caller under `sources` for back-compat
+    # with the existing frontend type that expected a `sources` field.
+    result_out["sources"] = citations
     return result_out
 
 

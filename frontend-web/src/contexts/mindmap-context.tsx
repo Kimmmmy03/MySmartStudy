@@ -17,8 +17,8 @@ interface MindmapContextValue {
   /** Update live data */
   update: (data: { nodes: Node[]; edges: Edge[]; title: string; selectedNode: Node | null }) => void;
   /** Callback from buddy to add a node with a label and optional parent */
-  onAddNode?: (label: string, parentLabel?: string, nodeType?: string) => void;
-  setOnAddNode: (fn: ((label: string, parentLabel?: string, nodeType?: string) => void) | undefined) => void;
+  onAddNode?: (label: string, parentLabel?: string, nodeType?: string, smartType?: string) => void;
+  setOnAddNode: (fn: ((label: string, parentLabel?: string, nodeType?: string, smartType?: string) => void) | undefined) => void;
   /** Highlighted node IDs (for visual feedback from analysis) */
   highlightedNodeIds: string[];
   setHighlightedNodeIds: (ids: string[]) => void;
@@ -35,7 +35,7 @@ export function MindmapProvider({ children }: { children: ReactNode }) {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [title, setTitle] = useState("");
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [onAddNode, setOnAddNodeState] = useState<((label: string, parentLabel?: string, nodeType?: string) => void) | undefined>();
+  const [onAddNode, setOnAddNodeState] = useState<((label: string, parentLabel?: string, nodeType?: string, smartType?: string) => void) | undefined>();
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
   const [mapId, setMapId] = useState<string | null>(null);
 
@@ -64,7 +64,7 @@ export function MindmapProvider({ children }: { children: ReactNode }) {
     setSelectedNode(data.selectedNode);
   }, []);
 
-  const setOnAddNode = useCallback((fn: ((label: string, parentLabel?: string, nodeType?: string) => void) | undefined) => {
+  const setOnAddNode = useCallback((fn: ((label: string, parentLabel?: string, nodeType?: string, smartType?: string) => void) | undefined) => {
     setOnAddNodeState(() => fn);
   }, []);
 

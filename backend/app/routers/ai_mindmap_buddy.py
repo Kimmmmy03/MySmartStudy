@@ -10,8 +10,10 @@ from app.ai_service import generate_json, generate_text, chat_completion, set_tr
 from app.firestore import db
 from app import models, rag_service, rag_multistep, gag_service, knowledge_graph_service
 from app.multi_agent import fan_out, get_or_default
+from app.services import external_lookup
 from google.cloud.firestore_v1.base_query import FieldFilter
 from datetime import datetime, timezone
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +76,37 @@ class NodeRecommendRequest(BaseModel):
     parent_labels: list[str] = []
     sibling_labels: list[str] = []
     map_topic: str = ""
+    # Sequential wizard: which kind of child to recommend next for this node.
+    # One of: subtopic | detail | example | image | resource. Empty = generic mix.
+    rec_type: str = ""
+    # Labels already added under this node — so we don't recommend duplicates.
+    existing_children: list[str] = []
+
+
+# Per-type guidance for the sequential "build out this node" wizard. Each entry
+# tailors what kind of child node to propose and how to format its label.
+REC_TYPE_GUIDANCE: dict[str, str] = {
+    "subtopic": (
+        "Suggest SUBTOPICS — direct conceptual branches that break the node "
+        "into its main parts. Use a short noun-phrase label (no prefix)."
+    ),
+    "detail": (
+        "Suggest DETAILS — a key fact, definition, or explanation about the "
+        "node. Use a concise label (no prefix)."
+    ),
+    "example": (
+        "Suggest EXAMPLES — a concrete, worked example or real-world instance. "
+        'Prefix each label with "[Example] ".'
+    ),
+    "image": (
+        "Suggest IMAGES — a diagram/visual that would clarify the node. "
+        'Prefix each label with "[Image] " and describe the visual to add.'
+    ),
+    "resource": (
+        "Suggest RESOURCES — a study resource, reference, or source to review "
+        'for this node. Prefix each label with "[Resource] ".'
+    ),
+}
 
 
 class MapSuggestAllRequest(BaseModel):
@@ -201,6 +234,8 @@ async def recommend_nodes(req: NodeRecommendRequest, user=Depends(get_current_us
         "|".join(sorted(req.parent_labels)),
         "|".join(sorted(req.sibling_labels)),
         req.map_topic or "",
+        req.rec_type or "",
+        "|".join(sorted(req.existing_children)),
     )
     cached = _get_cache(models.AI_NODE_RECS_CACHE, cache_key, ttl_hours=24)
     if cached is not None:
@@ -236,13 +271,28 @@ async def recommend_nodes(req: NodeRecommendRequest, user=Depends(get_current_us
     rag_context = get_or_default(retrieval, "rag", "") or ""
     kg_context = get_or_default(retrieval, "kg", "") or ""
 
+    type_guidance = REC_TYPE_GUIDANCE.get(req.rec_type, "")
+    existing_str = (
+        f"\nAlready added under this node (do NOT repeat these): {', '.join(req.existing_children)}"
+        if req.existing_children else ""
+    )
+    if type_guidance:
+        task_line = (
+            f"{type_guidance}\n"
+            f"Suggest 3 such child nodes for \"{req.node_label}\", best first."
+        )
+    else:
+        task_line = (
+            f"Suggest 5 child nodes that would be good branches from \"{req.node_label}\"."
+        )
+
     prompt = f"""A student is building a mind map about "{req.map_topic or 'a topic'}".
 They have a node labeled "{req.node_label}".
 Parent context: {', '.join(req.parent_labels) if req.parent_labels else 'This is a root/top-level node'}
-Sibling nodes: {', '.join(req.sibling_labels) if req.sibling_labels else 'No siblings yet'}
+Sibling nodes: {', '.join(req.sibling_labels) if req.sibling_labels else 'No siblings yet'}{existing_str}
 {rag_context}{kg_context}
 
-Suggest 5 child nodes that would be good branches from "{req.node_label}".
+{task_line}
 Ground your suggestions in the course materials and related concepts where possible.
 
 Return JSON:
@@ -259,6 +309,13 @@ Return JSON:
             system_instruction=MINDMAP_SYSTEM_PROMPT,
             temperature=0.5,
         )
+        # Tag each suggestion with the requested type so the wizard can render
+        # the right icon / add the right node kind.
+        if req.rec_type and isinstance(result, dict):
+            for s in result.get("suggestions", []):
+                if isinstance(s, dict):
+                    s.setdefault("rec_type", req.rec_type)
+            result["rec_type"] = req.rec_type
         _set_cache(models.AI_NODE_RECS_CACHE, cache_key, result)
         result["_cached"] = False
         return result
@@ -387,17 +444,80 @@ Return JSON:
         raise HTTPException(502, f"Suggestion failed: {str(e)}")
 
 
+# ── Study-question intent detection ────────────────────────────────────────
+# When the user asks a substantive academic question (not just "hi"), we
+# surface AI Study Material CTAs (flashcards / summary). Cheap regex; the
+# message must be long enough AND contain a learning verb.
+_STUDY_VERB_RE = re.compile(
+    r"\b(explain|describe|what is|what are|how does|how do|compare|contrast|define|"
+    r"summari[sz]e|discuss|analy[sz]e|outline|teach me|tell me about|elaborate)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_study_question(msg: str) -> bool:
+    return len(msg.strip()) >= 30 and bool(_STUDY_VERB_RE.search(msg))
+
+
+async def _extract_topic(message: str) -> str:
+    """Extract a short topic phrase from the student's question — used to seed
+    flashcard / summary generation. Falls back to the message verbatim."""
+    msg = message.strip()
+    if len(msg) <= 60:
+        return msg
+    try:
+        prompt = (
+            "Extract the central study topic from this question as a short "
+            "noun phrase of 3-8 words. Output ONLY the phrase, no quotes, no "
+            f"punctuation at the end.\n\nQuestion: {msg}"
+        )
+        topic = (await generate_text(prompt, temperature=0.2)).strip()
+        # Strip surrounding quotes / trailing period that the model sometimes adds.
+        topic = topic.strip("\"'`").rstrip(".").strip()
+        if 3 <= len(topic) <= 120:
+            return topic
+    except Exception:
+        pass
+    return msg[:120]
+
+
+async def _verify_gemini_citations(citations: list[dict]) -> list[dict]:
+    """Look each citation up in OpenAlex; tag verified vs unverified so the UI
+    can warn the student about potentially hallucinated references."""
+    out = []
+    for c in citations:
+        title = c.get("title", "")
+        verified = await external_lookup.verify_citation(title) if title else None
+        if verified:
+            # Prefer the OpenAlex-canonical record (carries DOI, URL, real venue).
+            out.append({**verified, "tier": "general_knowledge", "verified": True})
+        else:
+            out.append({
+                "tier": "general_knowledge",
+                "kind": "citation",
+                "title": title,
+                "authors": c.get("authors", ""),
+                "year": c.get("year"),
+                "venue": c.get("venue", ""),
+                "url": "",
+                "verified": False,
+            })
+    return out
+
+
 @router.post("/chat")
 async def mindmap_chat(req: ChatRequest, user=Depends(get_current_user)):
-    """Chat with Smart Buddy about mind map creation. Includes per-user memory."""
+    """Chat with Smart Buddy. Three-tier source pipeline: lecturer's course
+    materials first, then peer-reviewed academic literature (OpenAlex, last 6
+    years), finally Gemini's general knowledge with cited works. Every
+    substantive answer reports where the info came from so the student can
+    judge it; flashcard / summary CTAs are surfaced for study questions."""
     set_tracking_context(user["id"], "mindmap_buddy")
-    # Load memory
     memory = _get_memory(user["id"])
     memory_id = memory.get("id")
     messages = memory.get("messages", [])
     preferences = memory.get("preferences", {})
 
-    # Build context snippets for the system prompt
     context_parts = []
     if req.map_context:
         context_parts.append(f"Current map context: {req.map_context}")
@@ -409,58 +529,181 @@ async def mindmap_chat(req: ChatRequest, user=Depends(get_current_user)):
         if pref_exp:
             context_parts.append(f"Student's experience level: {pref_exp}")
 
-    # RAG: retrieve relevant course content for the chat message
-    rag_context = ""
+    # ── Tier 1: course materials (lecturer-indexed RAG) ──
+    course_ids: list[str] = []
+    course_chunks: list[dict] = []
     try:
         course_docs = db.collection(models.COURSES).where(
             filter=FieldFilter("enrolledStudents", "array_contains", user["id"])
         ).get()
         course_ids = [doc.id for doc in course_docs]
         if course_ids:
-            chunks, _ = await rag_multistep.retrieve_multistep(req.message, course_ids, top_k=3)
-            if chunks:
-                rag_context = f"\n\nRELEVANT COURSE MATERIALS (use to ground your answer):\n{rag_service.format_context(chunks)}"
+            course_chunks, _ = await rag_multistep.retrieve_multistep(req.message, course_ids, top_k=3)
     except Exception:
-        pass
+        course_chunks = []
 
-    # Build system instruction with context
+    # Score threshold — chunks below this are too weak to count as course-grounded.
+    COURSE_SCORE_THRESHOLD = 0.40
+    strong_course = [c for c in course_chunks if (c.get("score") or 0) >= COURSE_SCORE_THRESHOLD]
+
+    # ── Tier 2: OpenAlex (only when course tier is weak/empty AND it's a study
+    # question — short chit-chat shouldn't trigger external lookups) ──
+    is_study = _is_study_question(req.message)
+    online_sources: list[dict] = []
+    # Extract a clean topic phrase first; the full question text is too wordy
+    # for OpenAlex's keyword search and tanks the hit rate.
+    topic_query = await _extract_topic(req.message) if is_study else req.message
+    if is_study and not strong_course:
+        online_sources = await external_lookup.lookup_openalex(topic_query, top_k=5)
+
+    # ── Decide tier + assemble grounding context ──
+    sources: list[dict] = []
+    evidence_level = "general_knowledge"
+    grounding_context = ""
+    tier_instruction = ""
+
+    if strong_course:
+        evidence_level = "course"
+        grounding_context = (
+            "\n\nRELEVANT COURSE MATERIALS — your lecturer's indexed notes. "
+            "Use these to ground the answer and cite as [Source N]:\n"
+            + rag_service.format_context(strong_course)
+        )
+        for c in strong_course:
+            sources.append({
+                "tier": "course",
+                "title": c.get("title", "Untitled"),
+                "doc_type": c.get("doc_type", ""),
+                "course_id": c.get("course_id", ""),
+                "doc_id": c.get("doc_id", ""),
+                "score": c.get("score", 0),
+            })
+        tier_instruction = (
+            "Cite each substantive claim with [Source N] using the numbered "
+            "course materials above. Don't fabricate sources outside the list."
+        )
+
+    elif online_sources:
+        evidence_level = "online"
+        grounding_context = "\n\n" + external_lookup.format_online_context(online_sources)
+        sources = online_sources
+        tier_instruction = (
+            "Ground the answer in the academic sources above and cite each claim "
+            "as [Source N]. Don't invent sources outside that list. Mention this "
+            "answer is from academic literature, not the student's course notes."
+        )
+
+    elif is_study:
+        evidence_level = "general_knowledge"
+        # No citations in this tier. The previous flow asked Gemini to emit
+        # cited works, but the model kept producing classical sources outside
+        # the 6-year window (e.g. Vygotsky 1978), so we now suppress citations
+        # entirely when we can't ground in OpenAlex. The UI shows a clear
+        # "no academic sources matched" notice instead of fake references.
+        tier_instruction = (
+            "No course materials or open-access papers from the last 6 years "
+            "matched this topic. Answer from established knowledge in your own "
+            "words. Do NOT include any inline citations, [Source N] markers, "
+            "or Author/Year references — they cannot be verified and could "
+            "mislead the student."
+        )
+    # else: chit-chat — no sources, no special instruction (style rules apply).
+
+    # ── Build system prompt ──
+    # Style block targets the formatting conventions students expect from
+    # Claude / ChatGPT / Gemini: natural prose by default, bullets only when
+    # the content is genuinely a list, no em dashes (replaced post-hoc as a
+    # safety net below in case the model slips).
     system_prompt = (
         f"{MINDMAP_SYSTEM_PROMPT}\n\n"
-        "IMPORTANT RULES:\n"
-        "- NEVER repeat or echo the student's message back to them.\n"
-        "- Always provide a helpful, original response with actionable advice.\n"
-        "- Keep responses concise (2-4 sentences).\n"
-        "- When relevant, reference course materials to give grounded suggestions.\n"
-        "- If the student asks for mind map ideas, suggest specific topics and structure.\n"
+        "RESPONSE STYLE — format like a thoughtful chat assistant "
+        "(Claude / ChatGPT / Gemini):\n"
+        "- Default to natural prose, NOT bullets. Paragraphs of 1-3 sentences.\n"
+        "- Use a bulleted list ONLY when listing 3+ distinct items, steps, or "
+        "comparisons. Never bullet a single sentence.\n"
+        "- Use **bold** sparingly for key terms or names.\n"
+        "- Use ### headings ONLY when the answer has multiple distinct "
+        "sections that benefit from being labelled.\n"
+        "- Match the user's energy: 'hi' gets ONE short casual line, no bullets.\n"
+        "- No filler openers ('Welcome back', 'Great question', 'Sure thing').\n"
+        "- No filler closers ('Let me know if...', 'Feel free to ask').\n"
+        "- Don't echo the student's message back.\n"
+        "- Don't mention the map title unless asked about the map.\n"
+        "- NEVER use em dashes (—) or en dashes (–). Use commas, colons, or periods.\n"
+        "\nFORMAT EXAMPLE for a concept question:\n"
+        "Vygotsky's **Zone of Proximal Development (ZPD)** is the gap between "
+        "what a learner can do alone and what they can do with guidance from a "
+        "more knowledgeable other.\n\n"
+        "In teaching, this means identifying where a student gets stuck just "
+        "beyond their independent ability, then providing **scaffolding**: "
+        "hints, prompts, modelling, or worked examples. The support is "
+        "gradually removed as the student gains skill.\n"
     )
+    if tier_instruction:
+        system_prompt += "\nSOURCE RULES:\n" + tier_instruction + "\n"
     if context_parts:
         system_prompt += "\n" + "\n".join(context_parts)
-    if rag_context:
-        system_prompt += rag_context
+    if grounding_context:
+        system_prompt += grounding_context
 
-    # Build multi-turn message history for chat_completion
+    # Build multi-turn message history.
     gemini_messages = []
     for m in messages[-10:]:
         role = "user" if m.get("role") == "user" else "model"
         text = m.get("text", "")
         if text:
             gemini_messages.append({"role": role, "parts": [text]})
-    # Add current user message
     gemini_messages.append({"role": "user", "parts": [req.message]})
 
     try:
-        response = await chat_completion(
+        response_raw = await chat_completion(
             gemini_messages,
             system_instruction=system_prompt,
             temperature=0.7,
         )
 
-        # Save to memory
+        # General-knowledge tier no longer emits citations; we strip any
+        # stragglers (a leftover CITATIONS_JSON line or stray [Source N]
+        # markers) so they never reach the student.
+        response = response_raw
+        if evidence_level == "general_knowledge":
+            response = re.sub(r"CITATIONS_JSON:\s*\[.*?\]\s*$", "", response, flags=re.DOTALL).rstrip()
+            response = re.sub(r"\s*\[Source\s+\d+\]", "", response)
+
+        # ── Suggested actions: AI Study Materials CTAs (only for study questions) ──
+        suggested_actions: list[dict] = []
+        if is_study:
+            topic = await _extract_topic(req.message)
+            # Pick the most relevant course for the course tier; for online /
+            # general_knowledge no course is attached (the materials page
+            # groups them under their evidence tier).
+            chosen_course = sources[0]["course_id"] if (evidence_level == "course" and sources) else ""
+            suggested_actions = [
+                {"type": "flashcards", "topic": topic, "evidence_tier": evidence_level,
+                 "course_id": chosen_course},
+                {"type": "summary",    "topic": topic, "evidence_tier": evidence_level,
+                 "course_id": chosen_course},
+                {"type": "quiz",       "topic": topic, "evidence_tier": evidence_level,
+                 "course_id": chosen_course},
+            ]
+
+        # Belt-and-braces dash strip — the style rule above tells the model
+        # not to use em/en dashes, but Gemini still slips one in occasionally.
+        # Replace em dash with ", " (the most natural fix for parenthetical
+        # asides) and en dash with a hyphen (for ranges like 2020-2026).
+        response = response.replace("—", ", ").replace("–", "-")
+
+        # Save to memory.
         messages.append({"role": "user", "text": req.message, "ts": datetime.now(timezone.utc).isoformat()})
         messages.append({"role": "buddy", "text": response, "ts": datetime.now(timezone.utc).isoformat()})
         _save_memory(user["id"], memory_id, messages, preferences)
 
-        return {"response": response}
+        return {
+            "response": response,
+            "evidence_level": evidence_level,
+            "sources": sources,
+            "suggested_actions": suggested_actions,
+        }
     except Exception as e:
         logger.exception("chat failed")
         raise HTTPException(502, f"Chat failed: {str(e)}")

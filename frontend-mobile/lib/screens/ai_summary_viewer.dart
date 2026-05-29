@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_theme_ext.dart';
+import '../widgets/provenance_banner.dart';
 
 // ── Pastel palette (used sparingly as accents) ──
 const _pSky        = Color(0xFFA9C9E8);
@@ -113,8 +114,11 @@ class _Section {
 class AiSummaryViewer extends StatefulWidget {
   final String title;
   final String content;
+  /// Full material map — passed so the provenance banner can render at the top
+  /// showing where the content came from (course / online / AI). Null = no banner.
+  final Map<String, dynamic>? material;
   const AiSummaryViewer(
-      {super.key, required this.title, required this.content});
+      {super.key, required this.title, required this.content, this.material});
 
   @override
   State<AiSummaryViewer> createState() => _AiSummaryViewerState();
@@ -305,7 +309,9 @@ class _AiSummaryViewerState extends State<AiSummaryViewer> {
             padding: const EdgeInsets.fromLTRB(22, 4, 22, 120),
             children: [
               _buildHero(p),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
+              if (widget.material != null) ProvenanceBanner(material: widget.material!),
+              const SizedBox(height: 6),
               if (parsed.sections.isNotEmpty) ...[
                 _buildToc(parsed.sections, p),
                 const SizedBox(height: 22),

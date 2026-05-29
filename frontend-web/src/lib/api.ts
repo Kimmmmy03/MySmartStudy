@@ -2019,6 +2019,11 @@ export interface StudyMaterial {
   title: string;
   content: string; // JSON string for flashcards/quiz, markdown for summary
   created_at: string;
+  // Source-tier metadata. Older materials may not carry these — treat as
+  // optional so the UI silently omits the banner when missing.
+  evidence_tier?: "course" | "online" | "general_knowledge";
+  provenance_banner?: string;     // markdown blockquote prepended to the viewer
+  citations?: ChatSource[];
 }
 
 // ── AI Study Materials API ──
@@ -2036,7 +2041,7 @@ export const aiStudyMaterialsApi = {
     return request<StudyMaterial[]>(`/ai/study-materials/?${q.toString()}`);
   },
 
-  generateByTopic: (body: { topic: string; course_id: string; type: string }) =>
+  generateByTopic: (body: { topic: string; course_id?: string; type: string; evidence_tier?: "course" | "online" | "general_knowledge" }) =>
     request<StudyMaterial & { sources?: RAGSource[] }>("/ai/study-materials/generate-by-topic", {
       method: "POST",
       body: JSON.stringify(body),
@@ -2261,6 +2266,7 @@ export interface NodeSuggestion {
   label: string;
   description: string;
   parent_label?: string;
+  rec_type?: string; // subtopic | detail | example | image | resource
   source?: { title: string; doc_id: string; doc_type: string };
   graph_connections?: string[];
 }
@@ -2272,8 +2278,8 @@ export const aiMindmapBuddyApi = {
       body: JSON.stringify(data),
     }),
 
-  recommendNodes: (data: { node_id: string; node_label: string; parent_labels?: string[]; sibling_labels?: string[]; map_topic?: string }) =>
-    request<{ suggestions: NodeSuggestion[] }>("/ai/mindmap-buddy/recommend-nodes", {
+  recommendNodes: (data: { node_id: string; node_label: string; parent_labels?: string[]; sibling_labels?: string[]; map_topic?: string; rec_type?: string; existing_children?: string[] }) =>
+    request<{ suggestions: NodeSuggestion[]; rec_type?: string }>("/ai/mindmap-buddy/recommend-nodes", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -2285,11 +2291,45 @@ export const aiMindmapBuddyApi = {
     }),
 
   chat: (message: string, mapContext?: Record<string, unknown>) =>
-    request<{ response: string }>("/ai/mindmap-buddy/chat", {
+    request<ChatResponse>("/ai/mindmap-buddy/chat", {
       method: "POST",
       body: JSON.stringify({ message, map_context: mapContext }),
     }),
 };
+
+// ── SmartBuddy chat response shape ──
+// `sources` and `suggested_actions` are populated for substantive questions;
+// short chit-chat returns an empty array for both (back-compat for older UI).
+export type EvidenceTier = "course" | "online" | "general_knowledge";
+export interface ChatSource {
+  tier: EvidenceTier;
+  title: string;
+  // course-tier fields
+  doc_type?: string;
+  course_id?: string;
+  doc_id?: string;
+  score?: number;
+  // online / general_knowledge fields
+  kind?: string;
+  authors?: string;
+  year?: number | null;
+  venue?: string;
+  doi?: string;
+  url?: string;
+  verified?: boolean;     // general_knowledge only — checked against OpenAlex
+}
+export interface ChatSuggestedAction {
+  type: "flashcards" | "summary" | "quiz";
+  topic: string;
+  evidence_tier: EvidenceTier;
+  course_id?: string;
+}
+export interface ChatResponse {
+  response: string;
+  evidence_level?: EvidenceTier | "mixed";
+  sources?: ChatSource[];
+  suggested_actions?: ChatSuggestedAction[];
+}
 
 // ── Site Import API ──
 

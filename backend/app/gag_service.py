@@ -39,7 +39,12 @@ async def generate_study_plan_artifact(
     if student_context.get("quiz_scores"):
         performance_str += "Quiz performance:\n"
         for qs in student_context["quiz_scores"]:
-            performance_str += f"  - {qs['quiz_title']} ({qs['course']}): {qs['percentage']}%\n"
+            # Defensive access — quiz-score dicts may come from several callers
+            # with slightly different keys (quiz_title/title, percentage/score).
+            q_title = qs.get("quiz_title") or qs.get("title") or qs.get("quizId", "Quiz")
+            q_course = qs.get("course", "")
+            q_pct = qs.get("percentage", qs.get("score", ""))
+            performance_str += f"  - {q_title} ({q_course}): {q_pct}%\n"
 
     if student_context.get("assignment_grades"):
         performance_str += "Assignment grades:\n"

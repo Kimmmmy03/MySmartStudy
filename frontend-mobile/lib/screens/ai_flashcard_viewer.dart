@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../utils/app_theme_ext.dart';
+import '../widgets/provenance_banner.dart';
 
 const _pLavender    = Color(0xFFBFA8D9);
 const _pSky         = Color(0xFFA9C9E8);
@@ -37,7 +38,9 @@ Color _darken(Color color, [double amount = 0.18]) {
 class AiFlashcardViewer extends StatefulWidget {
   final String title;
   final List<Map<String, dynamic>> cards;
-  const AiFlashcardViewer({super.key, required this.title, required this.cards});
+  /// Full material map — passed so the provenance banner can render at the top.
+  final Map<String, dynamic>? material;
+  const AiFlashcardViewer({super.key, required this.title, required this.cards, this.material});
 
   @override
   State<AiFlashcardViewer> createState() => _AiFlashcardViewerState();
@@ -128,6 +131,7 @@ class _AiFlashcardViewerState extends State<AiFlashcardViewer>
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final material = widget.material;
 
     if (_cards.isEmpty) {
       return Scaffold(
@@ -198,6 +202,7 @@ class _AiFlashcardViewerState extends State<AiFlashcardViewer>
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
         child: Column(
           children: [
+            if (material != null) ProvenanceBanner(material: material),
             // Progress header
             Row(
               children: [

@@ -939,6 +939,27 @@ class ApiService {
     return Map<String, dynamic>.from(data);
   }
 
+  /// Topic-based generation with explicit evidence tier:
+  ///   - "course": RAG against the lecturer's indexed course (course_id required)
+  ///   - "online": peer-reviewed OpenAlex papers from the last 6 years
+  ///   - "general_knowledge": Gemini general knowledge (no fake citations)
+  /// The returned material is persisted on the backend and will appear in the
+  /// AI Study Materials page with a provenance banner.
+  static Future<Map<String, dynamic>> aiGenerateStudyMaterialByTopic({
+    required String topic,
+    required String type,
+    String courseId = '',
+    String evidenceTier = 'course',
+  }) async {
+    final data = await _post('/ai/study-materials/generate-by-topic', {
+      'topic': topic,
+      'type': type,
+      'course_id': courseId,
+      'evidence_tier': evidenceTier,
+    });
+    return Map<String, dynamic>.from(data);
+  }
+
   static Future<List<dynamic>> aiGetStudyMaterials({String? courseId}) {
     var path = '/ai/study-materials/';
     if (courseId != null) path += '?course_id=${Uri.encodeComponent(courseId)}';
@@ -947,6 +968,23 @@ class ApiService {
 
   static Future<void> aiDeleteStudyMaterial(String materialId) =>
       _delete('/ai/study-materials/$materialId');
+
+  /// SmartBuddy chat. Returns the new tier-aware response shape:
+  ///   {
+  ///     "response": "...",
+  ///     "evidence_level": "course | online | general_knowledge | mixed",
+  ///     "sources": [...],
+  ///     "suggested_actions": [...]
+  ///   }
+  /// `mapContext` is optional — pass it only when the user is in a mind map.
+  static Future<Map<String, dynamic>> aiMindmapBuddyChat(String message,
+      {Map<String, dynamic>? mapContext}) async {
+    final data = await _post('/ai/mindmap-buddy/chat', {
+      'message': message,
+      if (mapContext != null) 'map_context': mapContext,
+    });
+    return Map<String, dynamic>.from(data);
+  }
 
   // ───────────────────────────────────────────────────────────────────
   // AI Study Plan
