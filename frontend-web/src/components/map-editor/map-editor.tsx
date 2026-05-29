@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import {
   ReactFlow,
   addEdge,
@@ -22,7 +22,7 @@ import {
   SelectionMode,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { nodeTypes, SHAPE_DEFAULTS } from "./custom-nodes";
+import { nodeTypes, SHAPE_DEFAULTS, NodeEditContext } from "./custom-nodes";
 import { edgeTypes, MarkerDefinitions } from "./custom-edges";
 import ShapePalette from "./shape-palette";
 import SwapShapePrompt from "./swap-shape-prompt";
@@ -750,6 +750,20 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
     setSelectedNode(prev => prev?.id === id ? { ...prev, data } : prev);
   }, []);
 
+  // Commit an inline-edited label into our source-of-truth state. Inline
+  // editors call this (via NodeEditContext) instead of React Flow's
+  // updateNodeData, whose store edit would be discarded on the next render of
+  // this controlled <ReactFlow>. Merges so other node data is preserved.
+  const commitNodeLabel = useCallback((id: string, label: string) => {
+    setNodes(nds => nds.map(n =>
+      n.id === id ? { ...n, data: { ...(n.data as Record<string, unknown>), label } } : n,
+    ));
+    setSelectedNode(prev =>
+      prev?.id === id ? { ...prev, data: { ...(prev.data as Record<string, unknown>), label } } : prev,
+    );
+  }, []);
+  const nodeEditCtxValue = useMemo(() => ({ commitLabel: commitNodeLabel }), [commitNodeLabel]);
+
   const handleEdgeChange = useCallback((id: string, updates: Partial<Edge>) => {
     const applyUpdates = (e: Edge): Edge => {
       const merged = { ...e };
@@ -802,6 +816,7 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
   });
 
   return (
+    <NodeEditContext.Provider value={nodeEditCtxValue}>
     <div className="flex flex-col h-[calc(100vh-7rem)]">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 glass border-b border-white/5">
@@ -1008,5 +1023,6 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
         onVisibilityChange={updateVisibility}
       />
     </div>
+    </NodeEditContext.Provider>
   );
 }

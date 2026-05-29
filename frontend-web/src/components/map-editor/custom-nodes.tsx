@@ -6,6 +6,8 @@ import {
   useCallback,
   useEffect,
   useRef,
+  createContext,
+  useContext,
   type CSSProperties,
 } from "react";
 import {
@@ -206,6 +208,19 @@ function AllHandles({ visible }: { visible: boolean }) {
   );
 }
 
+// ── Node-edit context ──
+// The editor owns `nodes` in React state and passes them to ReactFlow as a
+// CONTROLLED prop. React Flow's own helpers (updateNodeData/setNodes) only
+// touch its internal store, which gets overwritten by the controlled prop on
+// the next render — so a label committed that way is lost when the user clicks
+// away. The editor provides this context so inline edits commit straight into
+// its source-of-truth state instead. Falls back to updateNodeData when no
+// provider is present (e.g. the read-only map viewer).
+interface NodeEditContextValue {
+  commitLabel: (id: string, label: string) => void;
+}
+export const NodeEditContext = createContext<NodeEditContextValue | null>(null);
+
 // ── Inline text editor (double-click to edit) ──
 
 function InlineTextEditor({
@@ -232,6 +247,7 @@ function InlineTextEditor({
   onDone: () => void;
 }) {
   const { updateNodeData } = useReactFlow();
+  const editCtx = useContext(NodeEditContext);
   const [text, setText] = useState(value);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -255,9 +271,13 @@ function InlineTextEditor({
   }, [autoSize]);
 
   const commit = useCallback(() => {
-    updateNodeData(nodeId, { label: text });
+    // Commit into the editor's source-of-truth state (via context) so the text
+    // survives the next render. Fall back to React Flow's store helper only
+    // when there's no editor context (read-only viewer).
+    if (editCtx) editCtx.commitLabel(nodeId, text);
+    else updateNodeData(nodeId, { label: text });
     onDone();
-  }, [nodeId, text, updateNodeData, onDone]);
+  }, [editCtx, nodeId, text, updateNodeData, onDone]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
