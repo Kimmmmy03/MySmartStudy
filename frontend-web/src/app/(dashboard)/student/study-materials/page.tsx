@@ -173,7 +173,7 @@ export default function StudyMaterialsPage() {
     const heading = isCourse
       ? "🎓 Generated from your lecturer's course notes"
       : isOnline
-        ? "⚠️ NOT from your course notes — sourced from academic literature (last 6 years)"
+        ? "⚠️ NOT from your course notes — sourced from academic literature"
         : "⚠️ NOT from your course notes — AI-generated with cited references";
     const cites = material.citations || [];
     return (
