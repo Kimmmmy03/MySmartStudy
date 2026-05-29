@@ -541,18 +541,23 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
     pushHistory();
   }, [createNode, pushHistory]);
 
-  const handleAddLabeledNode = useCallback((label: string, parentLabel?: string, nodeType?: string, smartType?: string) => {
+  const handleAddLabeledNode = useCallback((label: string, parentLabel?: string, nodeType?: string, smartType?: string, parentNodeId?: string): string => {
     const currentNodes = nodesRef.current;
     const currentEdges = edgesRef.current;
 
-    // Find the correct parent node to connect to:
-    // 1. If parentLabel provided (from AI), match EXACTLY to an existing node
-    // 2. If no parentLabel, fall back to the root node (first node / node with most children)
+    // Find the correct parent node to connect to, most reliable first:
+    // 0. If parentNodeId provided, attach to that EXACT node (no ambiguity).
+    // 1. Else if parentLabel provided (from AI), match EXACTLY to an existing node.
+    // 2. Else fall back to the root node (first node / node with most children).
     // NOTE: We intentionally do NOT use selectedNodeRef — the last-clicked node is not
     //       the correct parent. The AI tells us which node to connect to.
     let anchor: Node | null = null;
 
-    if (parentLabel) {
+    if (parentNodeId) {
+      anchor = currentNodes.find(n => n.id === parentNodeId) || null;
+    }
+
+    if (!anchor && parentLabel) {
       const normalizedParent = parentLabel.toLowerCase().trim();
       // Try exact match first
       anchor = currentNodes.find(n => {
@@ -628,6 +633,10 @@ function MapEditorInner({ mapId, ownerId, ownerEmail, initialTemplate }: MapEdit
       edges: newEdge ? [...currentEdges, newEdge] : [...currentEdges],
     }]);
     setHistoryIndex(prev => prev + 1);
+
+    // Return the new node's id so callers (e.g. the SmartBuddy wizard) can
+    // chain further children directly onto it by id instead of by label.
+    return node.id;
   }, [createNode, historyIndex]);
 
   useEffect(() => {

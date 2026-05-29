@@ -208,12 +208,29 @@ function shapeForMapType(mapType?: string): string {
   if (t.includes("tree") || t.includes("hierarch")) return "roundedRect";
   return "roundedRect"; // mind map / unknown
 }
-/** Where to start the wizard for a clicked node, based on its own type:
- * recommend the NEXT type in the chain. Untyped nodes start at subtopic. */
-function nodeStartStep(node: Node): number {
+/** Where to start the wizard for a clicked node, so we recommend the NEXT
+ * kind of child rather than repeating what the node already is.
+ *
+ * 1. Prefer the node's own `smartType` (set when SmartBuddy created it):
+ *    a "subtopic" node → start at "detail", a "detail" → "example", etc.
+ * 2. Most nodes (templates, hand-built, imported) carry NO smartType. For
+ *    those, fall back to the node's DEPTH in the graph: the main topic
+ *    (depth 0) → subtopic, a subtopic (depth 1) → detail, a detail
+ *    (depth 2) → example … so an already-deep node never gets offered
+ *    another node of its own level. (Bug fixed May 2026.) */
+function nodeStartStep(
+  node: Node,
+  nodes: { id: string }[],
+  edges: { source: string; target: string }[],
+): number {
   const t = (node.data as Record<string, unknown>)?.smartType as WizardType | undefined;
-  const idx = t ? WIZARD_SEQUENCE.indexOf(t) : -1;
-  return idx + 1; // untyped→0 (subtopic) … detail→2 (example) … resource→5 (done)
+  if (t) {
+    const idx = WIZARD_SEQUENCE.indexOf(t);
+    if (idx >= 0) return Math.min(idx + 1, WIZARD_SEQUENCE.length);
+  }
+  const depth = getNodeDepths(nodes, edges).get(node.id);
+  if (depth == null) return 0; // orphan/unknown → treat as a fresh topic
+  return Math.min(depth, WIZARD_SEQUENCE.length);
 }
 
 export default function AiCompanionWidget() {
@@ -289,6 +306,10 @@ export default function AiCompanionWidget() {
   // image/resource form a hierarchy under the subtopic instead of all hanging
   // off the main topic.
   const hubCtxRef = useRef<{ nodeId: string; label: string; parentLabels: string[]; siblingLabels: string[]; childLabels: string[] } | null>(null);
+  // Real node ids of the suggestions added at the CURRENT step, keyed by label.
+  // Lets advanceWizard re-hub onto the exact subtopic node that was created
+  // (by id) rather than re-matching it by label. Reset on step/node change.
+  const wizAddedIdsRef = useRef<Map<string, string>>(new Map());
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const loadedRef = useRef(false);
@@ -464,11 +485,14 @@ const loadData = useCallback(async () => {
     if (!isMapMode) return;
     if (selectedNodeId && selectedNodeId !== wizNodeId) {
       const node = mindmapCtx?.selectedNode;
-      const start = node ? nodeStartStep(node) : 0;
+      const start = node
+        ? nodeStartStep(node, mindmapCtx?.nodes ?? [], mindmapCtx?.edges ?? [])
+        : 0;
       setWizNodeId(selectedNodeId);
       setWizStep(start);
       setWizSugs([]);
       setWizAddedLabels(new Set());
+      wizAddedIdsRef.current = new Map();
       // The clicked node is the initial hub; a subtopic added later takes over.
       hubCtxRef.current = node ? nodeToCtx(node) : null;
       if (hubCtxRef.current && start < WIZARD_SEQUENCE.length) fetchWizard(hubCtxRef.current, start);
@@ -477,6 +501,7 @@ const loadData = useCallback(async () => {
       setWizStep(0);
       setWizSugs([]);
       setWizAddedLabels(new Set());
+      wizAddedIdsRef.current = new Map();
       hubCtxRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -495,8 +520,12 @@ const loadData = useCallback(async () => {
       if (currentStepType === "subtopic") {
         const lastSubtopic = picks[picks.length - 1];
         const prevHub = hubCtxRef.current;
+        // Re-hub onto the REAL node we just created so the next step's children
+        // attach to it by id. Fall back to a synthetic id only if the create
+        // didn't report one (older code paths / image-only adds).
+        const realId = wizAddedIdsRef.current.get(lastSubtopic);
         hubCtxRef.current = {
-          nodeId: `wiz-${lastSubtopic}-${Date.now()}`,
+          nodeId: realId || `wiz-${lastSubtopic}-${Date.now()}`,
           label: lastSubtopic,
           parentLabels: [prevHub.label],
           siblingLabels: picks.slice(0, -1),
@@ -511,6 +540,7 @@ const loadData = useCallback(async () => {
     }
     setWizSugs([]);
     setWizAddedLabels(new Set());
+    wizAddedIdsRef.current = new Map();
     setWizStep(prev => {
       const next = prev + 1;
       if (next < WIZARD_SEQUENCE.length && hubCtxRef.current) fetchWizard(hubCtxRef.current, next);
@@ -531,10 +561,15 @@ const loadData = useCallback(async () => {
     // Defensive: the UI already swaps the Add button for an "Added ✓" pill.
     if (wizAddedLabels.has(labelToAdd)) return;
     const shape = isImage ? "image" : shapeForMapType(analysis?.recommended_map_type);
-    // Always attach to the CURRENT hub. Two subtopics added back-to-back both
-    // attach to the clicked node; two details added back-to-back both attach
-    // to the same subtopic. (Bug fixed Jun 2026.)
-    mindmapCtx?.onAddNode?.(labelToAdd, hub.label, shape, recType);
+    // Always attach to the CURRENT hub, pinned by node id so we never connect
+    // to the wrong same/similar-labelled node. Two subtopics added back-to-back
+    // both attach to the clicked node; two details added back-to-back both
+    // attach to the same subtopic. (Bug fixed May 2026.) hub.nodeId is real for
+    // the clicked node and for re-hubbed subtopics; synthetic "wiz-…" ids won't
+    // match any node, so handleAddLabeledNode falls back to label matching.
+    const parentId = hub.nodeId.startsWith("wiz-") ? undefined : hub.nodeId;
+    const newId = mindmapCtx?.onAddNode?.(labelToAdd, hub.label, shape, recType, parentId);
+    if (typeof newId === "string") wizAddedIdsRef.current.set(labelToAdd, newId);
     if (isImage && generatedImageUrl) {
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent("smartbuddy-image-generated", {

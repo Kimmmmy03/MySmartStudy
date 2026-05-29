@@ -49,11 +49,12 @@ async def fan_out(
     coros = list(agents.values())
     start = time.perf_counter()
 
-    wrapped = [_safe_run(name, coro) for name, coro in zip(names, coros)]
-    raw_results = await asyncio.wait_for(
-        asyncio.gather(*wrapped),
-        timeout=timeout,
-    )
+    # Each agent gets its OWN timeout so one slow agent (e.g. a hanging RAG /
+    # knowledge-graph lookup) fails in isolation — it returns {"_error": ...}
+    # while the others still succeed. Previously a single outer wait_for raised
+    # TimeoutError and 500'd the whole request. (Bug fixed May 2026.)
+    wrapped = [_safe_run(name, coro, timeout) for name, coro in zip(names, coros)]
+    raw_results = await asyncio.gather(*wrapped)
 
     elapsed = time.perf_counter() - start
     results = dict(zip(names, raw_results))
@@ -93,10 +94,20 @@ def get_or_default(results: dict, key: str, default=None):
     return val
 
 
-async def _safe_run(name: str, coro: Coroutine) -> Any:
-    """Execute a single agent coroutine, catching all exceptions."""
+async def _safe_run(name: str, coro: Coroutine, timeout: float | None = None) -> Any:
+    """Execute a single agent coroutine, catching timeouts and all exceptions.
+
+    A per-agent timeout keeps one slow agent from stalling (or failing) the
+    whole fan-out — it returns {"_error": "timeout"} and callers fall back to
+    their default via get_or_default().
+    """
     try:
+        if timeout is not None:
+            return await asyncio.wait_for(coro, timeout=timeout)
         return await coro
+    except asyncio.TimeoutError:
+        logger.warning("Agent '%s' timed out after %.1fs", name, timeout or 0)
+        return {"_error": "timeout"}
     except Exception as e:
         logger.warning("Agent '%s' failed: %s", name, e)
         return {"_error": str(e)}
