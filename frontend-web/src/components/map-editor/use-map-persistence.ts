@@ -30,6 +30,16 @@ export function useMapPersistence({ mapId, ownerId, ownerEmail, nodes, edges, ti
   const [visibility, setVisibility] = useState<MapVisibility>("private");
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSaveRef = useRef<string>("");
+  // The map id, mirrored into a ref so saveMap reads the freshest value the
+  // instant create() returns — React state updates are async and a second
+  // save firing before the state commits would otherwise create a duplicate.
+  const currentMapIdRef = useRef<string | null>(mapId);
+  useEffect(() => { currentMapIdRef.current = currentMapId; }, [currentMapId]);
+  // Serialize saves: only one may run at a time. A second call while one is in
+  // flight sets `pending` and bails; the in-flight save flushes it on finish.
+  const savingRef = useRef(false);
+  const pendingRef = useRef(false);
+  const saveMapRef = useRef<((forceNew?: boolean) => Promise<void>) | null>(null);
 
   // Load existing map
   const loadMap = useCallback(async (id: string) => {
@@ -128,42 +138,69 @@ export function useMapPersistence({ mapId, ownerId, ownerEmail, nodes, edges, ti
     const graphData = JSON.stringify({ nodes, edges });
     if (graphData === lastSaveRef.current && !forceNew) return;
 
+    // Never let two saves overlap — otherwise edits arriving before the first
+    // create() resolves would each POST a brand-new map (duplicate copies).
+    if (savingRef.current) {
+      pendingRef.current = true;
+      return;
+    }
+    savingRef.current = true;
+
     setSaveStatus("saving");
-    const thumbnail = await generateThumbnail();
-    const nodeTexts = nodes.map(n => (n.data as Record<string, unknown>).label || "").join(" ");
+    try {
+      const thumbnail = await generateThumbnail();
+      const nodeTexts = nodes.map(n => (n.data as Record<string, unknown>).label || "").join(" ");
 
-    // Cache locally first (offline-first)
-    const cacheId = currentMapId || "new";
-    cacheMap(cacheId, { title, graphData, nodesText: nodeTexts, thumbnail }).catch(() => {});
+      // Cache locally first (offline-first)
+      const cacheId = currentMapIdRef.current || "new";
+      cacheMap(cacheId, { title, graphData, nodesText: nodeTexts, thumbnail }).catch(() => {});
 
-    if (currentMapId && !forceNew) {
-      await mapsApi.update(currentMapId, {
-        title,
-        graph_data: graphData,
-        nodes_text: nodeTexts,
-        thumbnail,
-      });
-    } else {
-      const created = await mapsApi.create({
-        title,
-        graph_data: graphData,
-        graph_format: "reactflow",
-        nodes_text: nodeTexts,
-        thumbnail,
-      });
-      setCurrentMapId(created.id);
-      if (!shareCode) setShareCode(created.share_code || "");
+      const existingId = currentMapIdRef.current;
+      if (existingId && !forceNew) {
+        await mapsApi.update(existingId, {
+          title,
+          graph_data: graphData,
+          nodes_text: nodeTexts,
+          thumbnail,
+        });
+      } else {
+        const created = await mapsApi.create({
+          title,
+          graph_data: graphData,
+          graph_format: "reactflow",
+          nodes_text: nodeTexts,
+          thumbnail,
+        });
+        // Sync the ref BEFORE releasing the lock so the next save updates this
+        // map instead of creating another one.
+        currentMapIdRef.current = created.id;
+        setCurrentMapId(created.id);
+        if (!shareCode) setShareCode(created.share_code || "");
+      }
+
+      lastSaveRef.current = graphData;
+      if (onSaved) onSaved(graphData);
+      setSaveStatus("saved");
+
+      // Mark as synced in offline cache
+      if (currentMapIdRef.current) {
+        markSynced(currentMapIdRef.current).catch(() => {});
+      }
+    } catch {
+      setSaveStatus("unsaved");
+    } finally {
+      savingRef.current = false;
+      // Edits landed while we were saving — flush them with the freshest data.
+      if (pendingRef.current) {
+        pendingRef.current = false;
+        saveMapRef.current?.();
+      }
     }
+  }, [nodes, edges, title, shareCode, generateThumbnail, onSaved]);
 
-    lastSaveRef.current = graphData;
-    if (onSaved) onSaved(graphData);
-    setSaveStatus("saved");
-
-    // Mark as synced in offline cache
-    if (currentMapId) {
-      markSynced(currentMapId).catch(() => {});
-    }
-  }, [nodes, edges, title, ownerId, ownerEmail, currentMapId, shareCode, collaborators, generateThumbnail]);
+  // Keep a ref to the latest saveMap so the in-flight flush above runs the
+  // freshest closure (current nodes/edges), not a stale one.
+  useEffect(() => { saveMapRef.current = saveMap; }, [saveMap]);
 
   // Auto-save with 1s debounce
   useEffect(() => {

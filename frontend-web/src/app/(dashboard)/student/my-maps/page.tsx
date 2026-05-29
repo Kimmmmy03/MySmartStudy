@@ -44,8 +44,18 @@ export default function MyMapsPage() {
     loadMaps();
   }, [user]);
 
-  const myMaps = maps.filter(m => m.owner_id === user?.id || m.owner_email === user?.email);
-  const collaboratedMaps = maps.filter(m => m.owner_id !== user?.id && m.owner_email !== user?.email);
+  const myEmail = (user?.email || "").toLowerCase();
+  const iOwn = (m: MapOut) => m.owner_id === user?.id || (m.owner_email || "").toLowerCase() === myEmail;
+  const iCollaborate = (m: MapOut) =>
+    (m.collaborators || []).some(c => (c || "").toLowerCase() === myEmail);
+
+  const myMaps = maps.filter(iOwn);
+  // "Collaborated" = any map with active collaboration I'm part of — both maps
+  // I own and have shared, and maps others have shared with me. (Owned-and-
+  // shared maps intentionally appear in both tabs.)
+  const collaboratedMaps = maps.filter(
+    m => (m.collaborators?.length ?? 0) > 0 && (iOwn(m) || iCollaborate(m)),
+  );
 
   const activeMaps = filterTab === "my-maps" ? myMaps : collaboratedMaps;
   const filteredMaps = activeMaps.filter(m => m.title.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -246,7 +256,7 @@ export default function MyMapsPage() {
           {filteredMaps.map(map => (
             <MapCard key={map.id} title={map.title} thumbnail={map.thumbnail} lastModified={formatDateTime(map.last_modified)}
               collaborators={map.collaborators}
-              ownerEmail={filterTab === "collaborated" ? map.owner_email : undefined}
+              ownerEmail={filterTab === "collaborated" && !iOwn(map) ? map.owner_email : undefined}
               visibility={map.visibility}
               onClick={() => router.push(`/student/create-map?id=${map.id}`)} showActions
               onRename={() => { setRenameTarget({ id: map.id, title: map.title }); setNewTitle(map.title); }}
@@ -273,7 +283,7 @@ export default function MyMapsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-dark-400">{formatDateTime(map.last_modified)}</p>
-                  {filterTab === "collaborated" && map.owner_email && (
+                  {filterTab === "collaborated" && !iOwn(map) && map.owner_email && (
                     <span className="text-[10px] text-dark-400">
                       Owner: <span className="text-dark-300">{map.owner_email}</span>
                     </span>
