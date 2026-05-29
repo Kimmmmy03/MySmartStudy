@@ -162,11 +162,14 @@ export default function StudyMaterialsPage() {
     if (!tier) return null;
     const isCourse = tier === "course";
     const isOnline = tier === "online";
+    // Light-mode base colors (dark text on the tint) + dark-mode overrides
+    // (pale text). Without the light defaults this text was invisible on the
+    // light background.
     const styles = isCourse
-      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-100"
       : isOnline
-        ? "border-sky-500/30 bg-sky-500/10 text-sky-100"
-        : "border-amber-500/30 bg-amber-500/10 text-amber-100";
+        ? "border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-100"
+        : "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-100";
     const heading = isCourse
       ? "🎓 Generated from your lecturer's course notes"
       : isOnline
@@ -186,7 +189,7 @@ export default function StudyMaterialsPage() {
                 <li key={i} className="opacity-90">
                   – {c.url ? <a className="underline hover:opacity-80" href={c.url} target="_blank" rel="noopener noreferrer">{head}</a> : head}
                   {venue}
-                  {unverified && <span className="ml-1 text-amber-300">(unverified)</span>}
+                  {unverified && <span className="ml-1 text-amber-600 dark:text-amber-300">(unverified)</span>}
                 </li>
               );
             })}
