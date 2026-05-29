@@ -235,14 +235,24 @@ function InlineTextEditor({
   const [text, setText] = useState(value);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Grow the textarea to fit its content so every line stays visible while
+  // typing (it would otherwise be clipped to a single row).
+  const autoSize = useCallback(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
+
   useEffect(() => {
-    // Auto-focus and select
+    // Auto-focus, select, and size to the current text
     const el = inputRef.current;
     if (el) {
       el.focus();
       el.select();
+      autoSize();
     }
-  }, []);
+  }, [autoSize]);
 
   const commit = useCallback(() => {
     updateNodeData(nodeId, { label: text });
@@ -269,11 +279,11 @@ function InlineTextEditor({
       <textarea
         ref={inputRef}
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => { setText(e.target.value); autoSize(); }}
         onBlur={commit}
         onKeyDown={handleKeyDown}
         rows={1}
-        className="bg-transparent border-none outline-none resize-none overflow-hidden m-0 w-full"
+        className="bg-transparent border-none outline-none resize-none m-0 w-full"
         style={{
           color: fontColor,
           fontSize: `${fontSize}px`,
@@ -285,6 +295,13 @@ function InlineTextEditor({
           lineHeight: 1.3,
           padding: "4px 8px",
           caretColor: fontColor,
+          // Wrap long text and let the field grow vertically so nothing is
+          // hidden while editing.
+          whiteSpace: "pre-wrap",
+          overflowWrap: "break-word",
+          wordBreak: "break-word",
+          overflow: "hidden",
+          height: "auto",
         }}
       />
     </div>
@@ -333,9 +350,11 @@ export const ShapeNode = memo(({ data, selected, id }: NodeProps) => {
   const fontFamily = d.fontFamily || "inherit";
   const locked = d.locked ?? false;
 
+  const { setNodes } = useReactFlow();
   const [hovered, setHovered] = useState(false);
   const [editing, setEditing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
 
   // Observe actual node size (set by NodeResizer via style)
@@ -358,6 +377,32 @@ export const ShapeNode = memo(({ data, selected, id }: NodeProps) => {
   const w = size?.w ?? defaults.w;
   const h = size?.h ?? defaults.h;
 
+  // Auto-fit the node's height to its label so long text is always fully
+  // visible (and short text doesn't leave a big empty box). We measure the
+  // rendered text height and set style.height to fit it, floored at the
+  // shape's default height. The width is left untouched — users widen a node
+  // to control wrapping, and that re-runs this to recompute the height.
+  //
+  // We deliberately recompute only on label / fontSize / WIDTH / editing
+  // changes (not on `h`), so writing the new height never re-triggers this
+  // (no loop) and an in-progress vertical resize drag isn't fought.
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el || editing) return;
+    const verticalPadding = isCSS ? 20 : 28; // CSS px-3 py-2 vs SVG centered py-2 + edge clearance
+    const needed = Math.max(defaults.h, Math.ceil(el.scrollHeight + verticalPadding));
+    if (Math.abs(needed - h) > 2) {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === id
+            ? { ...n, style: { ...(n.style || {}), height: needed } }
+            : n,
+        ),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [d.label, fontSize, w, editing, id]);
+
   const gradId = `grad-${id}`;
   const fillValue = gradientColor ? `url(#${gradId})` : fill;
   const cssBg = gradientColor
@@ -373,6 +418,10 @@ export const ShapeNode = memo(({ data, selected, id }: NodeProps) => {
     textAlign: d.textAlign || "center",
     fontFamily,
     lineHeight: 1.3,
+    // Wrap long words instead of letting them overflow the shape.
+    overflowWrap: "break-word",
+    wordBreak: "break-word",
+    whiteSpace: "pre-wrap",
   };
 
   const containerStyle: CSSProperties = {
@@ -453,7 +502,7 @@ export const ShapeNode = memo(({ data, selected, id }: NodeProps) => {
               onDone={() => setEditing(false)}
             />
           ) : (
-            <span className="relative z-10 w-full" style={textStyle}>
+            <span ref={textRef} className="relative z-10 w-full" style={textStyle}>
               {d.label || ""}
             </span>
           )}
@@ -503,7 +552,7 @@ export const ShapeNode = memo(({ data, selected, id }: NodeProps) => {
                 onDone={() => setEditing(false)}
               />
             ) : (
-              <span className="w-full" style={textStyle}>
+              <span ref={textRef} className="w-full" style={textStyle}>
                 {d.label || ""}
               </span>
             )}
@@ -532,7 +581,7 @@ export const ShapeNode = memo(({ data, selected, id }: NodeProps) => {
               onDone={() => setEditing(false)}
             />
           ) : (
-            <span style={textStyle}>{d.label || ""}</span>
+            <span ref={textRef} style={textStyle}>{d.label || ""}</span>
           )}
         </div>
       )}
