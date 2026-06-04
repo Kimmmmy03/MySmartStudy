@@ -125,7 +125,11 @@ def compute_similarity_report(db, assignment_id: str, threshold: float = 0.5) ->
 
 def compute_full_plagiarism_report(db, assignment_id: str, threshold: float = 0.3) -> dict:
     """Generate a comprehensive plagiarism report for all submissions in an assignment.
-    Uses TF-IDF cosine similarity across all submission types (maps, files, text).
+
+    Fuses two complementary lexical signals across all submission types (maps,
+    files, text): TF-IDF cosine similarity (shared vocabulary / paraphrase) and
+    winnowing fingerprint containment (verbatim copied passages, reorder-robust).
+    Flagged pairs carry the actual overlapping passages as evidence.
     Returns a full report with pairwise scores, per-student risk, and summary stats.
     """
     if not _HAS_SKLEARN:
@@ -169,14 +173,29 @@ def compute_full_plagiarism_report(db, assignment_id: str, threshold: float = 0.
 
     analyzed_count = len(texts)
 
+    # Fusion weights: the final score blends a bag-of-words signal (TF-IDF
+    # cosine) with a lexical-overlap signal (winnowing fingerprint containment).
+    # The two are complementary — TF-IDF catches shared vocabulary/paraphrase,
+    # winnowing catches verbatim copied passages and is reorder-robust — so a
+    # fused score is harder to defeat than either alone. Weights are env-tunable.
+    from . import winnowing
+    w_tfidf = float(os.getenv("PLAGIARISM_TFIDF_WEIGHT", "0.5"))
+    w_lex = float(os.getenv("PLAGIARISM_LEXICAL_WEIGHT", "0.5"))
+    _wsum = (w_tfidf + w_lex) or 1.0
+    w_tfidf, w_lex = w_tfidf / _wsum, w_lex / _wsum
+
     # Build similarity matrix
     flagged_pairs = []
-    all_scores: dict[str, list[float]] = {}  # student_id -> list of similarity scores
+    all_scores: dict[str, list[float]] = {}  # student_id -> list of combined scores
 
     if analyzed_count >= 2:
         vectorizer = TfidfVectorizer(stop_words="english", max_features=5000)
         tfidf_matrix = vectorizer.fit_transform(texts)
         sim_matrix = cosine_similarity(tfidf_matrix)
+
+        # Precompute winnowing fingerprints once per submission (O(n) instead
+        # of recomputing inside every pair comparison).
+        fingerprints = [winnowing.fingerprint(t) for t in texts]
 
         # Initialize score tracking for each student
         for m in metadata:
@@ -184,13 +203,27 @@ def compute_full_plagiarism_report(db, assignment_id: str, threshold: float = 0.
 
         for i in range(analyzed_count):
             for j in range(i + 1, analyzed_count):
-                score = float(sim_matrix[i][j])
-                # Track all scores for risk calculation
-                all_scores[metadata[i]["student_id"]].append(score)
-                all_scores[metadata[j]["student_id"]].append(score)
+                tfidf_score = float(sim_matrix[i][j])
 
-                if score >= threshold:
-                    severity = "high" if score >= 0.8 else "medium" if score >= 0.6 else "low"
+                fp_a, fp_b = fingerprints[i], fingerprints[j]
+                if fp_a and fp_b:
+                    inter = len(fp_a & fp_b)
+                    lexical_score = inter / min(len(fp_a), len(fp_b))
+                else:
+                    lexical_score = 0.0
+
+                combined = w_tfidf * tfidf_score + w_lex * lexical_score
+
+                # Track combined scores for per-student risk calculation
+                all_scores[metadata[i]["student_id"]].append(combined)
+                all_scores[metadata[j]["student_id"]].append(combined)
+
+                if combined >= threshold:
+                    severity = "high" if combined >= 0.8 else "medium" if combined >= 0.6 else "low"
+                    # Extract the actual overlapping passages (evidence) only
+                    # for pairs we're flagging — the full k-gram pass is the
+                    # expensive step, so we skip it for the cleared majority.
+                    ev = winnowing.compare(texts[i], texts[j])
                     flagged_pairs.append({
                         "student_a_id": metadata[i]["student_id"],
                         "student_a_name": metadata[i]["student_name"],
@@ -198,8 +231,12 @@ def compute_full_plagiarism_report(db, assignment_id: str, threshold: float = 0.
                         "student_b_id": metadata[j]["student_id"],
                         "student_b_name": metadata[j]["student_name"],
                         "student_b_type": metadata[j]["submission_type"],
-                        "similarity": round(score, 4),
+                        "similarity": round(combined, 4),
+                        "combined_similarity": round(combined, 4),
+                        "tfidf_similarity": round(tfidf_score, 4),
+                        "lexical_similarity": round(lexical_score, 4),
                         "severity": severity,
+                        "matched_spans": ev["matched_spans"],
                     })
 
     flagged_pairs.sort(key=lambda x: x["similarity"], reverse=True)
@@ -271,4 +308,11 @@ def compute_full_plagiarism_report(db, assignment_id: str, threshold: float = 0.
         "flagged_pairs": flagged_pairs,
         "student_risks": student_risks,
         "overall_stats": overall_stats,
+        "methodology": {
+            "method": "TF-IDF cosine + winnowing fingerprint (fused)",
+            "tfidf_weight": round(w_tfidf, 3),
+            "lexical_weight": round(w_lex, 3),
+            "threshold": threshold,
+            "scope": "within this assignment",
+        },
     }

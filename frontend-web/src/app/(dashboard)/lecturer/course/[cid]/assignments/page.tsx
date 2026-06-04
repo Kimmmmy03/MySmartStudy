@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { assignmentsApi, AssignmentOut, SubmissionOut, rubricsApi, RubricOut, RubricCriterion, quizzesApi, QuizOut, mapsApi } from "@/lib/api";
+import { assignmentsApi, AssignmentOut, SubmissionOut, rubricsApi, RubricOut, RubricCriterion, quizzesApi, QuizOut, mapsApi, aiGradingApi, GradingCalibration } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import Modal from "@/components/ui/modal";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -10,7 +10,7 @@ import SimilarityReport from "@/components/similarity-report";
 import FullPlagiarismReportView from "@/components/full-plagiarism-report";
 import AiPlagiarismReport from "@/components/ai-plagiarism-report";
 import AiGradeRecommendation from "@/components/ai-grade-recommendation";
-import { ArrowLeft, Plus, Pencil, Trash2, ClipboardList, X, Check, MessageSquare, Search, ListChecks, Lock, ChevronDown, ChevronUp, Clock, Users, FileText, Link2, Map as MapIcon, ExternalLink, CheckCircle, Upload, Image, Paperclip, Globe, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, ClipboardList, X, Check, MessageSquare, Search, ListChecks, Lock, ChevronDown, ChevronUp, Clock, Users, FileText, Link2, Map as MapIcon, ExternalLink, CheckCircle, Upload, Image, Paperclip, Globe, Loader2, BarChart3 } from "lucide-react";
 import { motion } from "framer-motion";
 import clsx from "clsx";
 
@@ -39,6 +39,10 @@ export default function LecturerAssignmentsPage() {
   const [subsLoading, setSubsLoading] = useState(false);
   const [gradingTarget, setGradingTarget] = useState<SubmissionOut | null>(null);
   const [gradeForm, setGradeForm] = useState({ grade: "", feedback: "" });
+  // AI grade for the submission being graded (null = no AI recommendation in play),
+  // and an optional override reason captured for the calibration audit trail.
+  const [aiGradeForTarget, setAiGradeForTarget] = useState<number | null>(null);
+  const [overrideReason, setOverrideReason] = useState("");
   const [similarityAssignment, setSimilarityAssignment] = useState<AssignmentOut | null>(null);
   const [plagiarismReportAssignment, setPlagiarismReportAssignment] = useState<AssignmentOut | null>(null);
   const [subsSearch, setSubsSearch] = useState("");
@@ -147,6 +151,8 @@ export default function LecturerAssignmentsPage() {
 
   const openGrading = (s: SubmissionOut) => {
     setGradingTarget(s);
+    setAiGradeForTarget(null);
+    setOverrideReason("");
     setGradeForm({
       grade: s.grade != null ? String(s.grade) : "",
       feedback: s.feedback || "",
@@ -162,6 +168,19 @@ export default function LecturerAssignmentsPage() {
         grade: gradeNum,
         feedback: gradeForm.feedback,
       });
+      // If an AI recommendation was in play, record the human decision for the
+      // calibration audit trail (accepted when the saved grade matches the AI's).
+      if (aiGradeForTarget != null) {
+        const accepted = Math.abs(aiGradeForTarget - gradeNum) < 0.5;
+        aiGradingApi.review({
+          submission_id: gradingTarget.id,
+          ai_grade: aiGradeForTarget,
+          final_grade: gradeNum,
+          action: accepted ? "accepted" : "overridden",
+          reason: accepted ? undefined : (overrideReason || undefined),
+          apply: false,
+        }).catch(() => { /* non-fatal */ });
+      }
       setSubmissions(prev => prev.map(s => s.id === gradingTarget.id ? updated : s));
       setGradingTarget(null);
     } catch { /* silent */ }
@@ -169,6 +188,8 @@ export default function LecturerAssignmentsPage() {
 
   const handleAiGrade = (sub: SubmissionOut, grade: number) => {
     setGradingTarget(sub);
+    setAiGradeForTarget(grade);
+    setOverrideReason("");
     setGradeForm({
       grade: String(grade),
       feedback: sub.feedback || "",
@@ -738,6 +759,9 @@ export default function LecturerAssignmentsPage() {
                     className="w-full flex items-center gap-2 text-xs px-3 py-2 rounded-xl bg-accent-purple/5 text-accent-purple hover:bg-accent-purple/10 border border-accent-purple/10 transition-colors font-medium">
                     <FileText className="w-3.5 h-3.5" /> Full Plagiarism Report
                   </button>
+                  {viewingAssignment.assignment_type === "tutorial" && (
+                    <GradingCalibrationCard assignmentId={viewingAssignment.id} />
+                  )}
                 </div>
               </div>
             </div>
@@ -901,6 +925,17 @@ export default function LecturerAssignmentsPage() {
               onChange={e => setGradeForm(p => ({ ...p, feedback: e.target.value }))}
               className="glass-input w-full px-4 py-2.5 text-sm" placeholder="Write feedback for the student..." />
           </div>
+          {/* Override reason — only when overriding a non-matching AI recommendation */}
+          {aiGradeForTarget != null && gradeForm.grade !== "" && Math.abs(aiGradeForTarget - parseFloat(gradeForm.grade || "0")) >= 0.5 && (
+            <div>
+              <label className="block text-xs font-medium text-dark-300 mb-1.5">
+                Override reason <span className="text-dark-500">(AI suggested {aiGradeForTarget} — optional, logged for AI calibration)</span>
+              </label>
+              <input type="text" value={overrideReason}
+                onChange={e => setOverrideReason(e.target.value)}
+                className="glass-input w-full px-4 py-2.5 text-sm" placeholder="Why you're departing from the AI recommendation..." />
+            </div>
+          )}
           <div className="flex justify-end gap-3 pt-3 border-t border-white/5">
             <button onClick={() => setGradingTarget(null)} className="px-5 py-2.5 text-sm text-dark-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
               Cancel
@@ -1020,5 +1055,54 @@ export default function LecturerAssignmentsPage() {
         )}
       </Modal>
     </motion.div>
+  );
+}
+
+/** AI↔human grade agreement for this assignment (QWK + MAE), built from the
+ *  lecturer's accept/override decisions. Turns "trust the AI" into a measured claim. */
+function GradingCalibrationCard({ assignmentId }: { assignmentId: string }) {
+  const [cal, setCal] = useState<GradingCalibration | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    aiGradingApi.calibration(assignmentId)
+      .then(c => { if (alive) setCal(c); })
+      .catch(() => { /* non-fatal */ })
+      .finally(() => { if (alive) setLoaded(true); });
+    return () => { alive = false; };
+  }, [assignmentId]);
+
+  if (!loaded || !cal || cal.reviewed_count === 0) return null;
+
+  const qwk = cal.qwk;
+  const qwkLabel = qwk == null ? "—"
+    : qwk >= 0.8 ? "near-perfect" : qwk >= 0.6 ? "substantial" : qwk >= 0.4 ? "moderate" : "weak";
+  const qwkColor = qwk == null ? "text-dark-400"
+    : qwk >= 0.6 ? "text-accent-emerald" : qwk >= 0.4 ? "text-accent-amber" : "text-red-400";
+
+  return (
+    <div className="rounded-xl bg-white/[0.02] border border-white/5 px-3 py-2.5 space-y-1.5">
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold text-dark-200 uppercase tracking-wide">
+        <BarChart3 className="w-3.5 h-3.5 text-accent-cyan" /> AI Grading Accuracy
+      </p>
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-dark-400">Agreement (QWK)</span>
+        <span className={clsx("font-semibold tabular-nums", qwkColor)}>
+          {qwk == null ? "—" : qwk.toFixed(2)} <span className="text-dark-500 font-normal">{qwkLabel}</span>
+        </span>
+      </div>
+      {cal.mae != null && (
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-dark-400">Mean error</span>
+          <span className="text-dark-200 tabular-nums">{cal.mae} pts</span>
+        </div>
+      )}
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-dark-400">Reviewed</span>
+        <span className="text-dark-200 tabular-nums">{cal.reviewed_count} · {cal.override_count} overridden</span>
+      </div>
+      <p className="text-[10px] text-dark-500 pt-0.5">Measured against your confirmed grades.</p>
+    </div>
   );
 }

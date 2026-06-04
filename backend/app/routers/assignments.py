@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from .. import models, schemas
 from ..firestore import get_db
 from ..auth import get_current_user, require_lecturer
+from ..authz import assert_course_owner, assert_assignment_owner
 from ..audit import audit_log
 from .activity import log_activity
 from .notifications import create_notification
@@ -136,6 +137,7 @@ def get_assignments(course_id: str = Query(...), user: dict = Depends(get_curren
 @router.get("/{aid}/similarity-report")
 def get_similarity_report(aid: str, user: dict = Depends(require_lecturer), db=Depends(get_db)):
     """Run TF-IDF similarity check on all submissions for this assignment."""
+    assert_assignment_owner(db, aid, user)
     from ..similarity import compute_similarity_report
     return compute_similarity_report(db, aid)
 
@@ -143,6 +145,7 @@ def get_similarity_report(aid: str, user: dict = Depends(require_lecturer), db=D
 @router.get("/{aid}/full-plagiarism-report")
 def get_full_plagiarism_report(aid: str, user: dict = Depends(require_lecturer), db=Depends(get_db)):
     """Generate a comprehensive plagiarism report across all submission types."""
+    assert_assignment_owner(db, aid, user)
     try:
         from ..similarity import compute_full_plagiarism_report
         result = compute_full_plagiarism_report(db, aid)
@@ -153,6 +156,70 @@ def get_full_plagiarism_report(aid: str, user: dict = Depends(require_lecturer),
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def _pair_key(a_id: str, b_id: str) -> str:
+    """Order-independent key so a flagged pair maps to one review regardless of side."""
+    return "__".join(sorted([a_id or "", b_id or ""]))
+
+
+class PlagiarismReviewIn(BaseModel):
+    student_a_id: str
+    student_b_id: str
+    status: str  # "pending" | "confirmed" | "dismissed"
+    note: str | None = None
+
+
+@router.get("/{aid}/plagiarism-reviews")
+def get_plagiarism_reviews(aid: str, user: dict = Depends(require_lecturer), db=Depends(get_db)):
+    """Return the lecturer's review decisions for this assignment, keyed by pair_key."""
+    assert_assignment_owner(db, aid, user)
+    docs = db.collection(models.PLAGIARISM_REVIEWS).where(
+        filter=FieldFilter("assignmentId", "==", aid)
+    ).get()
+    out: dict = {}
+    for d in docs:
+        r = models.doc_to_dict(d)
+        if not r:
+            continue
+        out[r.get("pairKey", "")] = {
+            "status": r.get("status", "pending"),
+            "note": r.get("note", ""),
+            "reviewer_name": r.get("reviewerName", ""),
+            "reviewed_at": r.get("reviewedAt", ""),
+        }
+    return out
+
+
+@router.post("/{aid}/plagiarism-review")
+def review_plagiarism_pair(aid: str, body: PlagiarismReviewIn, user: dict = Depends(require_lecturer), db=Depends(get_db)):
+    """Record a human-in-the-loop decision on a flagged pair (confirm / dismiss / reset).
+
+    This is the audit trail that turns an automated similarity flag into a
+    reviewed academic-integrity finding — required before any action is taken.
+    """
+    if body.status not in ("pending", "confirmed", "dismissed"):
+        raise HTTPException(400, "Invalid status")
+    assert_assignment_owner(db, aid, user)
+
+    pair_key = _pair_key(body.student_a_id, body.student_b_id)
+    doc_id = f"{aid}|{pair_key}"
+    reviewer_name = user.get("displayName") or user.get("name") or user.get("email") or "Lecturer"
+    record = {
+        "assignmentId": aid,
+        "pairKey": pair_key,
+        "studentAId": body.student_a_id,
+        "studentBId": body.student_b_id,
+        "status": body.status,
+        "note": body.note or "",
+        "reviewerId": user["id"],
+        "reviewerName": reviewer_name,
+        "reviewedAt": datetime.now(timezone.utc).isoformat(),
+    }
+    db.collection(models.PLAGIARISM_REVIEWS).document(doc_id).set(record)
+    audit_log(db, user["id"], "plagiarism_review", "assignment", aid,
+              details=f"pair={pair_key} status={body.status}")
+    return {"ok": True, "pair_key": pair_key}
 
 
 @router.get("/pending-reviews")
@@ -362,7 +429,11 @@ def check_access(aid: str, user: dict = Depends(get_current_user), db=Depends(ge
 
 # ── Submissions ──
 @router.get("/{aid}/submissions", response_model=list[schemas.SubmissionOut])
-def get_submissions(aid: str, user: dict = Depends(get_current_user), db=Depends(get_db)):
+def get_submissions(aid: str, user: dict = Depends(require_lecturer), db=Depends(get_db)):
+    # Object-level authz: only the lecturer who owns this assignment's course
+    # (or an admin) may read the full submission list. Students use
+    # /submissions/mine, which is scoped to their own studentId.
+    assert_assignment_owner(db, aid, user)
     docs = db.collection(models.SUBMISSIONS).where(filter=FieldFilter("assignmentId", "==", aid)).get()
     items = [models.doc_to_dict(d) for d in docs]
     photo_map = models.get_user_photo_urls(db, [s.get("studentId") for s in items])

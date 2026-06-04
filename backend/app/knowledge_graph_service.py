@@ -389,3 +389,124 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
     if norm_a == 0 or norm_b == 0:
         return 0.0
     return dot / (norm_a * norm_b)
+
+
+def _submission_content(sub: dict) -> str:
+    """Extract comparable text from a submission (map nodes, PDF, comments, link)."""
+    content = ""
+    if sub.get("submissionType") == "map" and sub.get("mapId"):
+        map_doc = db.collection(models.MAPS).document(sub["mapId"]).get()
+        if map_doc.exists:
+            content = map_doc.to_dict().get("nodesText", "")
+    elif sub.get("filePath"):
+        try:
+            from PyPDF2 import PdfReader
+            reader = PdfReader(sub["filePath"])
+            content = "\n".join(page.extract_text() or "" for page in reader.pages)
+        except Exception:
+            content = sub.get("comments", "")
+    else:
+        content = sub.get("comments", "") or sub.get("externalLink", "")
+    return content or ""
+
+
+async def check_historical_corpus(assignment_id: str) -> dict:
+    """Cross-assignment plagiarism check (semantic).
+
+    Intra-assignment comparison cannot catch a student reusing work from a
+    *different* assignment or a prior cohort. This embeds the current
+    assignment's submissions and compares them (cosine similarity over Gemini
+    embeddings) against submissions from every OTHER assignment in the same
+    course, flagging high-similarity historical matches.
+
+    Returns {historical_matches: [...], compared_against: <count>}; degrades to
+    an empty result if embeddings are unavailable (no API key / quota).
+    """
+    from google.cloud.firestore_v1.base_query import FieldFilter
+
+    a_doc = db.collection(models.ASSIGNMENTS).document(assignment_id).get()
+    if not a_doc.exists:
+        return {"historical_matches": [], "compared_against": 0}
+    assignment = a_doc.to_dict()
+    course_id = assignment.get("courseId", "")
+
+    threshold = float(os.getenv("PLAGIARISM_HISTORICAL_THRESHOLD", "0.78"))
+
+    # Current submissions
+    cur_docs = db.collection(models.SUBMISSIONS).where(
+        filter=FieldFilter("assignmentId", "==", assignment_id)
+    ).get()
+    current = []
+    for d in cur_docs:
+        s = d.to_dict()
+        text = _submission_content(s)
+        if text and len(text.strip()) >= 20:
+            current.append({
+                "student_id": s.get("studentId", ""),
+                "student_name": s.get("studentName", s.get("studentId", "")),
+                "content": text,
+            })
+    if not current:
+        return {"historical_matches": [], "compared_against": 0}
+
+    # Archive = submissions from OTHER assignments in the same course
+    other_assignments = db.collection(models.ASSIGNMENTS).where(
+        filter=FieldFilter("courseId", "==", course_id)
+    ).get()
+    archive = []
+    for ad in other_assignments:
+        if ad.id == assignment_id:
+            continue
+        a = ad.to_dict()
+        a_title = a.get("title", "Untitled")
+        sub_docs = db.collection(models.SUBMISSIONS).where(
+            filter=FieldFilter("assignmentId", "==", ad.id)
+        ).get()
+        for sd in sub_docs:
+            s = sd.to_dict()
+            text = _submission_content(s)
+            if text and len(text.strip()) >= 20:
+                archive.append({
+                    "student_id": s.get("studentId", ""),
+                    "student_name": s.get("studentName", s.get("studentId", "")),
+                    "assignment_id": ad.id,
+                    "assignment_title": a_title,
+                    "content": text,
+                })
+    if not archive:
+        return {"historical_matches": [], "compared_against": 0}
+
+    # Embed everything in one batched pass (truncate long texts like the
+    # intra-assignment graph does).
+    cur_texts = [c["content"][:3000] for c in current]
+    arc_texts = [a["content"][:3000] for a in archive]
+    try:
+        embeddings = await rag_service.embed_texts(cur_texts + arc_texts)
+    except Exception as e:
+        logger.warning("Historical corpus embedding failed: %s", e)
+        return {"historical_matches": [], "compared_against": len(archive)}
+
+    cur_emb = embeddings[: len(current)]
+    arc_emb = embeddings[len(current):]
+
+    matches = []
+    for i, c in enumerate(current):
+        best_sim = 0.0
+        best_src = None
+        for j, a in enumerate(archive):
+            sim = _cosine_similarity(cur_emb[i], arc_emb[j])
+            if sim > best_sim:
+                best_sim = sim
+                best_src = a
+        if best_src and best_sim >= threshold:
+            matches.append({
+                "student_id": c["student_id"],
+                "student_name": c["student_name"],
+                "similarity": round(best_sim, 4),
+                "source_assignment_id": best_src["assignment_id"],
+                "source_assignment_title": best_src["assignment_title"],
+                "source_student_name": best_src["student_name"],
+            })
+
+    matches.sort(key=lambda m: m["similarity"], reverse=True)
+    return {"historical_matches": matches, "compared_against": len(archive)}

@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { assignmentsApi, FullPlagiarismReport, PlagiarismPair, StudentRisk } from "@/lib/api";
+import { assignmentsApi, aiPlagiarismApi, FullPlagiarismReport, PlagiarismPair, ReviewStatus, HistoricalMatch } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield, ShieldAlert, ShieldCheck, AlertTriangle, Users, FileText,
   Download, ChevronDown, ChevronUp, ArrowUpDown, BarChart3, Eye,
-  Loader2, X, Filter, TrendingUp,
+  Loader2, X, Filter, TrendingUp, Check, Ban, RotateCcw, Network,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -27,6 +27,11 @@ const SEVERITY_COLORS = {
   clear: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20", dot: "bg-emerald-500" },
 };
 
+// Order-independent pair key — must match the backend's _pair_key().
+function pairKey(a: string, b: string): string {
+  return [a || "", b || ""].sort().join("__");
+}
+
 export default function FullPlagiarismReportView({ assignmentId, assignmentTitle, onClose }: Props) {
   const [report, setReport] = useState<FullPlagiarismReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +42,39 @@ export default function FullPlagiarismReportView({ assignmentId, assignmentTitle
   const [filterRisk, setFilterRisk] = useState<string>("all");
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [expandedPair, setExpandedPair] = useState<number | null>(null);
+  const [reviews, setReviews] = useState<Record<string, { status: ReviewStatus; note?: string; reviewer_name?: string; reviewed_at?: string }>>({});
+  const [historical, setHistorical] = useState<{ matches: HistoricalMatch[]; comparedAgainst: number } | null>(null);
+  const [historicalLoading, setHistoricalLoading] = useState(false);
+  const [historicalError, setHistoricalError] = useState("");
   const reportRef = useRef<HTMLDivElement>(null);
+
+  const runHistorical = async () => {
+    setHistoricalLoading(true);
+    setHistoricalError("");
+    try {
+      const res = await aiPlagiarismApi.historical(assignmentId);
+      setHistorical({ matches: res.historical_matches ?? [], comparedAgainst: res.compared_against ?? 0 });
+    } catch (e) {
+      setHistoricalError(e instanceof Error ? e.message : "Cross-assignment check unavailable");
+    } finally {
+      setHistoricalLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    assignmentsApi.plagiarismReviews(assignmentId).then(setReviews).catch(() => { /* non-fatal */ });
+  }, [assignmentId]);
+
+  const saveReview = async (pair: PlagiarismPair, status: ReviewStatus, note?: string) => {
+    const key = pairKey(pair.student_a_id, pair.student_b_id);
+    // optimistic update
+    setReviews(prev => ({ ...prev, [key]: { status, note, reviewer_name: prev[key]?.reviewer_name, reviewed_at: new Date().toISOString() } }));
+    try {
+      await assignmentsApi.reviewPlagiarismPair(assignmentId, {
+        student_a_id: pair.student_a_id, student_b_id: pair.student_b_id, status, note,
+      });
+    } catch { /* keep optimistic state; could surface a toast here */ }
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -174,7 +211,7 @@ export default function FullPlagiarismReportView({ assignmentId, assignmentTitle
         { label: "Assignment", value: report.assignment_title },
         { label: "Date Generated", value: new Date(report.generated_at).toLocaleString() },
         { label: "Submissions", value: `${report.analyzed_submissions} of ${report.total_submissions} analyzed` },
-        { label: "Method", value: "TF-IDF Cosine Similarity" },
+        { label: "Method", value: "TF-IDF + Fingerprint" },
       ];
       const colW = contentW / 4;
       infoCols.forEach((col, i) => {
@@ -510,6 +547,52 @@ export default function FullPlagiarismReportView({ assignmentId, assignmentTitle
       }
 
       // ══════════════════════════════════════════
+      //  4b. EVIDENCE — OVERLAPPING PASSAGES
+      // ══════════════════════════════════════════
+
+      const pairsWithEvidence = report.flagged_pairs.filter(p => (p.matched_spans?.length ?? 0) > 0);
+      if (pairsWithEvidence.length > 0) {
+        sectionHeading("Evidence — Overlapping Passages");
+        pdf.setFontSize(7);
+        pdf.setFont("helvetica", "italic");
+        pdf.setTextColor(...mutedText);
+        const introLines = pdf.splitTextToSize(
+          "Verbatim text segments detected in both submissions via winnowing fingerprinting. These are the primary evidence for each flag.",
+          contentW - 6);
+        pdf.text(introLines, margin + 3, y);
+        y += introLines.length * 3.6 + 3;
+
+        pairsWithEvidence.slice(0, 6).forEach(p => {
+          const spans = (p.matched_spans ?? []).slice(0, 3);
+          checkPage(16);
+          // Pair header
+          pdf.setFontSize(8);
+          pdf.setFont("helvetica", "bold");
+          pdf.setTextColor(...darkText);
+          pdf.text(`${p.student_a_name}  vs  ${p.student_b_name}`, margin + 3, y);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(...riskColor(p.severity));
+          pdf.text(`${Math.round(p.similarity * 100)}%`, pageW - margin - 3, y, { align: "right" });
+          y += 4;
+          spans.forEach(s => {
+            const quote = `"${s.text.length > 280 ? s.text.slice(0, 280) + "…" : s.text}"`;
+            const lines = pdf.splitTextToSize(quote, contentW - 12);
+            checkPage(lines.length * 3.4 + 4);
+            // amber side bar
+            pdf.setFillColor(...amber);
+            pdf.rect(margin + 4, y - 2.6, 0.8, lines.length * 3.4 + 1, "F");
+            pdf.setFontSize(7);
+            pdf.setFont("helvetica", "normal");
+            pdf.setTextColor(...bodyText);
+            pdf.text(lines, margin + 8, y);
+            y += lines.length * 3.4 + 3;
+          });
+          y += 2;
+        });
+        y += 4;
+      }
+
+      // ══════════════════════════════════════════
       //  5. SIMILARITY SCORE CHART (bar chart per pair)
       // ══════════════════════════════════════════
 
@@ -586,12 +669,16 @@ export default function FullPlagiarismReportView({ assignmentId, assignmentTitle
 
       sectionHeading("Methodology & Notes");
 
+      const m = report.methodology;
+      const tfidfPct = m ? Math.round(m.tfidf_weight * 100) : 50;
+      const lexPct = m ? Math.round(m.lexical_weight * 100) : 50;
       const notes = [
-        "This report was generated using TF-IDF (Term Frequency-Inverse Document Frequency) vectorization with cosine similarity measurement.",
-        `Similarity threshold: 30%. Pairs scoring above this threshold are flagged. Severity levels: High (\u226580%), Medium (60\u201380%), Low (30\u201360%).`,
+        `This report fuses two complementary lexical signals into a combined score: TF-IDF cosine similarity (${tfidfPct}% weight \u2014 shared vocabulary and paraphrase) and winnowing fingerprint containment (${lexPct}% weight \u2014 verbatim copied passages, robust to reordering and minor edits).`,
+        "Winnowing (Schleimer, Wilkerson & Aiken, 2003) is the document-fingerprinting algorithm behind MOSS. It identifies the exact overlapping passages between two submissions, which are listed as evidence for each flagged pair.",
+        `Combined-score threshold: 30%. Pairs scoring above this threshold are flagged. Severity levels: High (\u226580%), Medium (60\u201380%), Low (30\u201360%).`,
         `${report.analyzed_submissions} of ${report.total_submissions} submissions contained sufficient text content for analysis.${report.skipped_submissions > 0 ? ` ${report.skipped_submissions} submission${report.skipped_submissions !== 1 ? "s were" : " was"} excluded due to insufficient text.` : ""}`,
-        "High similarity scores do not automatically indicate plagiarism. Manual review is recommended for all flagged pairs before taking action.",
-        "This analysis compares submissions within this assignment only. It does not check against external sources or the internet.",
+        "Similarity scores are a screening signal, not a determination of misconduct. Manual review of the highlighted passages is required for every flagged pair before taking action.",
+        "Intra-assignment comparison detects copying between these submissions. A cross-assignment historical check (when available) additionally flags reuse from prior submissions; web/source matching is out of scope for this report.",
       ];
 
       notes.forEach((note, i) => {
@@ -716,7 +803,7 @@ export default function FullPlagiarismReportView({ assignmentId, assignmentTitle
       <div className="flex flex-col items-center justify-center py-32 gap-4">
         <Loader2 className="w-10 h-10 text-accent-purple animate-spin" />
         <p className="text-sm text-gray-400 dark:text-dark-400">Analyzing submissions for plagiarism...</p>
-        <p className="text-xs text-gray-500 dark:text-dark-500">Comparing all submissions using TF-IDF similarity</p>
+        <p className="text-xs text-gray-500 dark:text-dark-500">Comparing all submissions using TF-IDF + fingerprint matching</p>
       </div>
     );
   }
@@ -797,7 +884,8 @@ export default function FullPlagiarismReportView({ assignmentId, assignmentTitle
         <AnimatePresence mode="wait">
           {activeTab === "overview" && (
             <motion.div key="overview" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <OverviewTab report={report} onViewStudent={(sid) => { setSelectedStudent(sid); setActiveTab("pairs"); }} />
+              <OverviewTab report={report} onViewStudent={(sid) => { setSelectedStudent(sid); setActiveTab("pairs"); }}
+                historical={historical} historicalLoading={historicalLoading} historicalError={historicalError} onRunHistorical={runHistorical} />
             </motion.div>
           )}
           {activeTab === "students" && (
@@ -919,6 +1007,7 @@ export default function FullPlagiarismReportView({ assignmentId, assignmentTitle
                             SEVERITY_COLORS[p.severity].bg, SEVERITY_COLORS[p.severity].text)}>
                             {p.severity}
                           </span>
+                          <ReviewPill status={reviews[pairKey(p.student_a_id, p.student_b_id)]?.status ?? "pending"} />
                           {expandedPair === i ? <ChevronUp className="w-4 h-4 text-gray-400 dark:text-dark-500" /> : <ChevronDown className="w-4 h-4 text-gray-400 dark:text-dark-500" />}
                         </div>
                       </button>
@@ -926,9 +1015,17 @@ export default function FullPlagiarismReportView({ assignmentId, assignmentTitle
                         {expandedPair === i && (
                           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                            <div className="px-5 pb-4 pt-0 grid grid-cols-2 gap-4">
-                              <StudentDetailCard name={p.student_a_name} type={p.student_a_type} />
-                              <StudentDetailCard name={p.student_b_name} type={p.student_b_type} />
+                            <div className="px-5 pb-4 pt-0 space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <StudentDetailCard name={p.student_a_name} type={p.student_a_type} />
+                                <StudentDetailCard name={p.student_b_name} type={p.student_b_type} />
+                              </div>
+                              <ScoreBreakdown pair={p} />
+                              <MatchedSpansView pair={p} />
+                              <PairReviewControls
+                                review={reviews[pairKey(p.student_a_id, p.student_b_id)]}
+                                onReview={(status, note) => saveReview(p, status, note)}
+                              />
                             </div>
                           </motion.div>
                         )}
@@ -947,7 +1044,14 @@ export default function FullPlagiarismReportView({ assignmentId, assignmentTitle
 
 /* ── Sub-components ── */
 
-function OverviewTab({ report, onViewStudent }: { report: FullPlagiarismReport; onViewStudent: (id: string) => void }) {
+function OverviewTab({ report, onViewStudent, historical, historicalLoading, historicalError, onRunHistorical }: {
+  report: FullPlagiarismReport;
+  onViewStudent: (id: string) => void;
+  historical: { matches: HistoricalMatch[]; comparedAgainst: number } | null;
+  historicalLoading: boolean;
+  historicalError: string;
+  onRunHistorical: () => void;
+}) {
   const stats = report.overall_stats;
   const highRiskStudents = report.student_risks.filter(s => s.risk_level === "high");
   const mediumRiskStudents = report.student_risks.filter(s => s.risk_level === "medium");
@@ -1058,6 +1162,54 @@ function OverviewTab({ report, onViewStudent }: { report: FullPlagiarismReport; 
           </div>
         </div>
       )}
+
+      {/* Cross-assignment historical check */}
+      <div className="rounded-2xl border border-gray-200/10 dark:border-white/5 p-5">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Network className="w-4 h-4 text-accent-cyan" /> Cross-Assignment Reuse Check
+            </h4>
+            <p className="text-xs text-gray-500 dark:text-dark-400 mt-1 max-w-xl">
+              Semantic comparison of these submissions against submissions from other assignments in
+              the same course — catches reuse the intra-assignment check above cannot see.
+            </p>
+          </div>
+          <button onClick={onRunHistorical} disabled={historicalLoading}
+            className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-accent-cyan/10 text-accent-cyan hover:bg-accent-cyan/20 border border-accent-cyan/20 transition-colors disabled:opacity-50">
+            {historicalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Network className="w-3.5 h-3.5" />}
+            {historicalLoading ? "Checking…" : historical ? "Re-run check" : "Run check"}
+          </button>
+        </div>
+
+        {historicalError && (
+          <p className="text-xs text-amber-400 mt-3">{historicalError}</p>
+        )}
+
+        {historical && !historicalLoading && (
+          historical.matches.length === 0 ? (
+            <div className="mt-4 flex items-center gap-2 text-xs text-emerald-400">
+              <ShieldCheck className="w-4 h-4" />
+              No cross-assignment reuse detected{historical.comparedAgainst > 0 ? ` (compared against ${historical.comparedAgainst} prior submission${historical.comparedAgainst !== 1 ? "s" : ""}).` : " — no prior submissions to compare against yet."}
+            </div>
+          ) : (
+            <div className="mt-4 space-y-2">
+              {historical.matches.map((m, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-gray-900 dark:text-white font-medium truncate">{m.student_name}</p>
+                    <p className="text-xs text-gray-500 dark:text-dark-400 truncate">
+                      matches {m.source_student_name || "a submission"} in “{m.source_assignment_title}”
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold tabular-nums text-amber-400 shrink-0">{Math.round(m.similarity * 100)}%</span>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+      </div>
     </div>
   );
 }
@@ -1128,6 +1280,143 @@ function SortHeader({ label, field, current, dir, onSort }: {
       {current !== field && <ArrowUpDown className="w-3 h-3 opacity-30" />}
     </button>
   );
+}
+
+function ScoreBreakdown({ pair }: { pair: PlagiarismPair }) {
+  // The fused score is the headline; the two sub-signals show *why* it fired.
+  const hasBreakdown = pair.tfidf_similarity != null || pair.lexical_similarity != null;
+  if (!hasBreakdown) return null;
+  const rows: { label: string; value: number; hint: string }[] = [
+    { label: "Combined", value: pair.combined_similarity ?? pair.similarity, hint: "fused score (used for severity)" },
+    { label: "TF-IDF cosine", value: pair.tfidf_similarity ?? 0, hint: "shared vocabulary / paraphrase" },
+    { label: "Fingerprint overlap", value: pair.lexical_similarity ?? 0, hint: "verbatim copied passages (winnowing)" },
+  ];
+  return (
+    <div className="rounded-xl border border-gray-200/10 dark:border-white/5 p-4 bg-white/0">
+      <p className="text-xs font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-1.5">
+        <BarChart3 className="w-3.5 h-3.5 text-accent-purple" /> Score Breakdown
+      </p>
+      <div className="space-y-2.5">
+        {rows.map(r => (
+          <div key={r.label} className="flex items-center gap-3">
+            <div className="w-32 shrink-0">
+              <p className="text-xs font-medium text-gray-700 dark:text-dark-200">{r.label}</p>
+              <p className="text-[10px] text-gray-400 dark:text-dark-500">{r.hint}</p>
+            </div>
+            <div className="flex-1"><SimBar value={r.value} /></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MatchedSpansView({ pair }: { pair: PlagiarismPair }) {
+  const spans = pair.matched_spans ?? [];
+  if (spans.length === 0) {
+    return (
+      <div className="rounded-xl border border-gray-200/10 dark:border-white/5 p-4 bg-white/0">
+        <p className="text-xs text-gray-500 dark:text-dark-400">
+          No verbatim overlapping passages found — this pair was flagged on vocabulary/structure
+          similarity (TF-IDF) rather than copied text. Review the submissions manually.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl border border-gray-200/10 dark:border-white/5 p-4 bg-white/0">
+      <p className="text-xs font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-1.5">
+        <FileText className="w-3.5 h-3.5 text-amber-400" /> Overlapping Passages
+        <span className="ml-1 text-[10px] font-normal text-gray-400 dark:text-dark-500">
+          {spans.length} passage{spans.length !== 1 ? "s" : ""} appearing in both submissions
+        </span>
+      </p>
+      <p className="text-[10px] text-gray-400 dark:text-dark-500 mb-3">
+        These near-identical text segments were detected by winnowing fingerprinting and are the
+        primary evidence for this flag.
+      </p>
+      <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+        {spans.map((s, i) => (
+          <div key={i} className="rounded-lg bg-amber-500/5 border border-amber-500/20 px-3 py-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] uppercase tracking-wide text-amber-400 font-semibold">Match {i + 1}</span>
+              <span className="text-[10px] text-gray-400 dark:text-dark-500">{s.text.length} chars</span>
+            </div>
+            <p className="text-xs text-gray-700 dark:text-dark-200 leading-relaxed font-mono">
+              <mark className="bg-amber-400/20 text-gray-900 dark:text-amber-100 rounded px-0.5">{s.text}</mark>
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PairReviewControls({
+  review, onReview,
+}: {
+  review?: { status: ReviewStatus; note?: string; reviewer_name?: string; reviewed_at?: string };
+  onReview: (status: ReviewStatus, note?: string) => void;
+}) {
+  const [note, setNote] = useState(review?.note ?? "");
+  const status = review?.status ?? "pending";
+  return (
+    <div className="rounded-xl border border-gray-200/10 dark:border-white/5 p-4 bg-white/0">
+      <p className="text-xs font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-1.5">
+        <ShieldCheck className="w-3.5 h-3.5 text-accent-purple" /> Reviewer Decision
+      </p>
+      <p className="text-[10px] text-gray-400 dark:text-dark-500 mb-3">
+        Record your judgement after reviewing the evidence. This is logged for the academic-integrity audit trail.
+      </p>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <button onClick={() => onReview("confirmed", note)}
+          className={clsx("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+            status === "confirmed"
+              ? "bg-red-500/15 text-red-400 border-red-500/30"
+              : "border-gray-200/10 dark:border-white/10 text-gray-500 dark:text-dark-300 hover:bg-white/5")}>
+          <Check className="w-3.5 h-3.5" /> Confirm concern
+        </button>
+        <button onClick={() => onReview("dismissed", note)}
+          className={clsx("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+            status === "dismissed"
+              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+              : "border-gray-200/10 dark:border-white/10 text-gray-500 dark:text-dark-300 hover:bg-white/5")}>
+          <Ban className="w-3.5 h-3.5" /> Dismiss
+        </button>
+        {status !== "pending" && (
+          <button onClick={() => onReview("pending", note)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200/10 dark:border-white/10 text-gray-500 dark:text-dark-400 hover:bg-white/5 transition-colors">
+            <RotateCcw className="w-3.5 h-3.5" /> Reset
+          </button>
+        )}
+        {review?.reviewer_name && status !== "pending" && (
+          <span className="text-[10px] text-gray-400 dark:text-dark-500 ml-auto">
+            {status === "confirmed" ? "Confirmed" : "Dismissed"} by {review.reviewer_name}
+            {review.reviewed_at ? ` · ${new Date(review.reviewed_at).toLocaleDateString()}` : ""}
+          </span>
+        )}
+      </div>
+      <textarea
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        onBlur={() => { if ((note ?? "") !== (review?.note ?? "")) onReview(status, note); }}
+        placeholder="Optional note (rationale, follow-up action)…"
+        rows={2}
+        className="w-full text-xs rounded-lg bg-white/[0.02] border border-gray-200/10 dark:border-white/5 px-3 py-2 text-gray-700 dark:text-dark-200 placeholder:text-gray-400 dark:placeholder:text-dark-500 focus:outline-none focus:border-accent-purple/40 resize-none"
+      />
+    </div>
+  );
+}
+
+function ReviewPill({ status }: { status: ReviewStatus }) {
+  if (status === "pending") return null;
+  const map = {
+    confirmed: { label: "Confirmed", cls: "bg-red-500/10 text-red-400" },
+    dismissed: { label: "Dismissed", cls: "bg-emerald-500/10 text-emerald-400" },
+    pending: { label: "", cls: "" },
+  } as const;
+  const m = map[status];
+  return <span className={clsx("px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase shrink-0", m.cls)}>{m.label}</span>;
 }
 
 function StudentDetailCard({ name, type }: { name: string; type: string }) {

@@ -1,7 +1,13 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
+from app.middleware import MaxBodySizeMiddleware
 from app.firestore import db as _firestore_db  # noqa: F401 — ensures Firebase init on startup
 from app.auth import get_current_user
 from app.routers import auth, users, maps, courses, assignments, discussions, announcements, resources, reminders, badges, analytics, admin, activity, stats, notifications, participation, quizzes, gradebook, messaging, peer_review, progress, attendance, rubrics, certificates, groups, group_tasks, discussion_topics, completion, social
@@ -28,6 +34,57 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# ── Rate limiting (slowapi) ──
+# IP-based global limit protects against API abuse / brute-force / DoS. The cap
+# is generous by default (a dashboard fires many parallel calls on load) and is
+# env-tunable via RATE_LIMIT_DEFAULT. Per-route tighter limits can be layered
+# with @limiter.limit on sensitive endpoints.
+# NOTE: the default in-memory store counts per-instance; for accurate global
+# limits across Cloud Run instances, set RATE_LIMIT_STORAGE_URI to a Redis URL.
+_rate_default = os.getenv("RATE_LIMIT_DEFAULT", "240/minute")
+_rate_storage = os.getenv("RATE_LIMIT_STORAGE_URI", "memory://")
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[_rate_default],
+    storage_uri=_rate_storage,
+    headers_enabled=True,
+)
+app.state.limiter = limiter
+
+
+def _rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        {"detail": "Rate limit exceeded. Please slow down and try again shortly."},
+        status_code=429,
+    )
+
+
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# Reject oversized request bodies before parsing (HTTP 413).
+app.add_middleware(MaxBodySizeMiddleware)
+
+
+# ── Global exception handler ──
+# Any UNHANDLED exception returns a clean JSON error with a correlation id —
+# never a raw stack trace or database internals. The full trace is logged
+# server-side under that id. (HTTPException is handled by Starlette as usual.)
+import logging as _logging
+import uuid as _uuid
+
+_logger = _logging.getLogger("mysmartstudy")
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    request_id = _uuid.uuid4().hex[:12]
+    _logger.exception("Unhandled error [%s] on %s %s", request_id, request.method, request.url.path)
+    return JSONResponse(
+        {"detail": "An unexpected error occurred. Please try again later.", "request_id": request_id},
+        status_code=500,
+    )
 
 # Origins are configurable via the CORS_ORIGINS env var (comma-separated) so
 # production can add the Firebase Hosting / custom domain URLs without a code

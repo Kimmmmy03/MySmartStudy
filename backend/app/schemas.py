@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import datetime
 
@@ -134,7 +134,7 @@ class PublicProfileOut(BaseModel):
 
 
 class MapCommentCreate(BaseModel):
-    text: str
+    text: str = Field(max_length=2000)
 
 
 class MapCommentOut(BaseModel):
@@ -293,8 +293,8 @@ class SubmissionOut(BaseModel):
 
 # ── Announcements ──
 class AnnouncementCreate(BaseModel):
-    title: str
-    content: str
+    title: str = Field(max_length=300)
+    content: str = Field(max_length=20000)
 
 class AnnouncementOut(BaseModel):
     id: str
@@ -312,7 +312,7 @@ class AnnouncementOut(BaseModel):
 
 # ── Discussions ──
 class DiscussionCreate(BaseModel):
-    text: str
+    text: str = Field(max_length=10000)
 
 class DiscussionOut(BaseModel):
     id: str
@@ -569,7 +569,7 @@ class CourseGradebook(BaseModel):
 
 # ── Private Messaging ──
 class MessageCreate(BaseModel):
-    text: str
+    text: str = Field(max_length=10000)
 
 class MessageOut(BaseModel):
     id: str

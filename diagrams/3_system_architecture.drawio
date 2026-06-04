@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="MySmartStudy">
   <diagram id="sysArch" name="System Architecture">
-    <mxGraphModel dx="3433" dy="2407" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2700" pageHeight="2460" math="0" shadow="0">
+    <mxGraphModel dx="3433" dy="2407" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2700" pageHeight="2700" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -61,6 +61,30 @@
         <mxCell id="t_api" parent="1" style="text;html=1;align=center;fontSize=10;fontStyle=1;fontColor=#0D47A1" value="FastAPI Router&#xa;40+ routers · auth gates&#xa;APScheduler jobs" vertex="1">
           <mxGeometry height="48" width="220" x="810" y="665" as="geometry" />
         </mxCell>
+        <mxCell id="g_sec" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#C62828;strokeWidth=2;verticalAlign=top;align=center;fontSize=11;fontStyle=1;fontColor=#B71C1C;spacingTop=6" value="REQUEST SECURITY PIPELINE&#xa;(every request, in order)" vertex="1">
+          <mxGeometry height="300" width="233" x="812" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="sec1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C62828;fontSize=9;fontColor=#7F1D1D;align=left;spacingLeft=8;verticalAlign=middle" value="1 · CORS allowlist (CORS_ORIGINS)" vertex="1">
+          <mxGeometry height="30" width="205" x="826" y="218" as="geometry" />
+        </mxCell>
+        <mxCell id="sec2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C62828;fontSize=9;fontColor=#7F1D1D;align=left;spacingLeft=8;verticalAlign=middle" value="2 · Rate limit · slowapi (429)" vertex="1">
+          <mxGeometry height="30" width="205" x="826" y="254" as="geometry" />
+        </mxCell>
+        <mxCell id="sec3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C62828;fontSize=9;fontColor=#7F1D1D;align=left;spacingLeft=8;verticalAlign=middle" value="3 · Body-size limit (413)" vertex="1">
+          <mxGeometry height="30" width="205" x="826" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="sec4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C62828;fontSize=9;fontColor=#7F1D1D;align=left;spacingLeft=8;verticalAlign=middle" value="4 · Firebase ID-token verify" vertex="1">
+          <mxGeometry height="30" width="205" x="826" y="326" as="geometry" />
+        </mxCell>
+        <mxCell id="sec5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C62828;fontSize=9;fontColor=#7F1D1D;align=left;spacingLeft=8;verticalAlign=middle" value="5 · RBAC + object-level authz&#xa;(require_role · assert_*_owner)" vertex="1">
+          <mxGeometry height="40" width="205" x="826" y="362" as="geometry" />
+        </mxCell>
+        <mxCell id="sec6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C62828;fontSize=9;fontColor=#7F1D1D;align=left;spacingLeft=8;verticalAlign=middle" value="6 · Input sanitize (bleach) +&#xa;Pydantic validation" vertex="1">
+          <mxGeometry height="40" width="205" x="826" y="408" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sec_api" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=classic;strokeColor=#C62828;strokeWidth=2;fontSize=9;fontColor=#B71C1C;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" source="g_sec" target="n_api" value="validated request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
         <mxCell id="g_back" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#1565C0;dashed=1;verticalAlign=top;align=center;fontSize=11;fontStyle=1;fontColor=#1565C0;spacingTop=6" value="BACKEND SERVICES" vertex="1">
           <mxGeometry height="870" width="600" x="1050" y="150" as="geometry" />
         </mxCell>
@@ -109,7 +133,7 @@
         <mxCell id="g_db" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#1565C0;dashed=1;verticalAlign=top;align=center;fontSize=11;fontStyle=1;fontColor=#1565C0;spacingTop=6" value="DATABASE SERVICES" vertex="1">
           <mxGeometry height="870" width="840" x="1700" y="150" as="geometry" />
         </mxCell>
-        <mxCell id="db_fs" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#FFA000;strokeColor=#E65100;strokeWidth=2;align=center;verticalAlign=middle;fontSize=10;fontColor=#3E2723" value="&lt;b&gt;Firestore&lt;/b&gt;&#xa;&#xa;users · courses · maps&#xa;assignments · submissions&#xa;quizzes · AI metadata" vertex="1">
+        <mxCell id="db_fs" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#FFA000;strokeColor=#E65100;strokeWidth=2;align=center;verticalAlign=middle;fontSize=10;fontColor=#3E2723" value="&lt;b&gt;Firestore&lt;/b&gt;&#xa;&#xa;users · courses · maps&#xa;assignments · submissions&#xa;quizzes · AI metadata&#xa;&#xa;rules: deny-by-default&#xa;(backend Admin SDK only)" vertex="1">
           <mxGeometry height="200" width="360" x="1745" y="210" as="geometry" />
         </mxCell>
         <mxCell id="db_chroma" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#26A69A;strokeColor=#00695C;strokeWidth=2;align=center;verticalAlign=middle;fontSize=10;fontColor=#FFFFFF" value="&lt;b&gt;ChromaDB&lt;/b&gt;&#xa;&#xa;per-course chunk collections&#xa;768-d Gemini embeddings" vertex="1">
@@ -254,7 +278,7 @@
         <mxCell id="k6" parent="1" style="shape=document;whiteSpace=wrap;html=1;fillColor=#43A047;strokeColor=#1B5E20;strokeWidth=2;fontSize=10;fontColor=#FFFFFF;verticalAlign=top;spacingTop=4" value="Related concept&#xa;subgraph" vertex="1">
           <mxGeometry height="90" width="170" x="1650" y="1430" as="geometry" />
         </mxCell>
-        <mxCell id="k7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#AB47BC;strokeColor=#6A1B9A;strokeWidth=2;fontSize=10;fontColor=#FFFFFF" value="→ Mindmap Buddy suggestions&#xa;→ Plagiarism similarity graph&#xa;(embeddings · cosine ≥ 0.7 · clustering)" vertex="1">
+        <mxCell id="k7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#AB47BC;strokeColor=#6A1B9A;strokeWidth=2;fontSize=10;fontColor=#FFFFFF" value="→ Mindmap Buddy suggestions&#xa;→ Plagiarism similarity graph + historical cross-assignment check&#xa;(embeddings · cosine · connected-component clustering)" vertex="1">
           <mxGeometry height="90" width="330" x="1890" y="1430" as="geometry" />
         </mxCell>
         <mxCell id="ek1" edge="1" parent="1" source="k1" style="html=1;endArrow=classic;strokeColor=#1B5E20;strokeWidth=2;fontSize=9;" target="k2" value="extract">
@@ -514,8 +538,82 @@
         <mxCell id="n_ai" parent="JvgaFIBL6f-LQwZWoNk--2" style="ellipse;whiteSpace=wrap;html=1;fillColor=#7E57C2;strokeColor=#4527A0;strokeWidth=3;fontSize=12;fontColor=#FFFFFF" value="&lt;b&gt;AI&lt;/b&gt;" vertex="1">
           <mxGeometry height="90" width="90" as="geometry" />
         </mxCell>
-        <mxCell id="t_ai" parent="JvgaFIBL6f-LQwZWoNk--2" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#4527A0" value="&lt;b&gt;AI Service&lt;/b&gt;  9 AI routers — companion · study plan · grading · plagiarism · CLP. Runs the four AI pipelines below ↓" vertex="1">
+        <mxCell id="t_ai" parent="JvgaFIBL6f-LQwZWoNk--2" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#4527A0" value="&lt;b&gt;AI Service&lt;/b&gt;  9 AI routers — companion · study plan · grading · plagiarism · CLP. Runs the four AI pipelines below ↓   (lane ⑤ non-AI lexical plagiarism · lane ⑥ human-gated AI grading)" vertex="1">
           <mxGeometry height="90" width="440" x="110" as="geometry" />
+        </mxCell>
+        <mxCell id="lane5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F2F1;strokeColor=#00695C;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="195" width="2320" x="255" y="2235" as="geometry" />
+        </mxCell>
+        <mxCell id="lab5" parent="1" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=#004D40;spacingLeft=8;spacingTop=8" value="⑤  Plagiarism Report&#xa;(lexical · non-AI)&#xa;&#xa;similarity.py · winnowing.py&#xa;compute_full_plagiarism_report&#xa;GET /assignments/{aid}/full-plagiarism-report" vertex="1">
+          <mxGeometry height="180" width="200" x="270" y="2245" as="geometry" />
+        </mxCell>
+        <mxCell id="px1" parent="1" style="shape=document;whiteSpace=wrap;html=1;fillColor=#26A69A;strokeColor=#00695C;strokeWidth=2;fontSize=10;fontColor=#FFFFFF;verticalAlign=top;spacingTop=4" value="All submissions&#xa;maps · files · text" vertex="1">
+          <mxGeometry height="90" width="170" x="490" y="2295" as="geometry" />
+        </mxCell>
+        <mxCell id="px2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4DB6AC;strokeColor=#00695C;strokeWidth=2;fontSize=10;fontColor=#06302B;align=center" value="Two lexical signals&#xa;• TF-IDF cosine&#xa;• Winnowing fingerprint&#xa;(containment)" vertex="1">
+          <mxGeometry height="100" width="220" x="700" y="2290" as="geometry" />
+        </mxCell>
+        <mxCell id="px3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4DB6AC;strokeColor=#00695C;strokeWidth=2;fontSize=10;fontColor=#06302B;align=center" value="Fuse → combined score&#xa;0.5·TF-IDF + 0.5·containment&#xa;(env-tunable weights)" vertex="1">
+          <mxGeometry height="90" width="210" x="960" y="2295" as="geometry" />
+        </mxCell>
+        <mxCell id="px4" parent="1" style="shape=document;whiteSpace=wrap;html=1;fillColor=#43A047;strokeColor=#1B5E20;strokeWidth=2;fontSize=10;fontColor=#FFFFFF;verticalAlign=top;spacingTop=4" value="Flagged pairs + evidence&#xa;matched overlapping passages&#xa;per-student risk · severity" vertex="1">
+          <mxGeometry height="100" width="270" x="1210" y="2290" as="geometry" />
+        </mxCell>
+        <mxCell id="px5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#26A69A;strokeColor=#00695C;strokeWidth=2;fontSize=10;fontColor=#FFFFFF;align=center" value="Lecturer review&#xa;confirm / dismiss + note&#xa;→ plagiarismReviews (audit log)" vertex="1">
+          <mxGeometry height="100" width="290" x="1520" y="2290" as="geometry" />
+        </mxCell>
+        <mxCell id="px6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#EF6C00;strokeWidth=2;fontSize=10;fontColor=#5C3A00;align=left;spacingLeft=10;verticalAlign=middle" value="Screening signal — not a verdict.&#xa;Human decision required before any action; single-submission AI score is advisory and unreliable on short / non-native-English text." vertex="1">
+          <mxGeometry height="100" width="700" x="1850" y="2290" as="geometry" />
+        </mxCell>
+        <mxCell id="epx1" edge="1" parent="1" source="px1" style="html=1;endArrow=classic;strokeColor=#00695C;strokeWidth=2;fontSize=9;" target="px2" value="extract text">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="epx2" edge="1" parent="1" source="px2" style="html=1;endArrow=classic;strokeColor=#00695C;strokeWidth=2;fontSize=9;" target="px3" value="fuse">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="epx3" edge="1" parent="1" source="px3" style="html=1;endArrow=classic;strokeColor=#00695C;strokeWidth=2;fontSize=9;" target="px4" value="report">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="epx4" edge="1" parent="1" source="px4" style="html=1;endArrow=classic;strokeColor=#00695C;strokeWidth=2;fontSize=9;" target="px5" value="review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ⑥ AI Grading Assistant (rubric-decomposed · self-consistency · human-gated) -->
+        <mxCell id="lane6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#4527A0;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="200" width="2320" x="255" y="2470" as="geometry" />
+        </mxCell>
+        <mxCell id="lab6" parent="1" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=#311B92;spacingLeft=8;spacingTop=8" value="⑥  AI Grading Assistant&#xa;(tutorial assignments)&#xa;&#xa;ai_grading.py · gag_service.py&#xa;grading.py (deterministic engine)&#xa;POST /ai/grading/recommend/{sid}" vertex="1">
+          <mxGeometry height="184" width="200" x="270" y="2480" as="geometry" />
+        </mxCell>
+        <mxCell id="gx1" parent="1" style="shape=document;whiteSpace=wrap;html=1;fillColor=#7E57C2;strokeColor=#4527A0;strokeWidth=2;fontSize=10;fontColor=#FFFFFF;verticalAlign=top;spacingTop=4" value="Submission + rubric&#xa;+ reference answer&#xa;+ RAG context" vertex="1">
+          <mxGeometry height="92" width="180" x="490" y="2530" as="geometry" />
+        </mxCell>
+        <mxCell id="gx2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#4527A0;strokeWidth=2;fontSize=10;fontColor=#2A1A5E;align=center" value="LLM-as-judge ×N&#xa;score each criterion (0–max)&#xa;+ quoted evidence&#xa;injection-hardened" vertex="1">
+          <mxGeometry height="100" width="220" x="700" y="2525" as="geometry" />
+        </mxCell>
+        <mxCell id="gx3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#4527A0;strokeWidth=2;fontSize=10;fontColor=#2A1A5E;align=center" value="Self-consistency aggregate&#xa;median per criterion →&#xa;deterministic weighted total" vertex="1">
+          <mxGeometry height="92" width="220" x="960" y="2530" as="geometry" />
+        </mxCell>
+        <mxCell id="gx4" parent="1" style="shape=document;whiteSpace=wrap;html=1;fillColor=#5E35B1;strokeColor=#311B92;strokeWidth=2;fontSize=10;fontColor=#FFFFFF;verticalAlign=top;spacingTop=4" value="Recommendation&#xa;grade + per-criterion evidence&#xa;measured confidence (spread)&#xa;needs_review flag" vertex="1">
+          <mxGeometry height="100" width="260" x="1220" y="2525" as="geometry" />
+        </mxCell>
+        <mxCell id="gx5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7E57C2;strokeColor=#4527A0;strokeWidth=2;fontSize=10;fontColor=#FFFFFF;align=center" value="Lecturer accept / override&#xa;+ reason → applies grade&#xa;→ gradeReviews (audit log)" vertex="1">
+          <mxGeometry height="100" width="280" x="1520" y="2525" as="geometry" />
+        </mxCell>
+        <mxCell id="gx6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#EF6C00;strokeWidth=2;fontSize=10;fontColor=#5C3A00;align=left;spacingLeft=10;verticalAlign=middle" value="Recommendation — not a final grade.&#xa;Validity tracked over time: AI-vs-human agreement (Quadratic Weighted Kappa + MAE) from accept/override pairs, surfaced per assignment." vertex="1">
+          <mxGeometry height="100" width="730" x="1840" y="2525" as="geometry" />
+        </mxCell>
+        <mxCell id="egx1" edge="1" parent="1" source="gx1" style="html=1;endArrow=classic;strokeColor=#4527A0;strokeWidth=2;fontSize=9;" target="gx2" value="grade ×N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="egx2" edge="1" parent="1" source="gx2" style="html=1;endArrow=classic;strokeColor=#4527A0;strokeWidth=2;fontSize=9;" target="gx3" value="aggregate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="egx3" edge="1" parent="1" source="gx3" style="html=1;endArrow=classic;strokeColor=#4527A0;strokeWidth=2;fontSize=9;" target="gx4" value="recommend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="egx4" edge="1" parent="1" source="gx4" style="html=1;endArrow=classic;strokeColor=#4527A0;strokeWidth=2;fontSize=9;" target="gx5" value="confirm">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

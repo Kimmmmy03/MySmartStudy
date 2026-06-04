@@ -45,6 +45,8 @@ EMAIL_SETTINGS = "emailSettings"             # singleton "global" doc — admin 
 
 # ── AI feature collections ──
 AI_PLAGIARISM_REPORTS = "aiPlagiarismReports"
+PLAGIARISM_REVIEWS = "plagiarismReviews"  # lecturer human-in-the-loop decisions on flagged pairs
+GRADE_REVIEWS = "gradeReviews"  # lecturer accept/override decisions on AI grade recommendations (audit + QWK calibration)
 AI_GRADE_RECOMMENDATIONS = "aiGradeRecommendations"
 LEARNING_PROFILES = "learningProfiles"
 AI_CHAT_HISTORY = "aiChatHistory"

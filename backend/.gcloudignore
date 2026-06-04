@@ -1,0 +1,26 @@
+# Local Python virtualenv — never ship to Cloud Build (deps come from requirements.txt)
+venv/
+.venv/
+
+# Python caches / build artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# VCS
+.git
+.gitignore
+
+# Secrets — inject via Cloud Run + Secret Manager at runtime, never ship them
+serviceAccountKey.json
+.env
+.env.*
+*.pem
+*.key
+
+# Local data / dev artifacts
+mysmartstudy.db
+vector_store/
+uploads/

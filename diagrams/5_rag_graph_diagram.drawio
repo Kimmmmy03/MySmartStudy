@@ -113,8 +113,8 @@
         <mxCell id="ge3" edge="1" parent="1" source="n_d" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;strokeColor=#4A5568;fontSize=9;fontColor=#3D4A5C;exitX=0;exitY=0.5;entryX=1;entryY=0.5" target="n_b" value="example_of">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="p3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;dashed=1;verticalAlign=top;align=left;spacingLeft=14;spacingTop=8;fontSize=13;fontStyle=1;fontColor=#3D4A5C" value="Part 3 — Plagiarism similarity graph  ·  knowledge_graph_service.build_similarity_graph() + detect_clusters()" vertex="1">
-          <mxGeometry height="330" width="1100" x="1240" y="470" as="geometry" />
+        <mxCell id="p3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6FA;strokeColor=#5A6478;strokeWidth=2;dashed=1;verticalAlign=top;align=left;spacingLeft=14;spacingTop=8;fontSize=13;fontStyle=1;fontColor=#3D4A5C" value="Part 3 — Plagiarism similarity graph  ·  knowledge_graph_service.build_similarity_graph() + detect_clusters() + check_historical_corpus()" vertex="1">
+          <mxGeometry height="400" width="1100" x="1240" y="470" as="geometry" />
         </mxCell>
         <mxCell id="p3_in" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE7F3;strokeColor=#2C5282;align=center;verticalAlign=middle;fontSize=11;fontColor=#1F3A68" value="All submissions for&#xa;an assignment" vertex="1">
           <mxGeometry height="70" width="190" x="1280" y="520" as="geometry" />
@@ -147,8 +147,18 @@
             </Array>
           </mxGeometry>
         </mxCell>
+        <mxCell id="p3_hist" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E2D9F0;strokeColor=#6B46C1;align=left;verticalAlign=middle;spacingLeft=12;fontSize=11;fontColor=#4C2F87" value="Cross-assignment historical check  ·  check_historical_corpus()&#xa;Embeds this assignment&apos;s submissions and compares them (cosine) against submissions from OTHER assignments in the same course — catches reuse / prior-cohort copying the intra-assignment graph cannot see.  Flags matches ≥ PLAGIARISM_HISTORICAL_THRESHOLD (0.78).  Lecturer-triggered." vertex="1">
+          <mxGeometry height="80" width="1020" x="1280" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="p3eh" edge="1" parent="1" source="p3_in" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#6B46C1;strokeWidth=2;dashed=1;fontSize=10;fontColor=#4C2F87;exitX=0.5;exitY=1;entryX=0.1;entryY=0" target="p3_hist" value="same submissions">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1375" y="740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
         <mxCell id="legend" parent="1" style="text;html=1;align=center;whiteSpace=wrap;fontSize=11;fontStyle=2;fontColor=#3D4A5C" value="Legend:  slate = data / graph infrastructure   ·   violet = AI / framework path   ·   blue = student-side   ·   purple = course-side   ·   gray = pure-Python step   ·   amber = runtime decision" vertex="1">
-          <mxGeometry height="24" width="2280" x="60" y="840" as="geometry" />
+          <mxGeometry height="24" width="2280" x="60" y="900" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

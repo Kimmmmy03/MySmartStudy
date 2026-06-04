@@ -2,7 +2,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Helper functions ──
+    // ─────────────────────────────────────────────────────────────────────
+    //  BACKEND-ONLY SECURITY MODEL (deny-by-default)
+    //
+    //  Every data read/write in MySmartStudy is routed through the FastAPI
+    //  backend, which uses the Firebase Admin SDK (Admin SDK BYPASSES these
+    //  rules). Authorization — authentication, RBAC, and object-level
+    //  ownership (IDOR) checks — is enforced there in route dependencies
+    //  (see backend/app/auth.py and backend/app/authz.py).
+    //
+    //  Therefore the Firestore client surface is closed: no browser/mobile
+    //  client may read or write Firestore directly. The single exception is
+    //  `user_preferences/{uid}` (the web theme toggle), which the client SDK
+    //  reads/writes for its own user only.
+    //
+    //  To re-open a collection for direct client access in future, add a
+    //  scoped `match` ABOVE the catch-all with an explicit owner/role guard.
+    // ─────────────────────────────────────────────────────────────────────
+
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -11,356 +28,15 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function hasRole(role) {
-      return isAuthenticated() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    // Theme preference — the ONLY collection the web client touches directly
+    // via the Firebase SDK. Each user may read/write only their own document.
+    match /user_preferences/{uid} {
+      allow read, write: if isOwner(uid);
     }
 
-    function isAdmin() {
-      return hasRole('admin');
-    }
-
-    function isLecturer() {
-      return hasRole('lecturer');
-    }
-
-    function isStudent() {
-      return hasRole('student');
-    }
-
-    function isLecturerOrAdmin() {
-      return isLecturer() || isAdmin();
-    }
-
-    // ── Users ──
-    match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId) || isAdmin();
-    }
-
-    // ── Maps ──
-    // Phase 1 followers: reads now require ownership, collaborator membership,
-    // explicit public visibility, or an elevated role. Unlisted maps are read
-    // by the backend via Admin SDK (share-code lookup) so the client read path
-    // stays closed to strangers. All app client code already goes through the
-    // API, so this tightening is defence-in-depth.
-    match /maps/{mapId} {
-      allow read: if isAuthenticated() && (
-        resource.data.visibility == "public"
-        || resource.data.ownerId == request.auth.uid
-        || (resource.data.collaborators is list &&
-            request.auth.token.email in resource.data.collaborators)
-        || isLecturerOrAdmin()
-      );
-      allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated() &&
-        (resource.data.ownerId == request.auth.uid || isAdmin());
-
-      // Presence subcollection
-      match /presence/{presenceId} {
-        allow read: if isAuthenticated();
-        allow write: if isAuthenticated();
-      }
-
-      // Annotations subcollection
-      match /annotations/{annotationId} {
-        allow read: if isAuthenticated();
-        allow create: if isAuthenticated();
-        allow update, delete: if isAuthenticated() &&
-          (resource.data.authorId == request.auth.uid || isLecturerOrAdmin());
-      }
-    }
-
-    // ── Follows (Phase 1 followers feature) ──
-    // Directed edge doc keyed by {followerId}_{followedId}. Public read so the
-    // follow graph is discoverable (counts + lists). Writes go through the
-    // /api/social endpoints which use Admin SDK, but we still allow authed
-    // self-writes for offline tools / tests.
-    match /follows/{followId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated()
-        && request.resource.data.followerId == request.auth.uid
-        && request.resource.data.followerId != request.resource.data.followedId;
-      allow delete: if isAuthenticated() && resource.data.followerId == request.auth.uid;
-    }
-
-    // ── Map likes (Phase 3, but rule shipped early so the collection is ready) ──
-    match /mapLikes/{likeId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
-    }
-
-    // ── Map comments (Phase 3) ──
-    match /mapComments/{commentId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid;
-      allow delete: if isAuthenticated() && (
-        resource.data.authorId == request.auth.uid
-        || get(/databases/$(database)/documents/maps/$(resource.data.mapId)).data.ownerId == request.auth.uid
-      );
-    }
-
-    // ── Courses ──
-    match /courses/{courseId} {
-      allow read: if isAuthenticated();
-      allow create: if isLecturerOrAdmin();
-      allow update, delete: if isAuthenticated() &&
-        (resource.data.lecturerId == request.auth.uid || isAdmin());
-    }
-
-    // ── Assignments ──
-    match /assignments/{assignmentId} {
-      allow read: if isAuthenticated();
-      allow create: if isLecturerOrAdmin();
-      allow update, delete: if isAuthenticated() &&
-        (resource.data.lecturerId == request.auth.uid || isAdmin());
-    }
-
-    // ── Submissions ──
-    match /submissions/{submissionId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() &&
-        (resource.data.studentId == request.auth.uid || isLecturerOrAdmin());
-    }
-
-    // ── Quizzes ──
-    match /quizzes/{quizId} {
-      allow read: if isAuthenticated();
-      allow create: if isLecturerOrAdmin();
-      allow update, delete: if isAuthenticated() &&
-        (resource.data.lecturerId == request.auth.uid || isAdmin());
-    }
-
-    // ── Quiz Questions ──
-    match /quizQuestions/{questionId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isLecturerOrAdmin();
-    }
-
-    // ── Quiz Attempts ──
-    match /quizAttempts/{attemptId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      // Students can only read their own; lecturers can read all
-    }
-
-    // ── Discussions (class chat + forum posts) ──
-    match /discussions/{discussionId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow delete: if isAuthenticated() &&
-        (resource.data.senderId == request.auth.uid || isLecturerOrAdmin());
-    }
-
-    // ── Discussion Topics (forum) ──
-    match /discussionTopics/{topicId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() &&
-        (resource.data.authorId == request.auth.uid || isLecturerOrAdmin());
-      allow delete: if isAuthenticated() &&
-        (resource.data.authorId == request.auth.uid || isLecturerOrAdmin());
-    }
-
-    // ── Announcements ──
-    match /announcements/{announcementId} {
-      allow read: if isAuthenticated();
-      allow create: if isLecturerOrAdmin();
-      allow update, delete: if isAuthenticated() &&
-        (resource.data.senderId == request.auth.uid || isAdmin());
-    }
-
-    // ── Course Modules ──
-    match /courseModules/{moduleId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isLecturerOrAdmin();
-    }
-
-    // ── Module Items ──
-    match /moduleItems/{itemId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isLecturerOrAdmin();
-    }
-
-    // ── Resource Progress ──
-    match /resourceProgress/{progressId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-    }
-
-    // ── Reminders (private to owner) ──
-    match /reminders/{reminderId} {
-      allow read, write: if isOwner(resource.data.ownerId);
-      allow create: if isAuthenticated();
-    }
-
-    // ── Badges ──
-    match /badges/{badgeId} {
-      allow read: if isAuthenticated();
-      allow write: if isLecturerOrAdmin();
-    }
-
-    // ── Peer Reviews ──
-    match /peerReviews/{reviewId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated() &&
-        (resource.data.reviewerId == request.auth.uid || isLecturerOrAdmin());
-    }
-
-    // ── Rubrics ──
-    match /rubrics/{rubricId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isLecturerOrAdmin();
-    }
-
-    // ── Attendance Sessions ──
-    match /attendance/{sessionId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isLecturerOrAdmin();
-    }
-
-    // ── Attendance Records ──
-    match /attendanceRecords/{recordId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isLecturerOrAdmin();
-    }
-
-    // ── Certificates ──
-    match /certificates/{certId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-    }
-
-    // ── Course Groups ──
-    match /courseGroups/{groupId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isLecturerOrAdmin();
-    }
-
-    // ── Group Tasks (task/project-scoped groups) ──
-    match /groupTasks/{taskId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isLecturerOrAdmin();
-    }
-
-    // ── Grade Settings ──
-    match /gradeSettings/{settingId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isLecturerOrAdmin();
-    }
-
-    // ── Private Messages ──
-    match /messages/{messageId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-    }
-
-    // ── Conversations ──
-    match /conversations/{conversationId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated();
-    }
-
-    // ── Notifications (private to recipient) ──
-    match /notifications/{notificationId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated();
-    }
-
-    // ── Activity Feed (private to owner) ──
-    match /activityFeed/{activityId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated();
-    }
-
-    // ── Reflections (private to owner) ──
-    match /reflections/{reflectionId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated();
-    }
-
-    // ── Audit Logs (admin only) ──
-    match /auditLogs/{logId} {
-      allow read: if isAdmin();
-      allow create: if isAuthenticated();
-    }
-
-    // ── FCM Tokens (private) ──
-    match /fcmTokens/{tokenId} {
-      allow read, write: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated();
-    }
-
-    // ── Map Views (recently viewed maps — private to owner) ──
-    match /mapViews/{viewId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
-    }
-
-    // ── Enrollments / course_students ──
-    match /courseStudents/{enrollmentId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow delete: if isAuthenticated() &&
-        (resource.data.studentId == request.auth.uid || isLecturerOrAdmin());
-    }
-
-    // ── Map Collaborators ──
-    match /mapCollaborators/{collabId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
-    }
-
-    // ── Homepage Content (public read, admin write) ──
-    match /homepageContent/{contentId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    // ── Usage Analytics (admin read only, backend-only writes via Admin SDK) ──
-    // Clients must never write directly — the /api/activity/heartbeat endpoint
-    // is the single source of truth so idle-gap rules + platform tallies stay
-    // consistent.
-    match /userSessions/{sessionId} {
-      allow read: if isAdmin();
-      allow write: if false;
-    }
-
-    match /userActivityAggregate/{userId} {
-      // Users can see their own lifetime totals; admins see all.
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow write: if false;
-    }
-
-    // ── AI Usage Tracking (backend-only writes via Admin SDK) ──
-    match /aiUsageSummary/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow write: if false;
-    }
-
-    match /aiUserSettings/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow write: if false;
-    }
-
-    match /aiDailyUsage/{docId} {
-      allow read: if isAdmin();
-      allow write: if false;
-    }
-
-    match /aiConfig/{docId} {
-      allow read: if isAdmin();
-      allow write: if false;
-    }
-
-    match /aiImageQuotas/{docId} {
-      allow read: if isAdmin();
-      allow write: if false;
+    // Deny-by-default: all other collections are backend-only.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

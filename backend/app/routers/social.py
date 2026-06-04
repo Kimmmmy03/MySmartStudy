@@ -50,6 +50,7 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 
 from .. import models, schemas
 from ..auth import get_current_user
+from ..sanitize import clean_text
 from ..firestore import get_db
 from .maps import _map_out as _map_out_helper
 from .notifications import create_notification
@@ -767,7 +768,7 @@ def create_comment(
     db=Depends(get_db),
 ):
     """Post a comment on a map. 500-char cap server-side."""
-    text = (req.text or "").strip()
+    text = clean_text((req.text or "").strip())  # stored-XSS defence
     if not text:
         raise HTTPException(400, "Comment cannot be empty")
     if len(text) > 500:

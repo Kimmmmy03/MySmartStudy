@@ -3,6 +3,7 @@ from google.cloud.firestore_v1 import ArrayUnion, ArrayRemove
 from .. import models, schemas
 from ..firestore import get_db
 from ..auth import get_current_user
+from ..sanitize import clean_text, clean_graph_data
 from ..audit import audit_log
 from .activity import log_activity
 from .auto_badges import check_and_award_badges as check_auto_badges
@@ -183,10 +184,10 @@ def create_map(req: schemas.MapCreate, user: dict = Depends(get_current_user), d
     data = {
         "ownerId": user["id"],
         "ownerEmail": user.get("email", ""),
-        "title": req.title,
-        "graphData": req.graph_data,
+        "title": clean_text(req.title),
+        "graphData": clean_graph_data(req.graph_data),
         "graphFormat": req.graph_format,
-        "nodesText": req.nodes_text,
+        "nodesText": clean_text(req.nodes_text),
         "thumbnail": req.thumbnail,
         "shareCode": _gen_unique_share_code(db),
         "collaborators": [],
@@ -609,6 +610,14 @@ def update_map(map_id: str, req: schemas.MapUpdate, user: dict = Depends(get_cur
         # fire on the first transition; re-publishing isn't a new event.
         if new_vis == "public" and prev_vis_for_notify != "public":
             notify_followers = True
+
+    # Sanitize user-supplied text before persisting (stored-XSS defence).
+    if "title" in updates:
+        updates["title"] = clean_text(updates["title"])
+    if "nodes_text" in updates:
+        updates["nodes_text"] = clean_text(updates["nodes_text"])
+    if "graph_data" in updates:
+        updates["graph_data"] = clean_graph_data(updates["graph_data"])
 
     fs_updates = _to_firestore_fields(updates)
     # Renames for fields that don't flow through _MAP_FIELD_MAP.

@@ -192,6 +192,16 @@ export interface SubmissionOut {
   submitted_at: string;
 }
 
+export interface MatchedSpan {
+  text: string;
+  a_start: number;
+  a_end: number;
+  b_start: number;
+  b_end: number;
+}
+
+export type ReviewStatus = "pending" | "confirmed" | "dismissed";
+
 export interface PlagiarismPair {
   student_a_id: string;
   student_a_name: string;
@@ -201,6 +211,11 @@ export interface PlagiarismPair {
   student_b_type: string;
   similarity: number;
   severity: "high" | "medium" | "low";
+  combined_similarity?: number;
+  tfidf_similarity?: number;
+  lexical_similarity?: number;
+  matched_spans?: MatchedSpan[];
+  review?: { status: ReviewStatus; note?: string; reviewer_name?: string; reviewed_at?: string } | null;
 }
 
 export interface StudentRisk {
@@ -232,6 +247,23 @@ export interface FullPlagiarismReport {
     low_severity_count: number;
     students_at_risk: number;
   };
+  methodology?: {
+    method: string;
+    tfidf_weight: number;
+    lexical_weight: number;
+    threshold: number;
+    scope: string;
+  };
+  historical_matches?: HistoricalMatch[];
+}
+
+export interface HistoricalMatch {
+  student_id: string;
+  student_name: string;
+  similarity: number;
+  source_assignment_id: string;
+  source_assignment_title: string;
+  source_student_name?: string;
 }
 
 export interface DiscussionOut {
@@ -590,6 +622,20 @@ export const assignmentsApi = {
 
   fullPlagiarismReport: (aid: string) =>
     request<FullPlagiarismReport>(`/assignments/${aid}/full-plagiarism-report`),
+
+  plagiarismReviews: (aid: string) =>
+    request<Record<string, { status: ReviewStatus; note?: string; reviewer_name?: string; reviewed_at?: string }>>(
+      `/assignments/${aid}/plagiarism-reviews`,
+    ),
+
+  reviewPlagiarismPair: (
+    aid: string,
+    body: { student_a_id: string; student_b_id: string; status: ReviewStatus; note?: string },
+  ) =>
+    request<{ ok: boolean; pair_key: string }>(`/assignments/${aid}/plagiarism-review`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
   pendingReviews: () =>
     request<{ assignment: AssignmentOut; ungraded_count: number; total_submissions: number }[]>("/assignments/pending-reviews"),
@@ -1929,20 +1975,50 @@ export const aiPlagiarismApi = {
 
   analyzeAssignment: (assignmentId: string) =>
     request<PlagiarismNetworkReport>(`/ai/plagiarism/analyze-assignment/${assignmentId}`, { method: "POST" }),
+
+  historical: (assignmentId: string) =>
+    request<{ historical_matches: HistoricalMatch[]; compared_against: number }>(
+      `/ai/plagiarism/historical/${assignmentId}`,
+    ),
 };
 
 // ── AI Grading Types ──
+export interface CriterionDetail {
+  name: string;
+  max_points: number;
+  score: number;
+  evidence?: string;
+  justification?: string;
+}
+
 export interface GradeRecommendation {
   id: string;
   submission_id: string;
   assignment_id: string;
   recommended_grade: number;
   criterion_scores: Record<string, number>;
+  criteria_detail?: CriterionDetail[];
   justification: string;
   confidence: number;
+  score_spread?: number;
+  needs_review?: boolean;
+  samples?: number;
+  method?: string;
+  reviewed?: boolean;
   comparative_analysis?: string;
   improvement_suggestions?: { criterion: string; suggestion: string; resource_link?: { title: string; doc_id: string; doc_type: string } }[];
   created_at: string;
+}
+
+export interface GradingCalibration {
+  assignment_id: string;
+  reviewed_count: number;
+  override_count: number;
+  qwk: number | null;
+  pairs: number;
+  mae: number | null;
+  exact_rate: number | null;
+  adjacent_rate: number | null;
 }
 
 // ── AI Grading API ──
@@ -1952,6 +2028,22 @@ export const aiGradingApi = {
 
   getRecommendation: (submissionId: string) =>
     request<GradeRecommendation | null>(`/ai/grading/recommendation/${submissionId}`),
+
+  review: (body: {
+    submission_id: string;
+    ai_grade?: number | null;
+    final_grade: number;
+    action: "accepted" | "overridden";
+    reason?: string;
+    feedback?: string;
+    apply?: boolean;
+  }) =>
+    request<{ ok: boolean; submission_id: string; action: string; final_grade: number }>(
+      `/ai/grading/review`, { method: "POST", body: JSON.stringify(body) },
+    ),
+
+  calibration: (assignmentId: string) =>
+    request<GradingCalibration>(`/ai/grading/calibration/${assignmentId}`),
 };
 
 // ── AI Companion Types ──

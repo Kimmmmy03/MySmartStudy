@@ -8,12 +8,18 @@ Uses multi-agent fan-out for parallel data gathering:
 All run concurrently, then results feed into a single GAG synthesizer call.
 """
 
+import asyncio
+import os
+
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from app.firestore import db
 from app.auth import require_lecturer
-from app import models
+from app import models, grading
+from app.authz import assert_assignment_owner
 from app.ai_service import generate_json, get_knowledge_base, set_tracking_context
 from app import rag_service, gag_service
+from app.audit import audit_log
 from app.multi_agent import fan_out, fan_out_synthesize, get_or_default
 from datetime import datetime, timezone
 from google.cloud.firestore_v1.base_query import FieldFilter
@@ -28,8 +34,14 @@ def _rec_out(d: dict) -> dict:
         "assignment_id": d.get("assignmentId"),
         "recommended_grade": d.get("recommendedGrade", 0),
         "criterion_scores": d.get("criterionScores", {}),
+        "criteria_detail": d.get("criteriaDetail", []),
         "justification": d.get("justification", ""),
         "confidence": d.get("confidence", 0),
+        "score_spread": d.get("scoreSpread", 0),
+        "needs_review": d.get("needsReview", False),
+        "samples": d.get("samples", 1),
+        "method": d.get("method", ""),
+        "reviewed": d.get("reviewed", False),
         "created_at": d.get("createdAt"),
     }
     # Include GAG-enhanced fields if present
@@ -38,6 +50,42 @@ def _rec_out(d: dict) -> dict:
     if d.get("improvementSuggestions"):
         out["improvement_suggestions"] = d["improvementSuggestions"]
     return out
+
+
+async def _synthesize_recommendation(
+    content: str,
+    rubric_criteria: list[dict],
+    rag_chunks: list,
+    assignment_info: dict,
+    reference_answer: str = "",
+) -> dict:
+    """Self-consistency synthesis: grade the submission several times and
+    aggregate into one calibrated, rubric-enforced recommendation.
+
+    Confidence is derived from the agreement between samples (not self-reported),
+    and the deterministic total is computed from the median per-criterion scores.
+    """
+    criteria = grading.normalize_criteria(rubric_criteria)
+    n = max(1, int(os.getenv("GRADING_SC_SAMPLES", "3")))
+    base_temp = float(os.getenv("GRADING_SC_TEMPERATURE", "0.5"))
+
+    async def _one(i: int) -> dict:
+        # Vary temperature slightly per sample to surface genuine disagreement.
+        return await gag_service.grade_submission_once(
+            content, criteria, rag_chunks, assignment_info, reference_answer,
+            temperature=min(0.9, base_temp + i * 0.1),
+        )
+
+    raw = await asyncio.gather(*[_one(i) for i in range(n)], return_exceptions=True)
+    samples = [s for s in raw if isinstance(s, dict) and s.get("criteria")]
+    if not samples:
+        raise RuntimeError("Grader produced no valid samples")
+
+    agg = grading.aggregate_samples(samples, criteria)
+    agg["method"] = f"rubric-decomposed · self-consistency (n={agg['samples']})" + (
+        " · reference-guided" if reference_answer else ""
+    )
+    return agg
 
 
 async def _fetch_submission(submission_id: str) -> dict:
@@ -79,7 +127,15 @@ async def _fetch_assignment_and_rubric(assignment_id: str) -> dict:
     if rubric_docs:
         rubric_criteria = rubric_docs[0].to_dict().get("criteria", [])
 
-    return {"assign": assign, "rubric_criteria": rubric_criteria}
+    # Optional reference answer / marking scheme for reference-guided grading.
+    reference_answer = (
+        assign.get("referenceAnswer")
+        or assign.get("modelAnswer")
+        or assign.get("markingScheme")
+        or ""
+    )
+
+    return {"assign": assign, "rubric_criteria": rubric_criteria, "reference_answer": reference_answer}
 
 
 async def _compute_class_stats(assignment_id: str) -> dict:
@@ -125,6 +181,8 @@ async def recommend_grade(submission_id: str, user=Depends(require_lecturer)):
         raise HTTPException(404, "Submission not found")
 
     sub = sub_result["sub"]
+    # Object-level authz: requester must own the parent assignment's course.
+    assert_assignment_owner(db, sub.get("assignmentId", ""), user)
     content = sub_result["content"]
     if not content or len(content.strip()) < 10:
         raise HTTPException(400, "Submission has insufficient content for AI grading")
@@ -149,6 +207,7 @@ async def recommend_grade(submission_id: str, user=Depends(require_lecturer)):
 
     assign = assign_result.get("assign", {})
     rubric_criteria = assign_result.get("rubric_criteria", [])
+    reference_answer = assign_result.get("reference_answer", "")
     class_stats = get_or_default(wave1, "class_stats", {})
 
     if assign.get("assignmentType") != "tutorial":
@@ -165,38 +224,43 @@ async def recommend_grade(submission_id: str, user=Depends(require_lecturer)):
     except Exception:
         pass
 
-    # ── Synthesizer: GAG grading report ──────────────────────────────────────
+    # ── Synthesizer: self-consistency, rubric-enforced grading ───────────────
     try:
-        result = await gag_service.generate_grading_report(
-            submission_content=content,
-            rubric=rubric_criteria,
-            rag_chunks=rag_chunks,
-            assignment_info={
-                "title": assign.get("title", ""),
-                "description": assign.get("description", ""),
-                "class_stats": class_stats,
-            },
+        result = await _synthesize_recommendation(
+            content, rubric_criteria, rag_chunks,
+            {"title": assign.get("title", ""), "description": assign.get("description", ""), "class_stats": class_stats},
+            reference_answer,
         )
     except Exception as e:
         raise HTTPException(502, f"AI grading failed: {str(e)}")
 
-    # Store
+    rec_data = _store_recommendation(submission_id, assignment_id, result)
+    return _rec_out(rec_data)
+
+
+def _store_recommendation(submission_id: str, assignment_id: str, result: dict) -> dict:
+    """Persist an aggregated recommendation and return the stored doc."""
     rec_id = models.gen_id()
     rec_data = {
         "submissionId": submission_id,
         "assignmentId": assignment_id,
         "recommendedGrade": result.get("recommended_grade", 0),
         "criterionScores": result.get("criterion_scores", {}),
+        "criteriaDetail": result.get("criteria_detail", []),
         "justification": result.get("justification", ""),
         "confidence": result.get("confidence", 0),
+        "scoreSpread": result.get("score_spread", 0),
+        "needsReview": result.get("needs_review", False),
+        "samples": result.get("samples", 1),
+        "method": result.get("method", ""),
         "comparativeAnalysis": result.get("comparative_analysis", ""),
         "improvementSuggestions": result.get("improvement_suggestions", []),
+        "reviewed": False,
         "createdAt": datetime.now(timezone.utc).isoformat(),
     }
     db.collection(models.AI_GRADE_RECOMMENDATIONS).document(rec_id).set(rec_data)
     rec_data["id"] = rec_id
-
-    return _rec_out(rec_data)
+    return rec_data
 
 
 @router.get("/recommendation/{submission_id}")
@@ -241,6 +305,7 @@ async def _grade_single(submission_id: str, user_id: str) -> dict:
 
         assign = assign_result.get("assign", {})
         rubric_criteria = assign_result.get("rubric_criteria", [])
+        reference_answer = assign_result.get("reference_answer", "")
         class_stats = get_or_default(wave1, "class_stats", {})
 
         rag_chunks = []
@@ -251,24 +316,13 @@ async def _grade_single(submission_id: str, user_id: str) -> dict:
         except Exception:
             pass
 
-        result = await gag_service.generate_grading_report(
-            submission_content=content, rubric=rubric_criteria, rag_chunks=rag_chunks,
-            assignment_info={"title": assign.get("title", ""), "description": assign.get("description", ""), "class_stats": class_stats},
+        result = await _synthesize_recommendation(
+            content, rubric_criteria, rag_chunks,
+            {"title": assign.get("title", ""), "description": assign.get("description", ""), "class_stats": class_stats},
+            reference_answer,
         )
 
-        rec_id = models.gen_id()
-        rec_data = {
-            "submissionId": submission_id, "assignmentId": assignment_id,
-            "recommendedGrade": result.get("recommended_grade", 0),
-            "criterionScores": result.get("criterion_scores", {}),
-            "justification": result.get("justification", ""),
-            "confidence": result.get("confidence", 0),
-            "comparativeAnalysis": result.get("comparative_analysis", ""),
-            "improvementSuggestions": result.get("improvement_suggestions", []),
-            "createdAt": datetime.now(timezone.utc).isoformat(),
-        }
-        db.collection(models.AI_GRADE_RECOMMENDATIONS).document(rec_id).set(rec_data)
-        rec_data["id"] = rec_id
+        rec_data = _store_recommendation(submission_id, assignment_id, result)
         return {"submission_id": submission_id, **_rec_out(rec_data)}
     except Exception as e:
         return {"submission_id": submission_id, "_error": str(e)}
@@ -279,7 +333,8 @@ async def recommend_batch(assignment_id: str, user=Depends(require_lecturer)):
     """Grade all submissions for an assignment in parallel using multi-agent fan-out."""
     set_tracking_context(user["id"], "grading")
 
-    # Verify assignment exists
+    # Verify assignment exists + requester owns its course
+    assert_assignment_owner(db, assignment_id, user)
     assign_doc = db.collection(models.ASSIGNMENTS).document(assignment_id).get()
     if not assign_doc.exists:
         raise HTTPException(404, "Assignment not found")
@@ -315,4 +370,113 @@ async def recommend_batch(assignment_id: str, user=Depends(require_lecturer)):
         "errors": len(errors),
         "results": graded,
         "error_details": errors,
+    }
+
+
+# ── Human-in-the-loop: accept / override audit trail ─────────────────────────
+
+class GradeReviewIn(BaseModel):
+    submission_id: str
+    ai_grade: float | None = None       # what the AI recommended (for calibration)
+    final_grade: float                  # the grade the lecturer is committing
+    action: str                         # "accepted" | "overridden"
+    reason: str | None = None
+    feedback: str | None = None
+    apply: bool = True                   # also write the grade onto the submission
+
+
+@router.post("/review")
+async def review_recommendation(body: GradeReviewIn, user=Depends(require_lecturer)):
+    """Record the lecturer's accept/override decision on an AI grade recommendation.
+
+    This is the human-in-the-loop gate: the AI grade is never final until a
+    lecturer confirms or overrides it. Each decision logs the AI-vs-human pair so
+    agreement (QWK / MAE) can be measured over time, and optionally applies the
+    final grade to the submission.
+    """
+    if body.action not in ("accepted", "overridden"):
+        raise HTTPException(400, "action must be 'accepted' or 'overridden'")
+    if not (0 <= body.final_grade <= 100):
+        raise HTTPException(400, "final_grade must be between 0 and 100")
+
+    sub_ref = db.collection(models.SUBMISSIONS).document(body.submission_id)
+    sub_doc = sub_ref.get()
+    if not sub_doc.exists:
+        raise HTTPException(404, "Submission not found")
+    sub = sub_doc.to_dict()
+    assignment_id = sub.get("assignmentId", "")
+    # Object-level authz: requester must own the parent assignment's course.
+    assert_assignment_owner(db, assignment_id, user)
+
+    reviewer_name = user.get("displayName") or user.get("name") or user.get("email") or "Lecturer"
+    now = datetime.now(timezone.utc).isoformat()
+
+    # One review per submission — overwrite any prior decision.
+    doc_id = body.submission_id
+    db.collection(models.GRADE_REVIEWS).document(doc_id).set({
+        "submissionId": body.submission_id,
+        "assignmentId": assignment_id,
+        "studentId": sub.get("studentId", ""),
+        "aiGrade": body.ai_grade,
+        "finalGrade": body.final_grade,
+        "action": body.action,
+        "reason": body.reason or "",
+        "reviewerId": user["id"],
+        "reviewerName": reviewer_name,
+        "reviewedAt": now,
+    })
+
+    # Mark the recommendation as reviewed (best-effort).
+    recs = db.collection(models.AI_GRADE_RECOMMENDATIONS).where(
+        filter=FieldFilter("submissionId", "==", body.submission_id)
+    ).limit(1).get()
+    if recs:
+        recs[0].reference.update({"reviewed": True})
+
+    # Apply the confirmed grade to the submission.
+    if body.apply:
+        update = {"grade": round(body.final_grade, 1)}
+        if body.feedback is not None:
+            update["feedback"] = body.feedback
+        sub_ref.update(update)
+
+    audit_log(db, user["id"], "ai_grade_review", "submission", body.submission_id,
+              details=f"action={body.action} ai={body.ai_grade} final={body.final_grade}")
+
+    return {"ok": True, "submission_id": body.submission_id, "action": body.action, "final_grade": body.final_grade}
+
+
+@router.get("/calibration/{assignment_id}")
+async def grading_calibration(assignment_id: str, user=Depends(require_lecturer)):
+    """Validity evidence: how well AI recommendations agree with the lecturer's
+    confirmed grades for this assignment (Quadratic Weighted Kappa + MAE +
+    exact/adjacent agreement). This turns 'trust the AI' into a measured claim."""
+    assert_assignment_owner(db, assignment_id, user)
+    reviews = db.collection(models.GRADE_REVIEWS).where(
+        filter=FieldFilter("assignmentId", "==", assignment_id)
+    ).get()
+
+    human: list[float] = []
+    ai: list[float] = []
+    overrides = 0
+    for r in reviews:
+        d = r.to_dict()
+        if d.get("action") == "overridden":
+            overrides += 1
+        ag = d.get("aiGrade")
+        fg = d.get("finalGrade")
+        if ag is not None and fg is not None:
+            human.append(float(fg))
+            ai.append(float(ag))
+
+    total = len(list(reviews)) if not isinstance(reviews, list) else len(reviews)
+    qwk = grading.quadratic_weighted_kappa(human, ai)
+    agreement = grading.grade_agreement(human, ai)
+
+    return {
+        "assignment_id": assignment_id,
+        "reviewed_count": len(human),
+        "override_count": overrides,
+        "qwk": qwk,
+        **agreement,
     }

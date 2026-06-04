@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from .. import models, schemas
 from ..firestore import get_db
 from ..auth import get_current_user
+from ..sanitize import clean_text
 from ..storage import save_upload
 from datetime import datetime, timezone
 import uuid
@@ -77,7 +78,10 @@ def _to_firestore_fields(updates: dict) -> dict:
 @router.patch("/me", response_model=schemas.UserOut)
 def update_profile(req: schemas.UserUpdate, user: dict = Depends(get_current_user), db=Depends(get_db)):
     updates = req.model_dump(exclude_unset=True)
-    # Cap bio length server-side (belt + braces — the client also enforces 280).
+    # Sanitize free-text profile fields (stored-XSS defence) + cap bio length.
+    for _f in ("display_name", "bio", "department", "className"):
+        if _f in updates and updates[_f] is not None:
+            updates[_f] = clean_text(str(updates[_f]))
     if "bio" in updates and updates["bio"] is not None:
         updates["bio"] = str(updates["bio"])[:280]
     if updates:

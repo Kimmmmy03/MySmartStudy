@@ -3,6 +3,8 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 from app.auth import require_lecturer
+from app.authz import assert_course_owner
+from app.firestore import db as _db
 from app import rag_service
 
 logger = logging.getLogger(__name__)
@@ -13,6 +15,9 @@ router = APIRouter(prefix="/api/ai/rag", tags=["RAG Admin"])
 @router.post("/index-course/{course_id}")
 async def trigger_index(course_id: str, user=Depends(require_lecturer)):
     """Manually trigger re-indexing for a course's content into the vector store."""
+    # Object-level authz: only the course's lecturer (or admin) may ingest into
+    # its knowledge base — prevents poisoning another lecturer's course.
+    assert_course_owner(_db, course_id, user)
     try:
         await rag_service.index_course_content(course_id)
         status = rag_service.get_index_status(course_id)
@@ -25,4 +30,5 @@ async def trigger_index(course_id: str, user=Depends(require_lecturer)):
 @router.get("/index-status/{course_id}")
 async def index_status(course_id: str, user=Depends(require_lecturer)):
     """Get indexing statistics for a course."""
+    assert_course_owner(_db, course_id, user)
     return rag_service.get_index_status(course_id)

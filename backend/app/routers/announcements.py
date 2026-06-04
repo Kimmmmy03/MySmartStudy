@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from .. import models, schemas
 from ..firestore import get_db
 from ..auth import get_current_user
+from ..sanitize import clean_text
 from .notifications import create_notification
 from datetime import datetime, timezone
 from google.cloud.firestore_v1.base_query import FieldFilter
@@ -42,8 +43,8 @@ def create_announcement(course_id: str, req: schemas.AnnouncementCreate, user: d
     photo_url = models.get_user_photo_url(db, user["id"])
     data = {
         "courseId": course_id,
-        "title": req.title,
-        "content": req.content,
+        "title": clean_text(req.title),
+        "content": clean_text(req.content),
         "senderName": user.get("displayName", ""),
         "senderId": user["id"],
         "senderPhotoUrl": photo_url,

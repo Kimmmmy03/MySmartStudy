@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from .. import models, schemas
 from ..firestore import get_db
 from ..auth import get_current_user
+from ..sanitize import clean_text
 from .notifications import create_notification
 from datetime import datetime, timezone
 from google.cloud.firestore_v1.base_query import FieldFilter
@@ -215,12 +216,13 @@ def send_message(
     msg_id = models.gen_id()
     now = datetime.now(timezone.utc)
     photo_url = models.get_user_photo_url(db, user["id"])
+    safe_text = clean_text(req.text)  # stored-XSS defence
     data = {
         "conversationId": conv_id,
         "senderId": user["id"],
         "senderName": user.get("displayName", ""),
         "senderPhotoUrl": photo_url,
-        "text": req.text,
+        "text": safe_text,
         "readBy": [user["id"]],
         "createdAt": now,
     }
@@ -229,7 +231,7 @@ def send_message(
 
     # Update conversation last message
     db.collection(models.CONVERSATIONS).document(conv_id).update({
-        "lastMessage": req.text[:100],
+        "lastMessage": safe_text[:100],
         "lastMessageAt": now,
     })
 
@@ -247,7 +249,7 @@ def send_message(
         create_notification(
             db, oid,
             f"New message from {user.get('displayName', 'Someone')}",
-            req.text[:100],
+            safe_text[:100],
             "message",
             link,
         )
@@ -281,8 +283,9 @@ def edit_message(
         raise HTTPException(status_code=400, detail="Cannot edit a deleted message")
 
     now = datetime.now(timezone.utc)
-    doc_ref.update({"text": req.text, "edited": True, "editedAt": now})
-    d["text"] = req.text
+    safe_text = clean_text(req.text)
+    doc_ref.update({"text": safe_text, "edited": True, "editedAt": now})
+    d["text"] = safe_text
     d["edited"] = True
     d["editedAt"] = now
     return _msg_out(d, models.get_user_photo_url(db, d.get("senderId", "")))

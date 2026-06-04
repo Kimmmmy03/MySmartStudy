@@ -268,6 +268,15 @@ export default function PlagiarismPage() {
           {/* Individual Analysis Tab */}
           {activeTab === "individual" && (
             <div className="space-y-3">
+              {/* Advisory: AI score is a screening signal, not a verdict */}
+              <div className="flex items-start gap-2.5 rounded-xl border border-accent-amber/20 bg-accent-amber/5 px-4 py-3">
+                <AlertTriangle className="w-4 h-4 text-accent-amber shrink-0 mt-0.5" />
+                <p className="text-xs text-dark-300 leading-relaxed">
+                  The AI score is a <strong className="text-dark-100">screening signal for human review</strong>, not a determination of misconduct.
+                  Text-based AI detection is unreliable on short submissions and on writing by non-native English speakers,
+                  which are frequently misflagged. Always review the submission yourself before acting.
+                </p>
+              </div>
               {loadingSubs ? (
                 <div className="flex justify-center py-12">
                   <Loader2 className="w-6 h-6 text-accent-cyan animate-spin" />

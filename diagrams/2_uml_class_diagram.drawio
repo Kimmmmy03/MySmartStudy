@@ -144,6 +144,14 @@
         <mxCell id="cE_peer" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;PeerReview&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · submissionId&#10;reviewerId · reviewerName&#10;rating : 1-5 · comment&#10;createdAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
           <mxGeometry x="430" y="1380" width="290" height="115" as="geometry" />
         </mxCell>
+        <mxCell id="cE_plagrev" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;PlagiarismReview&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · assignmentId&#10;pairKey  (sorted studentA__studentB)&#10;studentAId · studentBId&#10;status : pending|confirmed|dismissed&#10;note&#10;reviewerId · reviewerName&#10;reviewedAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1130" y="1380" width="310" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="e_plagrev_sub" value="reviews flagged pair (2×)" style="html=1;endArrow=open;endFill=0;dashed=1;strokeColor=#37474F;fontSize=9;fontColor=#37474F;" edge="1" parent="1" source="cE_plagrev" target="cE_sub"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="cE_graderev" value="&lt;i&gt;«entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;GradeReview&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;id · submissionId · assignmentId&#10;studentId&#10;aiGrade : float?  (recommended)&#10;finalGrade : float  (committed)&#10;action : accepted|overridden&#10;reason&#10;reviewerId · reviewerName&#10;reviewedAt : datetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
+          <mxGeometry x="1490" y="1380" width="300" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="e_graderev_sub" value="human decision on AI grade for" style="html=1;endArrow=open;endFill=0;dashed=1;strokeColor=#37474F;fontSize=9;fontColor=#37474F;" edge="1" parent="1" source="cE_graderev" target="cE_sub"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="cE_rc" value="&lt;i&gt;«value»&lt;/i&gt;&lt;br&gt;&lt;b&gt;RubricCriterion&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;name : string&#10;description : string&#10;maxPoints : float" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#37474F;align=left;verticalAlign=top;spacingLeft=7;spacingTop=4;fontSize=9;fontColor=#263238" vertex="1" parent="1">
           <mxGeometry x="1870" y="1380" width="295" height="95" as="geometry" />
         </mxCell>

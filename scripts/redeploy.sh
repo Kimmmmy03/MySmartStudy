@@ -26,9 +26,12 @@ if ! command -v gcloud >/dev/null 2>&1; then
     exit 1
 fi
 
-# Resolve repo root so the script works from any directory.
+# Resolve repo root (script lives in scripts/) so it works from any directory
+# and the relative --source paths below point at the real backend/ and
+# frontend-web/ directories.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
 
 # Make sure we're targeting the right project before deploying anything.
 gcloud config set project "$PROJECT" >/dev/null
@@ -69,6 +72,7 @@ deploy_backend() {
     gcloud run deploy "$BACKEND_SERVICE" \
         --source backend/ \
         --region "$REGION" \
+        --allow-unauthenticated \
         --quiet
 }
 
@@ -77,6 +81,7 @@ deploy_web() {
     gcloud run deploy "$WEB_SERVICE" \
         --source frontend-web/ \
         --region "$REGION" \
+        --allow-unauthenticated \
         --quiet
 }
 

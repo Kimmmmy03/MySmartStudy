@@ -813,6 +813,54 @@ The three AI study material viewers (`AiSummaryViewer`, `AiFlashcardViewer`, `Ai
 
 ---
 
+## Security & Reliability
+
+MySmartStudy is hardened across authorization, input handling, network protection,
+AI-pipeline safety, and operations. The full audit + rationale lives in
+[`docs/SECURITY_HARDENING_PLAN.md`](docs/SECURITY_HARDENING_PLAN.md).
+
+### Authorization & access control
+- **Firebase ID-token auth** — every request verifies a Firebase ID token (`app/auth.py`); the user doc is loaded from Firestore per request.
+- **DB-verified RBAC** — `require_role` / `require_lecturer` / `require_admin` dependencies resolve the role from the Firestore user document (not the client), so a forged client role can't escalate.
+- **Object-level authorization (anti-IDOR)** — `app/authz.py` provides `assert_course_owner` / `assert_assignment_owner`, applied to every lecturer data route (submissions, similarity/plagiarism reports & reviews, AI grading recommendations, batch grading, calibration, RAG ingestion). Students can only read their own submission (`/submissions/mine`).
+- **Backend-only Firestore rules (deny-by-default)** — `firestore.rules` denies all direct client reads/writes (`allow read, write: if false`) except `user_preferences/{uid}` (the web theme toggle, owner-scoped). All data flows through the FastAPI backend (Admin SDK), where the real authorization runs.
+
+### Input validation & data handling
+- **Stored-XSS sanitization** — `app/sanitize.py` (bleach) strips executable HTML on write from mind-map node labels & `nodesText`, discussion/DM/comment text, announcements, profile fields, and titles. `clean_graph_data` walks React Flow JSON and sanitizes every node/edge label.
+- **Schema validation** — all routes use typed Pydantic models; Firestore queries use typed filters (no string concatenation), and key free-text fields carry `max_length` caps.
+- **Payload-size limit** — `MaxBodySizeMiddleware` rejects oversized bodies before parsing (HTTP 413): 2 MB for JSON, 25 MB for multipart uploads (env-tunable).
+
+### Network & API protection
+- **Strict CORS** — origins restricted to the `CORS_ORIGINS` allowlist (`app/main.py`); unknown sites are blocked.
+- **Rate limiting** — `slowapi` IP-based limiter (default `240/min`, env-tunable via `RATE_LIMIT_DEFAULT`; supports a Redis store for multi-instance accuracy via `RATE_LIMIT_STORAGE_URI`).
+
+### AI & RAG pipeline security
+- **Prompt-injection defence** — untrusted user/RAG text is fenced in `<<<…>>>` delimiters (`ai_service.fence`), and every AI system prompt carries an `INJECTION_GUARD` clause telling the model to treat fenced content as data, never instructions. Grading & plagiarism prompts additionally fence the submission explicitly.
+- **Role-gated vector-store ingestion** — RAG/site-import endpoints require `lecturer` **and** course ownership, preventing knowledge-base poisoning.
+- **Server-side token quota** — `set_tracking_context` enforces a per-user daily token cap (HTTP 429), backed by the `aiDailyUsage` counter; the frontend only reads the gate to hide buttons.
+
+### Production reliability & operations
+- **Secret isolation** — `serviceAccountKey.json` is git-ignored and excluded from the Cloud Build context (`.gcloudignore`); production injects `FIREBASE_ADMIN_JSON`, `GEMINI_API_KEY`, and SMTP creds via Cloud Run + Secret Manager.
+- **Graceful error handling** — a global FastAPI exception handler returns a clean JSON error + correlation id (no stack traces/internals leaked); the web app has `error.tsx` + `global-error.tsx` fallback screens.
+- **Firestore composite indexes** — defined in `firestore.indexes.json` for hot multi-field queries (submissions, assignments, messages, discussions, announcements, quiz attempts).
+- **Deploy / rollback** — Cloud Run keeps every revision; deploy with `--no-traffic --tag` then migrate traffic, and roll back instantly with `gcloud run services update-traffic <svc> --to-revisions <REV>=100` (see `docs/SECURITY_HARDENING_PLAN.md` §5.5).
+- **Monitoring** — recommended Cloud Monitoring alert policies on 5xx rate, p95 latency, and a log-based metric for the AI-quota `429` / Gemini errors.
+
+### Deploying Firestore rules & indexes (terminal)
+Rules and indexes deploy from the terminal via the Firebase CLI (no console copy-paste).
+The repo includes `firebase.json` (wires `firestore.rules` + `firestore.indexes.json`) and
+`.firebaserc` (sets the default project `mysmartstudy-71f7c`):
+
+```bash
+firebase deploy --only firestore:rules               # rules only
+firebase deploy --only firestore:indexes             # indexes only
+firebase deploy --only firestore:rules,firestore:indexes  # both
+```
+
+> If you see "No currently active project", run `firebase use mysmartstudy-71f7c` once (or `firebase login` if not authenticated).
+
+---
+
 ## Quick Start
 
 ### Prerequisites

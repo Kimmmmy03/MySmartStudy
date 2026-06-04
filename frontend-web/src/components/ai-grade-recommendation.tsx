@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, CheckCircle } from "lucide-react";
+import { Sparkles, Loader2, CheckCircle, AlertTriangle, Quote, ShieldCheck } from "lucide-react";
 import { aiGradingApi, GradeRecommendation } from "@/lib/api";
 
 interface AiGradeRecommendationProps {
   submissionId: string;
+  /** Called after the lecturer accepts the AI grade (review recorded server-side). */
   onApply?: (grade: number) => void;
 }
 
@@ -28,6 +29,7 @@ export default function AiGradeRecommendation({ submissionId, onApply }: AiGrade
   const [recommendation, setRecommendation] = useState<GradeRecommendation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accepted, setAccepted] = useState(false);
 
   const handleRecommend = async () => {
     setLoading(true);
@@ -35,11 +37,28 @@ export default function AiGradeRecommendation({ submissionId, onApply }: AiGrade
     try {
       const result = await aiGradingApi.recommend(submissionId);
       setRecommendation(result);
-    } catch (err: any) {
-      setError(err.message || "Failed to get grade recommendation");
+      setAccepted(!!result.reviewed);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to get grade recommendation");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAccept = async () => {
+    if (!recommendation) return;
+    try {
+      // Record the accept decision (human-in-the-loop audit + calibration pair).
+      await aiGradingApi.review({
+        submission_id: submissionId,
+        ai_grade: recommendation.recommended_grade,
+        final_grade: recommendation.recommended_grade,
+        action: "accepted",
+        apply: false, // let the grading form own the actual write
+      });
+      setAccepted(true);
+    } catch { /* non-fatal — the grade form still applies it */ }
+    onApply?.(recommendation.recommended_grade);
   };
 
   if (!recommendation && !loading) {
@@ -64,7 +83,7 @@ export default function AiGradeRecommendation({ submissionId, onApply }: AiGrade
         <Loader2 className="w-5 h-5 text-accent-purple animate-spin" />
         <div>
           <p className="text-sm text-white">Generating recommendation...</p>
-          <p className="text-xs text-dark-400">Analyzing submission quality</p>
+          <p className="text-xs text-dark-400">Scoring each rubric criterion across multiple passes</p>
         </div>
       </div>
     );
@@ -72,7 +91,12 @@ export default function AiGradeRecommendation({ submissionId, onApply }: AiGrade
 
   if (!recommendation) return null;
 
-  const criterionEntries = Object.entries(recommendation.criterion_scores || {});
+  const rec = recommendation;
+  const detail = rec.criteria_detail ?? [];
+  const criterionEntries = detail.length > 0
+    ? detail.map(d => ({ name: d.name, score: d.score, max: d.max_points, evidence: d.evidence, justification: d.justification }))
+    : Object.entries(rec.criterion_scores || {}).map(([name, score]) => ({ name, score, max: 100, evidence: "", justification: "" }));
+  const confidencePct = Math.round((rec.confidence ?? 0) * 100);
 
   return (
     <AnimatePresence>
@@ -81,11 +105,20 @@ export default function AiGradeRecommendation({ submissionId, onApply }: AiGrade
         animate={{ opacity: 1, height: "auto" }}
         className="bg-dark-800/50 border border-white/10 rounded-xl p-4 space-y-4 mt-2"
       >
-        {/* Header with grade */}
+        {/* Advisory banner — recommendation, not a final grade */}
+        <div className="flex items-start gap-2 rounded-lg bg-accent-amber/5 border border-accent-amber/20 px-3 py-2">
+          <AlertTriangle className="w-3.5 h-3.5 text-accent-amber shrink-0 mt-0.5" />
+          <p className="text-[11px] text-dark-300 leading-relaxed">
+            AI recommendation for your review — <strong className="text-dark-100">not a final grade</strong>.
+            Scores are per-criterion against the rubric; confirm or override before committing.
+          </p>
+        </div>
+
+        {/* Header with grade + measured confidence */}
         <div className="flex items-center gap-4">
-          <div className={`w-20 h-20 rounded-xl border flex flex-col items-center justify-center flex-shrink-0 ${gradeBg(recommendation.recommended_grade)}`}>
-            <span className={`text-2xl font-bold ${gradeColor(recommendation.recommended_grade)}`}>
-              {recommendation.recommended_grade}
+          <div className={`w-20 h-20 rounded-xl border flex flex-col items-center justify-center flex-shrink-0 ${gradeBg(rec.recommended_grade)}`}>
+            <span className={`text-2xl font-bold ${gradeColor(rec.recommended_grade)}`}>
+              {rec.recommended_grade}
             </span>
             <span className="text-[10px] text-dark-400">/ 100</span>
           </div>
@@ -94,37 +127,66 @@ export default function AiGradeRecommendation({ submissionId, onApply }: AiGrade
               <Sparkles className="w-4 h-4 text-accent-purple" />
               <h4 className="text-sm font-semibold text-white">AI Grade Recommendation</h4>
             </div>
-            {/* Confidence meter */}
-            <div className="mt-2">
+            {rec.method && <p className="text-[10px] text-dark-400 mb-1.5">{rec.method}</p>}
+            {/* Measured confidence (agreement across samples) */}
+            <div className="mt-1">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] text-dark-400">Confidence</span>
-                <span className="text-[10px] text-dark-300">{Math.round(recommendation.confidence * 100)}%</span>
+                <span className="text-[10px] text-dark-400">
+                  Confidence{rec.samples ? ` (agreement across ${rec.samples} passes)` : ""}
+                </span>
+                <span className="text-[10px] text-dark-300">
+                  {confidencePct}%{rec.score_spread != null ? ` · ±${rec.score_spread}` : ""}
+                </span>
               </div>
               <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-accent-purple transition-all duration-500"
-                  style={{ width: `${recommendation.confidence * 100}%` }}
+                  className={`h-full rounded-full transition-all duration-500 ${confidencePct >= 75 ? "bg-accent-emerald" : confidencePct >= 60 ? "bg-accent-amber" : "bg-red-400"}`}
+                  style={{ width: `${confidencePct}%` }}
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Criterion scores table */}
+        {/* Low-agreement warning */}
+        {rec.needs_review && (
+          <div className="flex items-start gap-2 rounded-lg bg-red-500/5 border border-red-500/20 px-3 py-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-dark-300 leading-relaxed">
+              <strong className="text-red-300">Low agreement between passes</strong> — the model was
+              inconsistent on this submission. Manual grading strongly recommended.
+            </p>
+          </div>
+        )}
+
+        {/* Per-criterion breakdown with evidence */}
         {criterionEntries.length > 0 && (
           <div className="space-y-1">
             <p className="text-xs font-medium text-dark-300 uppercase tracking-wide">Criteria Breakdown</p>
-            <div className="rounded-lg border border-white/5 overflow-hidden">
-              {criterionEntries.map(([criterion, score], i) => (
+            <div className="rounded-lg border border-white/5 overflow-hidden divide-y divide-white/5">
+              {criterionEntries.map((c, i) => (
                 <motion.div
-                  key={criterion}
+                  key={c.name}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="flex items-center justify-between px-3 py-2 text-xs border-b border-white/5 last:border-b-0 bg-white/[0.02]"
+                  className="px-3 py-2 text-xs bg-white/[0.02]"
                 >
-                  <span className="text-dark-200">{criterion}</span>
-                  <span className={`font-medium ${gradeColor(score)}`}>{score}%</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-dark-200">{c.name}</span>
+                    <span className="font-medium text-dark-100 tabular-nums">
+                      {c.score}{c.max ? <span className="text-dark-500"> / {c.max}</span> : null}
+                    </span>
+                  </div>
+                  {c.evidence ? (
+                    <p className="mt-1 flex items-start gap-1.5 text-[11px] text-dark-400 italic">
+                      <Quote className="w-3 h-3 shrink-0 mt-0.5 text-dark-500" />
+                      <span className="line-clamp-3">{c.evidence}</span>
+                    </p>
+                  ) : null}
+                  {c.justification ? (
+                    <p className="mt-0.5 text-[11px] text-dark-400">{c.justification}</p>
+                  ) : null}
                 </motion.div>
               ))}
             </div>
@@ -132,21 +194,28 @@ export default function AiGradeRecommendation({ submissionId, onApply }: AiGrade
         )}
 
         {/* Justification */}
-        {recommendation.justification && (
+        {rec.justification && (
           <div className="pt-2 border-t border-white/5">
-            <p className="text-xs text-dark-300">{recommendation.justification}</p>
+            <p className="text-xs text-dark-300">{rec.justification}</p>
           </div>
         )}
 
-        {/* Apply button */}
+        {/* Accept (records the human-in-the-loop decision) */}
         {onApply && (
-          <button
-            onClick={() => onApply(recommendation.recommended_grade)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-accent-purple/10 text-accent-purple hover:bg-accent-purple/20 transition-colors border border-accent-purple/20"
-          >
-            <CheckCircle className="w-4 h-4" />
-            Apply Recommendation
-          </button>
+          accepted ? (
+            <div className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-accent-emerald/10 text-accent-emerald border border-accent-emerald/20">
+              <ShieldCheck className="w-4 h-4" />
+              Accepted — review the grade form, then save
+            </div>
+          ) : (
+            <button
+              onClick={handleAccept}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-accent-purple/10 text-accent-purple hover:bg-accent-purple/20 transition-colors border border-accent-purple/20"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Accept &amp; Pre-fill Grade
+            </button>
+          )
         )}
       </motion.div>
     </AnimatePresence>

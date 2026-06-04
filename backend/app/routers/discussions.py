@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from .. import models, schemas
 from ..firestore import get_db
 from ..auth import get_current_user
+from ..sanitize import clean_text
 from datetime import datetime, timezone
 from google.cloud.firestore_v1.base_query import FieldFilter
 
@@ -44,7 +45,7 @@ def send_message(course_id: str, req: schemas.DiscussionCreate, user: dict = Dep
     photo_url = models.get_user_photo_url(db, user["id"])
     data = {
         "courseId": course_id,
-        "text": req.text,
+        "text": clean_text(req.text),
         "senderId": user["id"],
         "senderName": user.get("displayName", ""),
         "senderRole": user.get("role", "student"),
@@ -67,8 +68,9 @@ def edit_message(course_id: str, msg_id: str, req: schemas.DiscussionCreate, use
     if d.get("senderId") != user["id"]:
         raise HTTPException(status_code=403, detail="Can only edit your own messages")
     now = datetime.now(timezone.utc)
-    doc_ref.update({"text": req.text, "edited": True, "editedAt": now})
-    d["text"] = req.text
+    safe_text = clean_text(req.text)
+    doc_ref.update({"text": safe_text, "edited": True, "editedAt": now})
+    d["text"] = safe_text
     d["edited"] = True
     d["editedAt"] = now
     return _disc_out(d, models.get_user_photo_url(db, d.get("senderId", "")))
@@ -119,7 +121,7 @@ def reply_to_message(course_id: str, msg_id: str, req: schemas.DiscussionCreate,
     data = {
         "courseId": course_id,
         "parentId": msg_id,
-        "text": req.text,
+        "text": clean_text(req.text),
         "senderId": user["id"],
         "senderName": user.get("displayName", ""),
         "senderRole": user.get("role", "student"),

@@ -9,6 +9,7 @@ Then cluster detection + GAG narrative run after the graph is built.
 from fastapi import APIRouter, Depends, HTTPException
 from app.firestore import db
 from app.auth import get_current_user, require_lecturer
+from app.authz import assert_assignment_owner
 from app import models
 from app.ai_service import generate_json, get_knowledge_base, set_tracking_context, safe_truncate
 from app import knowledge_graph_service, gag_service
@@ -47,6 +48,8 @@ async def analyze_submission(submission_id: str, user=Depends(require_lecturer))
     if not sub_doc.exists:
         raise HTTPException(404, "Submission not found")
     sub = sub_doc.to_dict()
+    # Object-level authz: requester must own the parent assignment's course.
+    assert_assignment_owner(db, sub.get("assignmentId", ""), user)
 
     # Get submission content
     content = ""
@@ -121,6 +124,19 @@ async def get_report(submission_id: str, user=Depends(require_lecturer)):
     return _report_out(models.doc_to_dict(docs[0]))
 
 
+@router.get("/historical/{assignment_id}")
+async def historical_corpus_check(assignment_id: str, user=Depends(require_lecturer)):
+    """Cross-assignment plagiarism check: compare this assignment's submissions
+    against submissions from other assignments in the same course (reuse / prior
+    cohort detection) using semantic embeddings."""
+    assert_assignment_owner(db, assignment_id, user)
+    set_tracking_context(user["id"], "plagiarism")
+    try:
+        return await knowledge_graph_service.check_historical_corpus(assignment_id)
+    except Exception as e:
+        raise HTTPException(502, f"Historical analysis failed: {str(e)}")
+
+
 @router.post("/analyze-assignment/{assignment_id}")
 async def analyze_assignment_network(assignment_id: str, user=Depends(require_lecturer)):
     """RAG+GAG (Graph): Build a similarity network across all submissions for an assignment.
@@ -129,6 +145,7 @@ async def analyze_assignment_network(assignment_id: str, user=Depends(require_le
     expensive similarity graph build — if the assignment doesn't exist, we
     detect it immediately without waiting for the graph.
     """
+    assert_assignment_owner(db, assignment_id, user)
     set_tracking_context(user["id"], "plagiarism")
 
     async def _verify_assignment():
